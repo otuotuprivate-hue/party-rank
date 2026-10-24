@@ -16,7 +16,7 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {} };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [] };
 function save() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = DB_FILE + '.tmp';
@@ -61,6 +61,7 @@ const labelOf = (key) => {
   const p = key.split('-');
   return p[0] + '年' + COURS[p[1]] + (p[2] || '');
 };
+const songOrder = (a, b) => (a.ord != null ? a.ord : a.at) - (b.ord != null ? b.ord : b.at) || a.at - b.at;
 const validKey = (k) => /^\d{4}-(1|4|7|10)-/.test(k) && KINDS.includes(String(k).split('-')[2]);
 
 const hits = new Map();
@@ -113,7 +114,7 @@ function admin(req) {
 
 /* ---------- 集計(管理者の全体表・動画用データ) ---------- */
 function buildTable(key) {
-  const songs = db.songs.filter((s) => s.key === key).sort((a, b) => a.at - b.at);
+  const songs = db.songs.filter((s) => s.key === key).sort(songOrder);
   const ids = new Set(songs.map((s) => s.id));
   const cour = courOf(key);
   const people = db.people
@@ -177,7 +178,7 @@ async function api(req, res, url) {
   const body = m === 'GET' || m === 'DELETE' ? {} : await readBody(req);
 
   if (m === 'GET' && p === '/api/songs') {
-    return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at }) => ({ id, key, title, artist, anime, at })), playlists: db.playlists });
+    return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at, ord }) => ({ id, key, title, artist, anime, at, ord: ord != null ? ord : at })), playlists: db.playlists, years: db.years, notices: db.notices.slice().reverse() });
   }
   if (m === 'POST' && p === '/api/join') {
     if (limited(req, 'join', 30, 10 * 60000)) throw new HttpError(429, '試行回数が多すぎます。しばらくしてからやり直してください');
@@ -286,8 +287,47 @@ async function api(req, res, url) {
       if (!validKey(key)) throw bad('区分が正しくありません');
       if (!title) throw bad('曲名を入力してください');
       const song = { id: id(), key, title, artist: clean(body.artist, 60), anime: clean(body.anime, 80), at: Date.now() };
+      song.ord = Math.max(-1, ...db.songs.filter((x) => x.key === key).map((x) => (x.ord != null ? x.ord : x.at))) + 1;
       db.songs.push(song); save();
       return send(res, 200, song);
+    }
+    if (p === '/api/admin/songs/order' && m === 'PUT') {
+      const key = clean(body.key, 20);
+      if (!validKey(key)) throw bad('区分が正しくありません');
+      const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
+      const cur = db.songs.filter((x) => x.key === key);
+      if (ids.length !== cur.length || new Set(ids).size !== ids.length || !ids.every((i) => cur.some((x) => x.id === i))) throw bad('曲の一覧が最新ではありません。画面を更新してやり直してください');
+      ids.forEach((i, n) => { db.songs.find((x) => x.id === i).ord = n; });
+      save();
+      return send(res, 200, { ok: true });
+    }
+    if (p === '/api/admin/years' && m === 'POST') {
+      const y = Number(body.year);
+      if (!Number.isInteger(y) || y < 1950 || y > 2100) throw bad('年は1950〜2100の数字で入力してください');
+      if (!db.years.includes(y)) { db.years.push(y); db.years.sort((a, b) => a - b); save(); }
+      return send(res, 200, { years: db.years });
+    }
+    const ym = p.match(/^\/api\/admin\/years\/(\d{4})$/);
+    if (ym && m === 'DELETE') {
+      const y = Number(ym[1]);
+      if (db.songs.some((x) => x.key.startsWith(y + '-'))) throw bad(y + '年には曲があるので削除できません');
+      db.years = db.years.filter((v) => v !== y); save();
+      return send(res, 200, { years: db.years });
+    }
+    if (p === '/api/admin/notices' && m === 'POST') {
+      const text = String(body.text == null ? '' : body.text).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, 1000);
+      if (!text) throw bad('お知らせの内容を入力してください');
+      db.notices.push({ id: id(), text, at: Date.now() });
+      if (db.notices.length > 100) db.notices.shift();
+      save();
+      return send(res, 200, { notices: db.notices.slice().reverse() });
+    }
+    const nm = p.match(/^\/api\/admin\/notices\/([0-9a-z]+)$/);
+    if (nm && m === 'DELETE') {
+      const i = db.notices.findIndex((x) => x.id === nm[1]);
+      if (i < 0) throw new HttpError(404, 'お知らせが見つかりません');
+      db.notices.splice(i, 1); save();
+      return send(res, 200, { notices: db.notices.slice().reverse() });
     }
     const dm = p.match(/^\/api\/admin\/songs\/([0-9a-z]+)$/);
     if (dm && m === 'PUT') {
