@@ -1,0 +1,9 @@
+{
+  "name": "party-rank",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Party Rank点数評価ツール",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
