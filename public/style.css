@@ -68,3 +68,8 @@ table.mx{border-collapse:separate;border-spacing:0;font-size:14px;width:max-cont
 .mx .cmk{color:var(--acc2);cursor:help}
 details summary{cursor:pointer;font-weight:700}
 @media(max-width:560px){.row{grid-template-columns:1fr}.rc{justify-content:flex-start}}
+
+textarea{font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--card);color:inherit}
+.news-i{padding:8px 0;border-top:1px solid var(--line);white-space:pre-wrap;word-break:break-word}.news-i:first-child{border-top:none}
+.news-i small{display:block;color:var(--sub)}
+.mv{padding:2px 8px}

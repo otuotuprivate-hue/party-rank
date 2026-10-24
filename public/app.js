@@ -2,7 +2,7 @@
   'use strict';
   var $ = function (i) { return document.getElementById(i); };
   var NAMES = { 1: '冬', 4: '春', 7: '夏', 10: '秋' }, KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
-  var SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
+  var NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
   try { ptoken = localStorage.getItem('pr-token') || ''; atoken = sessionStorage.getItem('pr-admin') || ''; adminName = sessionStorage.getItem('pr-admin-name') || ''; } catch (e) {}
 
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
@@ -19,13 +19,23 @@
   }
 
   /* ---- 区分 ---- */
-  var now = new Date(), yr = $('year');
-  for (var y = now.getFullYear() + 1; y >= 2000; y--) yr.appendChild(new Option(y + '年', y));
-  yr.value = now.getFullYear(); $('cour').value = [1, 4, 7, 10][Math.floor(now.getMonth() / 3)];
+  var now = new Date(), yr = $('year'), YEARS = [];
+  function buildYears(keep) {
+    var set = {}, a = [];
+    for (var y = now.getFullYear() + 1; y >= 2000; y--) set[y] = 1;
+    YEARS.forEach(function (v) { set[v] = 1; }); if (keep) set[keep] = 1;
+    Object.keys(set).forEach(function (v) { a.push(Number(v)); }); a.sort(function (p, q) { return q - p; });
+    yr.textContent = ''; a.forEach(function (v) { yr.appendChild(new Option(v + '年', v)); });
+    yr.value = keep || now.getFullYear();
+  }
+  buildYears(0); $('cour').value = [1, 4, 7, 10][Math.floor(now.getMonth() / 3)];
+  var LAST = null; try { LAST = JSON.parse(localStorage.getItem('pr-last') || 'null'); } catch (e) {}
+  if (LAST && /^\d{4}$/.test(String(LAST.y)) && NAMES[LAST.c] && KINDS.indexOf(LAST.k) >= 0) { buildYears(Number(LAST.y)); $('cour').value = LAST.c; $('kind').value = LAST.k; }
+  function saveLast() { try { localStorage.setItem('pr-last', JSON.stringify({ y: yr.value, c: $('cour').value, k: $('kind').value })); } catch (e) {} }
   function key() { return yr.value + '-' + $('cour').value + '-' + $('kind').value; }
   function courOf(k) { return k.split('-').slice(0, 2).join('-'); }
   function label(k) { var p = k.split('-'); return p[0] + '年' + NAMES[p[1]] + (p[2] || ''); }
-  function songsOf(k) { return SONGS.filter(function (s) { return s.key === k; }).sort(function (a, b) { return a.at - b.at; }); }
+  function songsOf(k) { return SONGS.filter(function (s) { return s.key === k; }).sort(function (a, b) { return (a.ord - b.ord) || (a.at - b.at); }); }
 
   /* ---- 自分のランキング ---- */
   function rankedMine(k) {
@@ -57,7 +67,7 @@
     var k = key(), box = $('list'), L = songsOf(k); box.textContent = '';
     $('lh').textContent = '曲一覧 ' + label(k); renderPlink();
     if (!L.length) { box.appendChild(el('div', 'empty', atoken ? 'この区分の曲はまだありません。上のフォームから曲を追加してください。' : 'この区分の曲はまだありません。管理者が曲を追加するまでお待ちください。')); return; }
-    L.forEach(function (s) {
+    L.forEach(function (s, idx) {
       var row = el('div', 'row'), starred = ST[courOf(s.key)] === s.id;
       row.appendChild(info(s, false));
       var rc = el('div', 'rc');
@@ -71,6 +81,8 @@
       sel.onchange = function () { setScore(s.id, sel.value === '' ? null : Number(sel.value)); };
       rc.appendChild(sel);
       if (atoken) {
+        var up = el('button', 'ghost mv', '↑'); up.title = '上へ'; up.setAttribute('aria-label', s.title + 'を上へ'); up.disabled = idx === 0; up.onclick = function () { moveSong(L, idx, -1); }; rc.appendChild(up);
+        var dn = el('button', 'ghost mv', '↓'); dn.title = '下へ'; dn.setAttribute('aria-label', s.title + 'を下へ'); dn.disabled = idx === L.length - 1; dn.onclick = function () { moveSong(L, idx, 1); }; rc.appendChild(dn);
         var ed = el('button', 'ghost', '編集'); ed.onclick = function () { editSong(s); }; rc.appendChild(ed);
         var del = el('button', 'ghost', '削除');
         del.onclick = async function () {
@@ -88,6 +100,12 @@
       box.appendChild(row);
     });
   }
+  async function moveSong(L, idx, d) {
+    var j = idx + d; if (j < 0 || j >= L.length) return;
+    var ids = L.map(function (x) { return x.id; }), t = ids[idx]; ids[idx] = ids[j]; ids[j] = t;
+    try { await api('PUT', '/api/admin/songs/order', { key: key(), ids: ids }, atoken); await refresh(); }
+    catch (e) { adminError(e, '並び替えできませんでした'); }
+  }
   function renderPlink() {
     var b = $('plink'); b.textContent = ''; var u = PL[key()];
     if (u && /^https:\/\//.test(u)) {
@@ -101,7 +119,7 @@
     function sk(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
     Object.keys(seen).sort(function (a, b) { return sk(b) - sk(a) || KINDS.indexOf(a.split('-')[2]) - KINDS.indexOf(b.split('-')[2]); }).forEach(function (k) {
       var b = el('button', k === key() ? 'on' : '', label(k) + '(' + seen[k] + ')');
-      b.onclick = function () { var p = k.split('-'); yr.value = p[0]; $('cour').value = p[1]; $('kind').value = p[2]; renderAll(); loadTable(); };
+      b.onclick = function () { var p = k.split('-'); yr.value = p[0]; $('cour').value = p[1]; $('kind').value = p[2]; saveLast(); renderAll(); loadTable(); };
       t.appendChild(b);
     });
   }
@@ -290,6 +308,45 @@
     } catch (err) { adminError(err, '保存できませんでした'); }
   };
 
+  /* ---- お知らせ・年 ---- */
+  function fdate(t) { var d = new Date(t); return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate(); }
+  function renderNews() {
+    var box = $('newsList'), adm = $('nAdm'); box.textContent = ''; adm.textContent = '';
+    $('newsBox').hidden = !NEWS.length;
+    $('newsSum').textContent = 'アップデート情報(最新: ' + (NEWS[0] ? fdate(NEWS[0].at) : '') + ')';
+    NEWS.forEach(function (n) {
+      var d = el('div', 'news-i'); d.appendChild(el('small', '', fdate(n.at))); d.appendChild(document.createTextNode(n.text)); box.appendChild(d);
+      if (atoken) {
+        var a = el('div', 'news-i'); a.appendChild(el('small', '', fdate(n.at))); a.appendChild(document.createTextNode(n.text.slice(0, 60) + (n.text.length > 60 ? '…' : '')));
+        var del = el('button', 'ghost', '削除'); del.onclick = async function () {
+          if (!confirm('このお知らせを削除します。')) return;
+          try { var r = await api('DELETE', '/api/admin/notices/' + n.id, undefined, atoken); NEWS = r.notices; renderNews(); } catch (e) { adminError(e, '削除できませんでした'); }
+        };
+        a.appendChild(del); adm.appendChild(a);
+      }
+    });
+  }
+  function renderYears() {
+    var box = $('yList'); box.textContent = ''; if (!atoken) return;
+    if (!YEARS.length) { box.textContent = '追加した年はありません(2000年〜来年は最初から選べます)。'; return; }
+    box.appendChild(document.createTextNode('追加済みの年: '));
+    YEARS.forEach(function (y) {
+      var chip = el('span', 'chip', y + '年'); var d = el('button', 'ghost', '×'); d.setAttribute('aria-label', y + '年を削除');
+      d.onclick = async function () { try { var r = await api('DELETE', '/api/admin/years/' + y, undefined, atoken); YEARS = r.years; buildYears(Number(yr.value)); renderAll(); } catch (e) { adminError(e, '削除できませんでした'); } };
+      chip.appendChild(d); box.appendChild(chip);
+    });
+  }
+  $('yf').onsubmit = async function (e) {
+    e.preventDefault();
+    try { var r = await api('POST', '/api/admin/years', { year: Number($('ynew').value) }, atoken); YEARS = r.years; var y = Number($('ynew').value); $('ynew').value = ''; buildYears(y); saveLast(); renderAll(); loadTable(); toast(y + '年を追加しました'); }
+    catch (err) { adminError(err, '追加できませんでした'); }
+  };
+  $('nf').onsubmit = async function (e) {
+    e.preventDefault();
+    try { var r = await api('POST', '/api/admin/notices', { text: $('ntext').value }, atoken); NEWS = r.notices; $('ntext').value = ''; renderNews(); toast('お知らせを投稿しました'); }
+    catch (err) { adminError(err, '投稿できませんでした'); }
+  };
+
   /* ---- 描画 ---- */
   function renderAll() {
     var admin = !!atoken;
@@ -302,18 +359,19 @@
     $('lead').textContent = admin ? '管理者画面です。曲の追加・全ユーザーの採点の確認・動画用データの書き出しができます。'
       : '名前を入力して参加し、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
     if (admin) $('purl').value = PL[key()] || '';
-    tabs(); renderRank(); renderList(); renderMatrix();
+    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears();
   }
   var SIG = '';
   async function refresh(silent) {
     try {
       var res = await api('GET', '/api/songs'), songs = res.songs, sig = JSON.stringify(res);
       if (silent === true && sig === SIG) { loadTable(); return; }
-      SIG = sig; SONGS = songs; PL = res.playlists || {};
+      SIG = sig; SONGS = songs; PL = res.playlists || {}; NEWS = res.notices || [];
+      var ny = res.years || []; if (JSON.stringify(ny) !== JSON.stringify(YEARS)) { YEARS = ny; buildYears(Number(yr.value)); }
     } catch (e) { if (silent !== true) toast('曲一覧を読み込めませんでした'); return; }
     renderAll(); loadTable();
   }
-  yr.onchange = $('cour').onchange = $('kind').onchange = function () { renderAll(); loadTable(); };
+  yr.onchange = $('cour').onchange = $('kind').onchange = function () { saveLast(); renderAll(); loadTable(); };
 
   (async function init() {
     await loadMe();
