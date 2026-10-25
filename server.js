@@ -16,7 +16,7 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [] };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {} };
 function save() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = DB_FILE + '.tmp';
@@ -178,7 +178,19 @@ async function api(req, res, url) {
   const body = m === 'GET' || m === 'DELETE' ? {} : await readBody(req);
 
   if (m === 'GET' && p === '/api/songs') {
-    return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at, ord }) => ({ id, key, title, artist, anime, at, ord: ord != null ? ord : at })), playlists: db.playlists, years: db.years, notices: db.notices.slice().reverse() });
+    return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at, ord }) => ({ id, key, title, artist, anime, at, ord: ord != null ? ord : at })), playlists: db.playlists, years: db.years, notices: db.notices.slice().reverse(), deadlines: db.deadlines });
+  }
+  if (m === 'GET' && p === '/api/participants') {
+    // 名前と採点した曲数だけを返す(点数・コメントは含めない)
+    const songKey = {}, total = {};
+    db.songs.forEach((s) => { songKey[s.id] = s.key; total[s.key] = (total[s.key] || 0) + 1; });
+    const by = {};
+    db.people.forEach((u) => {
+      const cnt = {};
+      Object.keys(db.scores[u.id] || {}).forEach((sid) => { if (songKey[sid]) cnt[songKey[sid]] = (cnt[songKey[sid]] || 0) + 1; });
+      Object.keys(cnt).forEach((k) => { (by[k] = by[k] || []).push({ name: u.name, scored: cnt[k] }); });
+    });
+    return send(res, 200, { people: db.people.map((u) => u.name), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
   }
   if (m === 'POST' && p === '/api/join') {
     if (limited(req, 'join', 30, 10 * 60000)) throw new HttpError(429, '試行回数が多すぎます。しばらくしてからやり直してください');
@@ -301,6 +313,15 @@ async function api(req, res, url) {
       save();
       return send(res, 200, { ok: true });
     }
+    if (p === '/api/admin/deadline' && m === 'PUT') {
+      const key = clean(body.key, 20);
+      if (!validKey(key)) throw bad('区分が正しくありません');
+      if (body.at == null || body.at === '') { delete db.deadlines[key]; save(); return send(res, 200, { deadlines: db.deadlines }); }
+      const at = Number(body.at);
+      if (!Number.isFinite(at) || at < Date.UTC(2000, 0, 1) || at > Date.UTC(2101, 0, 1)) throw bad('提出期限の日時が正しくありません');
+      db.deadlines[key] = Math.round(at); save();
+      return send(res, 200, { deadlines: db.deadlines });
+    }
     if (p === '/api/admin/years' && m === 'POST') {
       const y = Number(body.year);
       if (!Number.isInteger(y) || y < 1950 || y > 2100) throw bad('年は1950〜2100の数字で入力してください');
@@ -388,7 +409,7 @@ async function api(req, res, url) {
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 const SEC = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
-  'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
+  'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
 };
 function serveStatic(req, res, url) {
   let rel = decodeURIComponent(url.pathname);
