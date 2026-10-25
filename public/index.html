@@ -14,6 +14,10 @@
 
   <details class="panel" id="newsBox" hidden><summary id="newsSum">アップデート情報</summary><div id="newsList" style="margin-top:8px"></div></details>
 
+  <details class="panel" id="partBox"><summary id="partSum">参加者一覧</summary>
+    <p class="hint" style="margin:8px 0 4px">表示されるのは名前と採点した曲数だけです。点数やひとことは見えません。</p>
+    <div id="partAll" class="ppl"></div><div id="partKeys" style="margin-top:8px"></div></details>
+
   <div class="panel bar" id="userBar">
     <span id="meName"></span><span class="badge" id="adminBadge" hidden>管理者</span>
     <span class="grow"></span>
@@ -90,6 +94,10 @@
       <button class="pri">プレイリストを保存</button>
     </form>
     <p class="hint" style="margin:6px 0 0">貼れるのは管理者だけです。空にして保存すると、リンクを外せます。リンクは参加者にも表示されます。</p>
+    <form id="df" class="inl" style="margin-top:14px">
+      <label>この区分の提出期限(表示のみ。期限後も採点はできます)<input id="dtime" type="datetime-local"></label>
+      <button class="pri">期限を保存</button><button type="button" id="dclear">期限を外す</button>
+    </form>
   </div>
 
   <div id="adminSec" hidden>
@@ -107,8 +115,13 @@
   <h2 id="rh"></h2>
   <div id="rank"></div>
   <h2 id="lh"></h2>
+  <p class="deadline" id="dline"></p>
   <p class="plink" id="plink"></p>
   <div id="list"></div>
+</div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" hidden>
+  <div class="mbox"><h3 id="mTitle"></h3><p id="mBody"></p>
+    <div class="bar" style="justify-content:flex-end;margin:12px 0 0"><button id="mCancel">キャンセル</button><button class="danger" id="mOk">削除する</button></div></div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 <script src="/app.js"></script>

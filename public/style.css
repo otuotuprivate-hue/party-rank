@@ -73,3 +73,12 @@ textarea{font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px
 .news-i{padding:8px 0;border-top:1px solid var(--line);white-space:pre-wrap;word-break:break-word}.news-i:first-child{border-top:none}
 .news-i small{display:block;color:var(--sub)}
 .mv{padding:2px 8px}
+
+.modal{position:fixed;inset:0;background:rgba(10,10,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal[hidden]{display:none}
+.mbox{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:420px;width:100%}
+.mbox h3{margin:0 0 8px;font-size:17px}.mbox p{margin:0;white-space:pre-wrap;word-break:break-word}
+button.danger{background:#d6334a;border-color:#d6334a;color:#fff;font-weight:700}
+.deadline{margin:2px 0 6px;font-weight:700}.deadline.over{color:#d6334a}.deadline small{font-weight:400;color:var(--sub);margin-left:6px}
+th.sortable{cursor:pointer;user-select:none}th.sortable:hover{text-decoration:underline}
+.pk{margin:4px 0}.pk summary{cursor:pointer}.pk .ppl{margin-top:6px}

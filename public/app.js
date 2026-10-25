@@ -2,9 +2,21 @@
   'use strict';
   var $ = function (i) { return document.getElementById(i); };
   var NAMES = { 1: '冬', 4: '春', 7: '夏', 10: '秋' }, KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
-  var NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
+  var DEAD = {}, PART = null, OPENK = {}, SORT = { uid: null, dir: -1 }, NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
   try { ptoken = localStorage.getItem('pr-token') || ''; atoken = sessionStorage.getItem('pr-admin') || ''; adminName = sessionStorage.getItem('pr-admin-name') || ''; } catch (e) {}
 
+  function confirmBox(title, body, okLabel) {
+    return new Promise(function (resolve) {
+      var m = $('modal'), prev = document.activeElement;
+      $('mTitle').textContent = title; $('mBody').textContent = body; $('mOk').textContent = okLabel || '削除する';
+      m.hidden = false; $('mCancel').focus();
+      function done(v) { m.hidden = true; document.removeEventListener('keydown', key); $('mOk').onclick = $('mCancel').onclick = m.onclick = null; if (prev && prev.focus) { try { prev.focus(); } catch (e) {} } resolve(v); }
+      function key(e) { if (e.key === 'Escape') done(false); }
+      document.addEventListener('keydown', key);
+      $('mOk').onclick = function () { done(true); }; $('mCancel').onclick = function () { done(false); };
+      m.onclick = function (e) { if (e.target === m) done(false); };
+    });
+  }
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function () { e.classList.remove('show'); }, 2600); }
   function store(k, v, sess) { try { (sess ? sessionStorage : localStorage)[v ? 'setItem' : 'removeItem'](k, v); } catch (e) {} }
@@ -86,7 +98,7 @@
         var ed = el('button', 'ghost', '編集'); ed.onclick = function () { editSong(s); }; rc.appendChild(ed);
         var del = el('button', 'ghost', '削除');
         del.onclick = async function () {
-          if (!confirm('「' + s.title + '」を削除します。全員の点数とコメントも消えます。')) return;
+          if (!(await confirmBox('曲を削除しますか?', '「' + s.title + '」(' + label(s.key) + ')を削除します。\nこの曲への全員の点数・ひとこと・☆も消え、元に戻せません。'))) return;
           try { await api('DELETE', '/api/admin/songs/' + s.id, undefined, atoken); if (editId === s.id) cancelEdit(); await refresh(); toast('削除しました'); } catch (e) { adminError(e, '削除できませんでした'); }
         };
         rc.appendChild(del);
@@ -126,7 +138,7 @@
 
   /* ---- 採点・☆ ---- */
   async function setScore(songId, v) {
-    try { await api('PUT', '/api/me/score', { songId: songId, score: v }, ptoken); if (v == null) delete SC[songId]; else SC[songId] = v; renderRank(); renderList(); loadTable(); }
+    try { await api('PUT', '/api/me/score', { songId: songId, score: v }, ptoken); if (v == null) delete SC[songId]; else SC[songId] = v; renderRank(); renderList(); loadTable(); loadPart(); }
     catch (e) { toast(e.message); if (e.status === 401) forget(); else renderList(); }
   }
   async function toggleStar(s) {
@@ -143,7 +155,7 @@
   $('rcancel').onclick = function () { $('renamePanel').hidden = true; $('rmsg').textContent = ''; };
   $('rf').onsubmit = async function (e) {
     e.preventDefault(); $('rmsg').textContent = '';
-    try { var r = await api('PUT', '/api/me/name', { name: $('rn').value }, ptoken); ME.name = r.name; $('renamePanel').hidden = true; renderAll(); loadTable(); toast('名前を変更しました'); }
+    try { var r = await api('PUT', '/api/me/name', { name: $('rn').value }, ptoken); ME.name = r.name; $('renamePanel').hidden = true; renderAll(); loadTable(); loadPart(); toast('名前を変更しました'); }
     catch (err) { $('rmsg').textContent = err.message; if (err.status === 401) forget(); }
   };
 
@@ -166,12 +178,26 @@
     if (!t.rows.length || !t.people.length) { box.appendChild(el('div', 'empty', 'この区分の曲か、採点したユーザーがまだいません。')); return; }
     var wrap = el('div', 'mwrap'), tb = el('table', 'mx'), hr = el('tr');
     hr.appendChild(el('th', 'c1', '順位')); hr.appendChild(el('th', 'c2', '曲名'));
-    t.people.forEach(function (u) { var th = el('th', '', u.name); th.title = u.name; hr.appendChild(th); });
-    hr.appendChild(el('th', 'av', '曲の平均'));
+    if (SORT.uid && SORT.uid !== '_avg' && !t.people.some(function (u) { return u.id === SORT.uid; })) SORT.uid = null;
+    function arrow(id) { return SORT.uid === id ? (SORT.dir < 0 ? ' ▼' : ' ▲') : ''; }
+    function sortTh(th, id, name) {
+      th.className += ' sortable'; th.tabIndex = 0; th.setAttribute('role', 'button'); th.title = name + 'の点数で並べ替え(高い順 → 低い順 → 元の順位順)';
+      function go() { if (SORT.uid !== id) { SORT.uid = id; SORT.dir = -1; } else if (SORT.dir < 0) SORT.dir = 1; else SORT.uid = null; renderMatrix(); }
+      th.onclick = go; th.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+    }
+    t.people.forEach(function (u) { var th = el('th', '', u.name + arrow(u.id)); sortTh(th, u.id, u.name); hr.appendChild(th); });
+    var thAv = el('th', 'av', '曲の平均' + arrow('_avg')); sortTh(thAv, '_avg', '曲の平均'); hr.appendChild(thAv);
     var th0 = el('thead'); th0.appendChild(hr); tb.appendChild(th0);
     var body = el('tbody');
-    t.rows.forEach(function (r) {
-      var tr = el('tr', r.rank === 1 ? 'top' : '');
+    var rowsS = t.rows.map(function (r, i) { return { r: r, i: i }; });
+    if (SORT.uid) rowsS.sort(function (a, b) {
+      var va = SORT.uid === '_avg' ? a.r.avg : a.r.scores[SORT.uid], vb = SORT.uid === '_avg' ? b.r.avg : b.r.scores[SORT.uid];
+      var na = typeof va !== 'number', nb = typeof vb !== 'number';
+      if (na || nb) return na === nb ? a.i - b.i : na ? 1 : -1;
+      return (va - vb) * SORT.dir || a.i - b.i;
+    });
+    rowsS.forEach(function (x) {
+      var r = x.r, tr = el('tr', r.rank === 1 ? 'top' : '');
       tr.appendChild(el('td', 'c1', r.rank == null ? '–' : r.rank));
       var c2 = el('td', 'c2', r.title); c2.appendChild(el('small', '', [r.artist, r.anime].filter(Boolean).join(' / '))); tr.appendChild(c2);
       t.people.forEach(function (u) {
@@ -233,7 +259,7 @@
     e.preventDefault(); $('jmsg').textContent = '';
     try {
       var r = await api('POST', '/api/join', { name: $('jn').value, pass: $('jp').value });
-      ptoken = r.token; store('pr-token', ptoken); $('jp').value = ''; $('jn').value = ''; await loadMe(); renderAll(); toast(r.name + 'さんとして参加しました');
+      ptoken = r.token; store('pr-token', ptoken); $('jp').value = ''; $('jn').value = ''; await loadMe(); renderAll(); loadPart(); toast(r.name + 'さんとして参加しました');
     } catch (err) { $('jmsg').textContent = err.message; }
   };
   $('leave').onclick = function () { forget(); $('joinPanel').hidden = false; $('jn').focus(); };
@@ -251,7 +277,7 @@
         var chip = el('span', 'chip'); chip.appendChild(document.createTextNode(u.name + '(採点 ' + u.scored + '曲)'));
         var d = el('button', 'ghost', '削除'); d.setAttribute('aria-label', u.name + 'を削除');
         d.onclick = async function () {
-          if (!confirm('「' + u.name + '」を削除します。この人の点数・☆・ひとことも消え、元に戻せません。')) return;
+          if (!(await confirmBox('ユーザーを削除しますか?', '「' + u.name + '」(採点 ' + u.scored + '曲)を削除します。\nこの人の点数・☆・ひとことも消え、元に戻せません。'))) return;
           try { await api('DELETE', '/api/admin/people/' + u.id, undefined, atoken); PSIG = ''; TSIG = ''; await loadPeople(); await loadTable(); toast('削除しました'); } catch (e) { adminError(e, '削除できませんでした'); }
         };
         chip.appendChild(d); box.appendChild(chip);
@@ -308,6 +334,51 @@
     } catch (err) { adminError(err, '保存できませんでした'); }
   };
 
+  /* ---- 提出期限 ---- */
+  function two(n) { return n < 10 ? '0' + n : '' + n; }
+  function localInput(t) { var d = new Date(t); return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate()) + 'T' + two(d.getHours()) + ':' + two(d.getMinutes()); }
+  function renderDeadline() {
+    var b = $('dline'), t = DEAD[key()]; b.textContent = ''; b.className = 'deadline';
+    if (atoken) $('dtime').value = t ? localInput(t) : '';
+    if (!t) return;
+    var d = new Date(t), W = ['日', '月', '火', '水', '木', '金', '土'], diff = t - Date.now();
+    b.appendChild(document.createTextNode('提出期限: ' + d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日(' + W[d.getDay()] + ') ' + two(d.getHours()) + ':' + two(d.getMinutes())));
+    var rest;
+    if (diff <= 0) { rest = '期限を過ぎています'; b.className = 'deadline over'; }
+    else { var mins = Math.floor(diff / 60000), dd = Math.floor(mins / 1440), hh = Math.floor((mins % 1440) / 60); rest = 'あと' + (dd ? dd + '日' : '') + (dd || hh ? hh + '時間' : '') + (dd ? '' : (mins % 60) + '分'); }
+    b.appendChild(el('small', '', rest));
+  }
+  setInterval(renderDeadline, 60000);
+  $('df').onsubmit = async function (e) {
+    e.preventDefault(); var v = $('dtime').value; if (!v) { toast('日時を入力してください'); return; }
+    try { var r = await api('PUT', '/api/admin/deadline', { key: key(), at: new Date(v).getTime() }, atoken); DEAD = r.deadlines; renderDeadline(); toast('提出期限を保存しました'); }
+    catch (err) { adminError(err, '保存できませんでした'); }
+  };
+  $('dclear').onclick = async function () {
+    try { var r = await api('PUT', '/api/admin/deadline', { key: key(), at: null }, atoken); DEAD = r.deadlines; renderDeadline(); toast('提出期限を外しました'); }
+    catch (err) { adminError(err, '操作できませんでした'); }
+  };
+
+  /* ---- 参加者一覧 ---- */
+  async function loadPart() { try { PART = await api('GET', '/api/participants'); renderParticipants(); } catch (e) {} }
+  function renderParticipants() {
+    var box = $('partKeys'), all = $('partAll'); box.textContent = ''; all.textContent = '';
+    if (!PART) { $('partBox').hidden = true; return; }
+    $('partBox').hidden = false;
+    $('partSum').textContent = '参加者一覧(全体 ' + PART.people.length + '人)';
+    if (!PART.people.length) all.appendChild(el('span', 'm', 'まだ参加者はいません。'));
+    PART.people.forEach(function (n) { all.appendChild(el('span', 'chip', n)); });
+    function sk(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
+    PART.keys.slice().sort(function (a, b) { return sk(b.key) - sk(a.key) || KINDS.indexOf(a.key.split('-')[2]) - KINDS.indexOf(b.key.split('-')[2]); }).forEach(function (g) {
+      var d = el('details', 'pk'); d.open = OPENK[g.key] != null ? OPENK[g.key] : g.key === key();
+      d.appendChild(el('summary', '', label(g.key) + ' の参加者(' + g.participants.length + '人 / 全' + g.songs + '曲)'));
+      var l = el('div', 'ppl');
+      if (!g.participants.length) l.appendChild(el('span', 'm', 'まだ採点した人はいません。'));
+      g.participants.forEach(function (u) { l.appendChild(el('span', 'chip', u.name + '(採点 ' + u.scored + '/' + g.songs + '曲)')); });
+      d.appendChild(l); d.ontoggle = function () { OPENK[g.key] = d.open; }; box.appendChild(d);
+    });
+  }
+
   /* ---- お知らせ・年 ---- */
   function fdate(t) { var d = new Date(t); return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate(); }
   function renderNews() {
@@ -319,7 +390,7 @@
       if (atoken) {
         var a = el('div', 'news-i'); a.appendChild(el('small', '', fdate(n.at))); a.appendChild(document.createTextNode(n.text.slice(0, 60) + (n.text.length > 60 ? '…' : '')));
         var del = el('button', 'ghost', '削除'); del.onclick = async function () {
-          if (!confirm('このお知らせを削除します。')) return;
+          if (!(await confirmBox('お知らせを削除しますか?', n.text.slice(0, 80) + (n.text.length > 80 ? '…' : '')))) return;
           try { var r = await api('DELETE', '/api/admin/notices/' + n.id, undefined, atoken); NEWS = r.notices; renderNews(); } catch (e) { adminError(e, '削除できませんでした'); }
         };
         a.appendChild(del); adm.appendChild(a);
@@ -332,7 +403,7 @@
     box.appendChild(document.createTextNode('追加済みの年: '));
     YEARS.forEach(function (y) {
       var chip = el('span', 'chip', y + '年'); var d = el('button', 'ghost', '×'); d.setAttribute('aria-label', y + '年を削除');
-      d.onclick = async function () { try { var r = await api('DELETE', '/api/admin/years/' + y, undefined, atoken); YEARS = r.years; buildYears(Number(yr.value)); renderAll(); } catch (e) { adminError(e, '削除できませんでした'); } };
+      d.onclick = async function () { if (!(await confirmBox('年を削除しますか?', y + '年を年の選択肢から外します(曲がない年のみ削除できます)。'))) return; try { var r = await api('DELETE', '/api/admin/years/' + y, undefined, atoken); YEARS = r.years; buildYears(Number(yr.value)); renderAll(); } catch (e) { adminError(e, '削除できませんでした'); } };
       chip.appendChild(d); box.appendChild(chip);
     });
   }
@@ -359,12 +430,15 @@
     $('lead').textContent = admin ? '管理者画面です。曲の追加・全ユーザーの採点の確認・動画用データの書き出しができます。'
       : '名前を入力して参加し、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
     if (admin) $('purl').value = PL[key()] || '';
-    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears();
+    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderParticipants();
   }
   var SIG = '';
   async function refresh(silent) {
     try {
       var res = await api('GET', '/api/songs'), songs = res.songs, sig = JSON.stringify(res);
+      DEAD = res.deadlines || {};
+      try { PART = await api('GET', '/api/participants'); } catch (e) {}
+      sig = JSON.stringify([res, PART]);
       if (silent === true && sig === SIG) { loadTable(); return; }
       SIG = sig; SONGS = songs; PL = res.playlists || {}; NEWS = res.notices || [];
       var ny = res.years || []; if (JSON.stringify(ny) !== JSON.stringify(YEARS)) { YEARS = ny; buildYears(Number(yr.value)); }
