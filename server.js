@@ -209,7 +209,7 @@ async function api(req, res, url) {
   }
   if (p === '/api/me' && m === 'GET') {
     const me = person(req);
-    return send(res, 200, { name: me.name, scores: db.scores[me.id] || {}, stars: db.stars[me.id] || {}, comments: db.comments[me.id] || {} });
+    return send(res, 200, { name: me.name, hasPass: !!me.hash, scores: db.scores[me.id] || {}, stars: db.stars[me.id] || {}, comments: db.comments[me.id] || {} });
   }
   if (p === '/api/me/score' && m === 'PUT') {
     const me = person(req);
@@ -249,11 +249,23 @@ async function api(req, res, url) {
   }
   if (p === '/api/me/name' && m === 'PUT') {
     const me = person(req);
-    const name = clean(body.name, 30);
+    if (limited(req, 'pw', 10, 15 * 60000)) throw new HttpError(429, '試行回数が多すぎます。15分後にやり直してください');
+    const name = clean(body.name, 30), pass = String(body.pass || '');
+    if (!me.hash) throw bad('合言葉が未設定です。メニューの「合言葉の再設定」で先に合言葉を設定してください');
+    if (!pass || !checkPw(pass, me.salt, me.hash)) throw new HttpError(403, '合言葉が違います');
     if (!name) throw bad('名前を入力してください');
     if (db.people.some((x) => x.id !== me.id && x.name.toLowerCase() === name.toLowerCase())) throw new HttpError(409, 'その名前はすでに使われています');
     me.name = name; save();
     return send(res, 200, { name });
+  }
+  if (p === '/api/me/password' && m === 'PUT') {
+    const me = person(req);
+    if (limited(req, 'pw', 10, 15 * 60000)) throw new HttpError(429, '試行回数が多すぎます。15分後にやり直してください');
+    const cur = String(body.current || ''), next = clean(body.next, 60);
+    if (me.hash && (!cur || !checkPw(cur, me.salt, me.hash))) throw new HttpError(403, '現在の合言葉が違います');
+    if (next.length < 4) throw bad('新しい合言葉は4文字以上にしてください');
+    me.salt = crypto.randomBytes(16).toString('hex'); me.hash = hashPw(next, me.salt); save();
+    return send(res, 200, { ok: true });
   }
 
   /* --- 管理者 --- */
@@ -371,7 +383,7 @@ async function api(req, res, url) {
       return send(res, 200, { ok: true, url: u.href });
     }
     if (p === '/api/admin/people' && m === 'GET') {
-      return send(res, 200, { people: db.people.map((x) => ({ id: x.id, name: x.name, scored: Object.keys(db.scores[x.id] || {}).length })) });
+      return send(res, 200, { people: db.people.map((x) => ({ id: x.id, name: x.name, scored: Object.keys(db.scores[x.id] || {}).length, hasPass: !!x.hash })) });
     }
     const pm = p.match(/^\/api\/admin\/people\/([0-9a-z]+)$/);
     if (pm && m === 'DELETE') {
@@ -389,6 +401,30 @@ async function api(req, res, url) {
       Object.values(db.scores).forEach((o) => delete o[dm[1]]);
       Object.values(db.comments).forEach((o) => delete o[dm[1]]);
       Object.values(db.stars).forEach((o) => { for (const c in o) if (o[c] === dm[1]) delete o[c]; });
+      save();
+      return send(res, 200, { ok: true });
+    }
+    if (p === '/api/admin/password' && m === 'POST') {
+      if (limited(req, 'apw', 8, 15 * 60000)) throw new HttpError(429, '試行回数が多すぎます。15分後にやり直してください');
+      const a = db.admins.find((x) => x.name === s.name);
+      if (!a) throw new HttpError(404, '管理者が見つかりません');
+      const cur = String(body.current || ''), next = String(body.next || '');
+      if (!checkPw(cur, a.salt, a.hash)) throw new HttpError(403, '現在のパスワードが違います');
+      if (next.length < 6) throw bad('新しいパスワードは6文字以上にしてください');
+      a.salt = crypto.randomBytes(16).toString('hex'); a.hash = hashPw(next, a.salt);
+      const me = bearer(req);
+      Object.keys(db.sessions).forEach((t) => { if (t !== me && db.sessions[t].name === a.name) delete db.sessions[t]; });
+      save();
+      return send(res, 200, { ok: true });
+    }
+    const rm = p.match(/^\/api\/admin\/people\/([0-9a-z]+)\/password$/);
+    if (rm && m === 'POST') {
+      const u = db.people.find((x) => x.id === rm[1]);
+      if (!u) throw new HttpError(404, 'ユーザーが見つかりません');
+      const next = clean(body.pass, 60);
+      if (next.length < 4) throw bad('新しい合言葉は4文字以上にしてください');
+      u.salt = crypto.randomBytes(16).toString('hex'); u.hash = hashPw(next, u.salt);
+      u.token = token(); // いまログイン中の端末はいったんログアウトされる
       save();
       return send(res, 200, { ok: true });
     }
