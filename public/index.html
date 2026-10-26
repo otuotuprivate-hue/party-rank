@@ -8,21 +8,19 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<header class="nav"><div class="navin"><a class="brand" href="#/">Party Rank</a><nav id="menu" aria-label="メニュー"></nav></div></header>
 <div class="wrap">
+
+<section class="view" id="v-home">
   <h1>Party Rank点数評価ツール</h1>
   <p class="lead" id="lead"></p>
 
   <details class="panel" id="newsBox" hidden><summary id="newsSum">アップデート情報</summary><div id="newsList" style="margin-top:8px"></div></details>
 
-  <details class="panel" id="partBox"><summary id="partSum">参加者一覧</summary>
-    <p class="hint" style="margin:8px 0 4px">表示されるのは名前と採点した曲数だけです。点数やひとことは見えません。</p>
-    <div id="partAll" class="ppl"></div><div id="partKeys" style="margin-top:8px"></div></details>
-
   <div class="panel bar" id="userBar">
     <span id="meName"></span><span class="badge" id="adminBadge" hidden>管理者</span>
     <span class="grow"></span>
-    <button id="rename" hidden>名前を変更</button><button id="leave" hidden>名前を切り替える</button>
-    <button id="adminIn">管理者画面に入る</button><button id="adminOut" hidden>管理者画面を出る</button>
+    <button id="leave" hidden>名前を切り替える</button>
   </div>
 
   <div class="panel" id="joinPanel" hidden>
@@ -31,42 +29,8 @@
       <label>合言葉(任意・4文字以上)<input id="jp" type="password" maxlength="60" autocomplete="off"></label>
       <button class="pri">参加して採点する</button>
     </form>
-    <p class="hint" style="margin:8px 0 0">合言葉を決めておくと、別の端末から同じ名前で続きを採点できます。登録なしでも使えますが、ブラウザのデータを消すと同じ名前に戻れなくなります。</p>
+    <p class="hint" style="margin:8px 0 0">合言葉を決めておくと、別の端末から同じ名前で続きを採点できます。また、名前の変更には合言葉が必要です。登録なしでも使えますが、ブラウザのデータを消すと同じ名前に戻れなくなります。</p>
     <div class="m" id="jmsg" role="alert"></div>
-  </div>
-
-  <div class="panel" id="renamePanel" hidden>
-    <form id="rf" class="inl">
-      <label>新しい名前<input id="rn" maxlength="30" required></label>
-      <button class="pri">変更する</button><button type="button" id="rcancel">キャンセル</button>
-    </form>
-    <div class="m" id="rmsg" role="alert" style="margin-top:6px"></div>
-  </div>
-
-  <div class="panel" id="loginPanel" hidden>
-    <form id="lf" class="inl">
-      <label>管理者名<input id="adm" maxlength="30" required autocomplete="username"></label>
-      <label>パスワード<input id="pw" type="password" required autocomplete="current-password"></label>
-      <button class="pri">入る</button><button type="button" id="lcancel">キャンセル</button>
-    </form>
-    <div class="m" id="lmsg" role="alert" style="margin-top:6px"></div>
-  </div>
-
-  <div class="panel" id="adminMgr" hidden>
-    <form id="af" class="inl">
-      <label>新しい管理者名<input id="an" maxlength="30" required></label>
-      <label>パスワード(必須・6文字以上)<input id="ap" type="password" autocomplete="new-password" required></label>
-      <button class="pri">管理者を追加</button>
-    </form>
-    <div class="m" id="admList" style="margin-top:6px"></div>
-    <h2 style="margin:16px 0 8px;font-size:16px">年の追加</h2>
-    <form id="yf" class="inl"><label>追加する年(西暦)<input id="ynew" type="number" min="1950" max="2100" required></label><button class="pri">年を追加</button></form>
-    <div class="m" id="yList" style="margin-top:6px"></div>
-    <h2 style="margin:16px 0 8px;font-size:16px">アップデート情報の記載</h2>
-    <form id="nf"><label style="display:block">内容(1000字まで。全員に表示されます)<textarea id="ntext" maxlength="1000" rows="3" style="width:100%" required></textarea></label><button class="pri" style="margin-top:6px">お知らせを投稿</button></form>
-    <div id="nAdm" style="margin-top:6px"></div>
-    <h2 style="margin:16px 0 8px;font-size:16px">参加者</h2>
-    <div class="ppl" id="ppl"></div>
   </div>
 
   <div class="bar" id="ctl">
@@ -98,6 +62,9 @@
       <label>この区分の提出期限(表示のみ。期限後も採点はできます)<input id="dtime" type="datetime-local"></label>
       <button class="pri">期限を保存</button><button type="button" id="dclear">期限を外す</button>
     </form>
+    <h3 class="sub">年の追加</h3>
+    <form id="yf" class="inl"><label>追加する年(西暦)<input id="ynew" type="number" min="1950" max="2100" required></label><button class="pri">年を追加</button></form>
+    <div class="m" id="yList" style="margin-top:6px"></div>
   </div>
 
   <div id="adminSec" hidden>
@@ -118,6 +85,96 @@
   <p class="deadline" id="dline"></p>
   <p class="plink" id="plink"></p>
   <div id="list"></div>
+</div>
+</section>
+
+<section class="view" id="v-rename" hidden>
+  <h2>ユーザー名の変更</h2>
+  <div class="panel">
+    <p class="hint" id="rNote" hidden>まだ合言葉が設定されていないため、名前を変更できません。先にメニューの「パスワード(合言葉)の再設定」で合言葉を設定してください。</p>
+    <form id="rf" class="inl">
+      <label>新しい名前<input id="rn" maxlength="30" required></label>
+      <label>合言葉(確認用)<input id="rpw" type="password" maxlength="60" required autocomplete="current-password"></label>
+      <button class="pri">名前を変更する</button><button type="button" id="rcancel">キャンセル</button>
+    </form>
+    <div class="m" id="rmsg" role="alert" style="margin-top:6px"></div>
+  </div>
+</section>
+
+<section class="view" id="v-password" hidden>
+  <h2>パスワード(合言葉)の再設定</h2>
+  <div class="panel">
+    <p class="hint" id="pNote"></p>
+    <form id="pwf" class="inl">
+      <label id="pCurWrap">現在の合言葉<input id="pcur" type="password" maxlength="60" autocomplete="current-password"></label>
+      <label>新しい合言葉(4文字以上)<input id="pnew" type="password" maxlength="60" required autocomplete="new-password"></label>
+      <label>新しい合言葉(もう一度)<input id="pnew2" type="password" maxlength="60" required autocomplete="new-password"></label>
+      <button class="pri">変更する</button><button type="button" id="pcancel">キャンセル</button>
+    </form>
+    <div class="m" id="pmsg" role="alert" style="margin-top:6px"></div>
+  </div>
+</section>
+
+<section class="view" id="v-people" hidden>
+  <h2>参加者一覧</h2>
+  <p class="hint">表示されるのは名前と採点した曲数だけです。点数やひとことは見えません。</p>
+  <div class="panel"><h3 class="sub" id="partTotal">全体のユーザー</h3><div id="partAll" class="ppl"></div></div>
+  <div class="panel"><h3 class="sub">ランキングごとの参加者</h3>
+    <label class="blk">ランキングを選ぶ<select id="partKey"></select></label>
+    <div id="partOut" class="ppl" style="margin-top:10px"></div></div>
+</section>
+
+<section class="view" id="v-adminlogin" hidden>
+  <h2>管理者画面への入室</h2>
+  <div class="panel">
+    <form id="lf" class="inl">
+      <label>管理者名<input id="adm" maxlength="30" required autocomplete="username"></label>
+      <label>パスワード<input id="pw" type="password" required autocomplete="current-password"></label>
+      <button class="pri">入る</button><button type="button" id="lcancel">キャンセル</button>
+    </form>
+    <div class="m" id="lmsg" role="alert" style="margin-top:6px"></div>
+  </div>
+</section>
+
+<section class="view" id="v-admins" hidden>
+  <h2>管理者一覧</h2>
+  <div class="panel"><div class="ppl" id="admList"></div></div>
+  <div class="panel"><h3 class="sub">管理者を追加</h3>
+    <form id="af" class="inl">
+      <label>新しい管理者名<input id="an" maxlength="30" required></label>
+      <label>パスワード(必須・6文字以上)<input id="ap" type="password" autocomplete="new-password" required></label>
+      <button class="pri">管理者を追加</button>
+    </form></div>
+</section>
+
+<section class="view" id="v-users" hidden>
+  <h2>一般ユーザーのパスワードリセット</h2>
+  <p class="hint">新しい合言葉を決めて本人に伝えてください。リセットすると、そのユーザーがいまログインしている端末はログアウトされます。ユーザーの削除もここからできます。</p>
+  <div class="panel"><h3 class="sub" id="uSum">登録ユーザー</h3><div id="ppl"></div></div>
+</section>
+
+<section class="view" id="v-adminpw" hidden>
+  <h2>管理者パスワードの変更</h2>
+  <div class="panel">
+    <p class="hint">ログイン中の管理者: <b id="apName"></b></p>
+    <form id="apf" class="inl">
+      <label>現在のパスワード<input id="apcur" type="password" required autocomplete="current-password"></label>
+      <label>新しいパスワード(6文字以上)<input id="apnew" type="password" required autocomplete="new-password"></label>
+      <label>新しいパスワード(もう一度)<input id="apnew2" type="password" required autocomplete="new-password"></label>
+      <button class="pri">変更する</button>
+    </form>
+    <div class="m" id="apmsg" role="alert" style="margin-top:6px"></div>
+  </div>
+</section>
+
+<section class="view" id="v-news" hidden>
+  <h2>アップデート情報の登録</h2>
+  <div class="panel">
+    <form id="nf"><label class="blk">内容(1000字まで。全員に表示されます)<textarea id="ntext" maxlength="1000" rows="4" style="width:100%" required></textarea></label><button class="pri" style="margin-top:8px">お知らせを投稿</button></form>
+  </div>
+  <div class="panel"><h3 class="sub">投稿済みのお知らせ</h3><div id="nAdm"></div></div>
+</section>
+
 </div>
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" hidden>
   <div class="mbox"><h3 id="mTitle"></h3><p id="mBody"></p>

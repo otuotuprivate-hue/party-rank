@@ -151,12 +151,24 @@
     try { var r = await api('PUT', '/api/me/comment', { songId: songId, text: text }, ptoken); if (r.text) CM[songId] = r.text; else delete CM[songId]; if (input) input.value = r.text; loadTable(); }
     catch (e) { toast(e.message); if (e.status === 401) forget(); }
   }
-  $('rename').onclick = function () { $('renamePanel').hidden = false; $('rn').value = ME ? ME.name : ''; $('rn').focus(); };
-  $('rcancel').onclick = function () { $('renamePanel').hidden = true; $('rmsg').textContent = ''; };
+  function renderUserPages() {
+    var has = !!(ME && ME.hasPass);
+    $('rNote').hidden = has; $('rf').hidden = !has;
+    $('pCurWrap').hidden = !has;
+    $('pNote').textContent = has ? '合言葉を変えるには、現在の合言葉が必要です。' : 'まだ合言葉が設定されていません。合言葉を決めると、別の端末からも同じ名前で使え、名前の変更もできるようになります。';
+  }
+  $('rcancel').onclick = function () { go(''); };
   $('rf').onsubmit = async function (e) {
     e.preventDefault(); $('rmsg').textContent = '';
-    try { var r = await api('PUT', '/api/me/name', { name: $('rn').value }, ptoken); ME.name = r.name; $('renamePanel').hidden = true; renderAll(); loadTable(); loadPart(); toast('名前を変更しました'); }
+    try { var r = await api('PUT', '/api/me/name', { name: $('rn').value, pass: $('rpw').value }, ptoken); ME.name = r.name; $('rpw').value = ''; renderAll(); loadTable(); loadPart(); toast('名前を変更しました'); go(''); }
     catch (err) { $('rmsg').textContent = err.message; if (err.status === 401) forget(); }
+  };
+  $('pcancel').onclick = function () { go(''); };
+  $('pwf').onsubmit = async function (e) {
+    e.preventDefault(); $('pmsg').textContent = '';
+    if ($('pnew').value !== $('pnew2').value) { $('pmsg').textContent = '新しい合言葉が一致しません'; return; }
+    try { await api('PUT', '/api/me/password', { current: $('pcur').value, next: $('pnew').value }, ptoken); ME.hasPass = true; $('pcur').value = $('pnew').value = $('pnew2').value = ''; renderAll(); toast('合言葉を変更しました'); go(''); }
+    catch (err) { $('pmsg').textContent = err.message; if (err.status === 401) forget(); }
   };
 
   /* ---- 管理者の全体表 ---- */
@@ -252,7 +264,7 @@
   function forget() { ptoken = ''; ME = null; SC = {}; ST = {}; CM = {}; store('pr-token', ''); renderAll(); }
   async function loadMe() {
     if (!ptoken) { ME = null; SC = {}; ST = {}; CM = {}; return; }
-    try { var m = await api('GET', '/api/me', undefined, ptoken); ME = { name: m.name }; SC = m.scores || {}; ST = m.stars || {}; CM = m.comments || {}; }
+    try { var m = await api('GET', '/api/me', undefined, ptoken); ME = { name: m.name, hasPass: !!m.hasPass }; SC = m.scores || {}; ST = m.stars || {}; CM = m.comments || {}; }
     catch (e) { if (e.status === 401) forget(); }
   }
   $('jf').onsubmit = async function (e) {
@@ -266,49 +278,69 @@
 
   /* ---- 管理者 ---- */
   var PSIG = '';
-  async function loadPeople() {
+  async function loadPeople(force) {
     if (!atoken) return;
     try {
       var r = await api('GET', '/api/admin/people', undefined, atoken), sig = JSON.stringify(r.people);
-      if (sig === PSIG) return; PSIG = sig;
+      if (sig === PSIG && !force) return; PSIG = sig;
       var box = $('ppl'); box.textContent = '';
+      $('uSum').textContent = '登録ユーザー ' + r.people.length + '人';
       if (!r.people.length) { box.appendChild(el('span', 'm', 'まだ参加者はいません。')); return; }
       r.people.forEach(function (u) {
-        var chip = el('span', 'chip'); chip.appendChild(document.createTextNode(u.name + '(採点 ' + u.scored + '曲)'));
-        var d = el('button', 'ghost', '削除'); d.setAttribute('aria-label', u.name + 'を削除');
-        d.onclick = async function () {
-          if (!(await confirmBox('ユーザーを削除しますか?', '「' + u.name + '」(採点 ' + u.scored + '曲)を削除します。\nこの人の点数・☆・ひとことも消え、元に戻せません。'))) return;
-          try { await api('DELETE', '/api/admin/people/' + u.id, undefined, atoken); PSIG = ''; TSIG = ''; await loadPeople(); await loadTable(); toast('削除しました'); } catch (e) { adminError(e, '削除できませんでした'); }
+        var row = el('div', 'urow'), top = el('div', 'bar'); top.style.marginBottom = '0';
+        top.appendChild(el('b', '', u.name)); top.appendChild(el('span', 'm', '(採点 ' + u.scored + '曲・合言葉' + (u.hasPass ? 'あり' : 'なし') + ')')); top.appendChild(el('span', 'grow'));
+        var rs = el('button', '', '合言葉をリセット'), del = el('button', 'ghost', '削除'); del.setAttribute('aria-label', u.name + 'を削除');
+        top.appendChild(rs); top.appendChild(del); row.appendChild(top);
+        var form = el('form', 'inl'); form.hidden = true;
+        var lab = el('label', 'blk', '新しい合言葉(4文字以上。本人に伝えてください)'), inp = el('input'); inp.type = 'text'; inp.maxLength = 60; inp.required = true; inp.autocomplete = 'off'; lab.appendChild(inp);
+        var ok = el('button', 'pri', 'この合言葉に設定'); form.appendChild(lab); form.appendChild(ok); row.appendChild(form);
+        rs.onclick = function () { form.hidden = !form.hidden; if (!form.hidden) inp.focus(); };
+        form.onsubmit = async function (e) {
+          e.preventDefault();
+          if (!(await confirmBox('合言葉をリセットしますか?', '「' + u.name + '」の合言葉を新しいものに変更します。\nこの人がいまログイン中の端末はログアウトされ、新しい合言葉で入り直す必要があります。', '変更する'))) return;
+          try { await api('POST', '/api/admin/people/' + u.id + '/password', { pass: inp.value }, atoken); inp.value = ''; form.hidden = true; PSIG = ''; await loadPeople(true); toast(u.name + 'さんの合言葉を変更しました'); } catch (er) { adminError(er, '変更できませんでした'); }
         };
-        chip.appendChild(d); box.appendChild(chip);
+        del.onclick = async function () {
+          if (!(await confirmBox('ユーザーを削除しますか?', '「' + u.name + '」(採点 ' + u.scored + '曲)を削除します。\nこの人の点数・☆・ひとことも消え、元に戻せません。'))) return;
+          try { await api('DELETE', '/api/admin/people/' + u.id, undefined, atoken); PSIG = ''; TSIG = ''; await loadPeople(true); await loadTable(); toast('削除しました'); } catch (e) { adminError(e, '削除できませんでした'); }
+        };
+        box.appendChild(row);
       });
     } catch (e) { adminError(e, ''); }
   }
   function adminError(e, fb) { if (e.status === 401) { adminLogout(true); toast('管理者のログインが切れました。もう一度入ってください'); } else toast(e.message || fb); }
-  $('adminIn').onclick = function () { $('loginPanel').hidden = false; $('adm').focus(); };
-  $('lcancel').onclick = function () { $('loginPanel').hidden = true; $('pw').value = ''; $('lmsg').textContent = ''; };
+  $('lcancel').onclick = function () { $('pw').value = ''; $('lmsg').textContent = ''; go(''); };
   $('lf').onsubmit = async function (e) {
     e.preventDefault(); $('lmsg').textContent = '';
     try {
       var r = await api('POST', '/api/admin/login', { name: $('adm').value, password: $('pw').value });
       atoken = r.token; adminName = r.name; store('pr-admin', atoken, true); store('pr-admin-name', adminName, true);
-      $('pw').value = ''; $('loginPanel').hidden = true; await enterAdmin(); toast(adminName + 'として管理者画面に入りました');
+      $('pw').value = ''; await enterAdmin(); go(''); toast(adminName + 'として管理者画面に入りました');
     } catch (err) { $('lmsg').textContent = err.message; }
   };
   async function enterAdmin() { await loadAdmins(); await loadTable(); renderAll(); }
   async function adminLogout(silent) {
     var t = atoken; atoken = ''; adminName = ''; TABLE = null; TSIG = ''; PSIG = ''; cancelEdit(); store('pr-admin', '', true); store('pr-admin-name', '', true);
     if (t && !silent) { try { await api('POST', '/api/admin/logout', {}, t); } catch (e) {} }
-    renderAll(); if (!silent) toast('管理者画面を出ました');
+    renderAll(); go(''); if (!silent) toast('管理者画面から退出しました');
   }
-  $('adminOut').onclick = function () { adminLogout(false); };
+  function showAdmins(list, me) {
+    var box = $('admList'); box.textContent = '';
+    list.forEach(function (n) { box.appendChild(el('span', 'chip', n + (n === me ? '(あなた)' : ''))); });
+  }
   async function loadAdmins() {
-    try { var r = await api('GET', '/api/admin/admins', undefined, atoken); $('admList').textContent = '登録済みの管理者: ' + r.admins.join('、'); } catch (e) { adminError(e, ''); }
+    try { var r = await api('GET', '/api/admin/admins', undefined, atoken); showAdmins(r.admins, r.me); } catch (e) { adminError(e, ''); }
   }
   $('af').onsubmit = async function (e) {
     e.preventDefault();
-    try { var r = await api('POST', '/api/admin/admins', { name: $('an').value, password: $('ap').value }, atoken); $('an').value = ''; $('ap').value = ''; $('admList').textContent = '登録済みの管理者: ' + r.admins.join('、'); toast('管理者を追加しました'); }
+    try { var r = await api('POST', '/api/admin/admins', { name: $('an').value, password: $('ap').value }, atoken); $('an').value = ''; $('ap').value = ''; showAdmins(r.admins, adminName); toast('管理者を追加しました'); }
     catch (err) { if (err.status === 401) adminError(err); else toast(err.message); }
+  };
+  $('apf').onsubmit = async function (e) {
+    e.preventDefault(); $('apmsg').textContent = '';
+    if ($('apnew').value !== $('apnew2').value) { $('apmsg').textContent = '新しいパスワードが一致しません'; return; }
+    try { await api('POST', '/api/admin/password', { current: $('apcur').value, next: $('apnew').value }, atoken); $('apcur').value = $('apnew').value = $('apnew2').value = ''; toast('管理者パスワードを変更しました'); }
+    catch (err) { if (err.status === 401) adminError(err); else $('apmsg').textContent = err.message; }
   };
   function editSong(s) {
     editId = s.id; $('title').value = s.title; $('artist').value = s.artist || ''; $('anime').value = s.anime || '';
@@ -362,22 +394,28 @@
   /* ---- 参加者一覧 ---- */
   async function loadPart() { try { PART = await api('GET', '/api/participants'); renderParticipants(); } catch (e) {} }
   function renderParticipants() {
-    var box = $('partKeys'), all = $('partAll'); box.textContent = ''; all.textContent = '';
-    if (!PART) { $('partBox').hidden = true; return; }
-    $('partBox').hidden = false;
-    $('partSum').textContent = '参加者一覧(全体 ' + PART.people.length + '人)';
+    var all = $('partAll'), sel = $('partKey'); all.textContent = '';
+    if (!PART) return;
+    $('partTotal').textContent = '全体のユーザー(' + PART.people.length + '人)';
     if (!PART.people.length) all.appendChild(el('span', 'm', 'まだ参加者はいません。'));
     PART.people.forEach(function (n) { all.appendChild(el('span', 'chip', n)); });
     function sk(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
+    var keep = sel.value; sel.textContent = '';
+    sel.appendChild(new Option('(ランキングを選んでください)', ''));
     PART.keys.slice().sort(function (a, b) { return sk(b.key) - sk(a.key) || KINDS.indexOf(a.key.split('-')[2]) - KINDS.indexOf(b.key.split('-')[2]); }).forEach(function (g) {
-      var d = el('details', 'pk'); d.open = OPENK[g.key] != null ? OPENK[g.key] : g.key === key();
-      d.appendChild(el('summary', '', label(g.key) + ' の参加者(' + g.participants.length + '人 / 全' + g.songs + '曲)'));
-      var l = el('div', 'ppl');
-      if (!g.participants.length) l.appendChild(el('span', 'm', 'まだ採点した人はいません。'));
-      g.participants.forEach(function (u) { l.appendChild(el('span', 'chip', u.name + '(採点 ' + u.scored + '/' + g.songs + '曲)')); });
-      d.appendChild(l); d.ontoggle = function () { OPENK[g.key] = d.open; }; box.appendChild(d);
+      sel.appendChild(new Option(label(g.key) + '(' + g.participants.length + '人)', g.key));
     });
+    sel.value = keep && PART.keys.some(function (g) { return g.key === keep; }) ? keep : '';
+    renderPartKey();
   }
+  function renderPartKey() {
+    var out = $('partOut'), k = $('partKey').value; out.textContent = '';
+    var g = PART && PART.keys.filter(function (x) { return x.key === k; })[0];
+    if (!g) { out.appendChild(el('span', 'm', 'ランキングを選ぶと、そのランキングの参加者が表示されます。')); return; }
+    if (!g.participants.length) out.appendChild(el('span', 'm', 'まだ採点した人はいません。'));
+    g.participants.forEach(function (u) { out.appendChild(el('span', 'chip', u.name + '(採点 ' + u.scored + '/' + g.songs + '曲)')); });
+  }
+  $('partKey').onchange = renderPartKey;
 
   /* ---- お知らせ・年 ---- */
   function fdate(t) { var d = new Date(t); return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate(); }
@@ -423,15 +461,58 @@
     var admin = !!atoken;
     $('meName').textContent = ME ? ME.name + 'さんとして参加中' : '名前が未入力です';
     $('adminBadge').hidden = !admin; $('adminBadge').textContent = admin ? '管理者: ' + adminName : '管理者';
-    $('adminIn').hidden = admin; $('adminOut').hidden = !admin;
-    $('leave').hidden = !ME; $('rename').hidden = !ME; if (!ME) $('renamePanel').hidden = true; $('joinPanel').hidden = !!ME;
-    $('addPanel').hidden = !admin; $('adminMgr').hidden = !admin; $('adminSec').hidden = !admin;
+    $('leave').hidden = !ME; $('joinPanel').hidden = !!ME;
+    $('addPanel').hidden = !admin; $('adminSec').hidden = !admin;
     $('exMine').hidden = !ME;
     $('lead').textContent = admin ? '管理者画面です。曲の追加・全ユーザーの採点の確認・動画用データの書き出しができます。'
       : '名前を入力して参加し、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
-    if (admin) $('purl').value = PL[key()] || '';
-    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderParticipants();
+    if (admin) { $('purl').value = PL[key()] || ''; $('apName').textContent = adminName; }
+    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderParticipants(); renderUserPages();
+    route(true);
   }
+
+  /* ---- メニューとページの切り替え ---- */
+  var VIEWS = { '': 'v-home', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
+  var ADMIN_ONLY = { admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1 };
+  function curRoute() { var h = (location.hash || '').replace(/^#\/?/, ''); return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
+  function go(r) { var t = '#/' + (r || ''); if (location.hash === t || (!r && (location.hash === '' || location.hash === '#'))) route(false); else location.hash = t; }
+  function menuItems() {
+    if (atoken) return [
+      { t: '管理者ホーム', r: '' }, { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
+      { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'アップデート情報の登録', r: 'news' },
+      { t: '管理者画面からの退出', cls: 'out', act: function () { adminLogout(false); } }];
+    var a = [{ t: 'ホーム', r: '' }];
+    if (ME) a.push({ t: 'ユーザー名の変更', r: 'rename' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
+    a.push({ t: '参加者一覧', r: 'people' }, { t: '管理者画面への入室', r: 'admin-login' });
+    return a;
+  }
+  function renderMenu(cur) {
+    var m = $('menu'); m.textContent = '';
+    menuItems().forEach(function (it) {
+      var b = el('button', (it.cls || '') + (it.act ? '' : (it.r === cur ? ' on' : ''))); b.textContent = it.t; b.type = 'button';
+      if (!it.act && it.r === cur) b.setAttribute('aria-current', 'page');
+      b.onclick = function () { if (it.act) it.act(); else go(it.r); };
+      m.appendChild(b);
+    });
+  }
+  function route(soft) {
+    var r = curRoute();
+    if ((ADMIN_ONLY[r] && !atoken) || (NEED_ME[r] && !ME) || (r === 'admin-login' && atoken)) r = '';
+    if (r !== curRoute()) { try { history.replaceState(null, '', '#/' + (r || '')); } catch (e) { location.hash = '#/' + (r || ''); } }
+    Object.keys(VIEWS).forEach(function (k) { $(VIEWS[k]).hidden = k !== r; });
+    renderMenu(r);
+    if (soft) return;
+    window.scrollTo(0, 0);
+    if (r === 'rename') { $('rn').value = ME ? ME.name : ''; $('rpw').value = ''; $('rmsg').textContent = ''; renderUserPages(); }
+    else if (r === 'password') { $('pmsg').textContent = ''; renderUserPages(); }
+    else if (r === 'people') loadPart();
+    else if (r === 'admins') loadAdmins();
+    else if (r === 'users') { PSIG = ''; loadPeople(true); }
+    else if (r === 'news') renderNews();
+    else if (r === 'adminpw') { $('apmsg').textContent = ''; $('apName').textContent = adminName; }
+    else if (r === 'admin-login') { $('lmsg').textContent = ''; $('adm').focus(); }
+  }
+  window.addEventListener('hashchange', function () { route(false); });
   var SIG = '';
   async function refresh(silent) {
     try {
@@ -451,6 +532,7 @@
     await loadMe();
     if (atoken) { try { await enterAdmin(); } catch (e) {} }
     await refresh();
+    route(false);
     setInterval(function () { if (!document.hidden) refresh(true); }, 20000);
   })();
 })();

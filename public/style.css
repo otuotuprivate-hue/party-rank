@@ -82,3 +82,16 @@ button.danger{background:#d6334a;border-color:#d6334a;color:#fff;font-weight:700
 .deadline{margin:2px 0 6px;font-weight:700}.deadline.over{color:#d6334a}.deadline small{font-weight:400;color:var(--sub);margin-left:6px}
 th.sortable{cursor:pointer;user-select:none}th.sortable:hover{text-decoration:underline}
 .pk{margin:4px 0}.pk summary{cursor:pointer}.pk .ppl{margin-top:6px}
+.nav{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+.navin{max-width:860px;margin:0 auto;padding:6px 12px;display:flex;align-items:center;gap:8px}
+.brand{font-family:"Dela Gothic One","Zen Kaku Gothic New",sans-serif;color:var(--ink);text-decoration:none;white-space:nowrap}
+#menu{display:flex;gap:4px;overflow-x:auto;flex:1;padding:2px 0;scrollbar-width:thin}
+#menu button{border:none;background:none;white-space:nowrap;padding:7px 10px;border-radius:8px;color:var(--ink)}
+#menu button:hover{background:var(--bg)}
+#menu button.on{background:var(--acc2);color:#fff;font-weight:700}
+#menu button.out{color:var(--acc)}
+.view[hidden]{display:none}
+h3.sub{font-size:15px;margin:0 0 8px}
+label.blk{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--sub)}
+.urow{border-top:1px solid var(--line);padding:8px 0}.urow:first-child{border-top:none}
+.urow form{margin-top:6px}
