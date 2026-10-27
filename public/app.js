@@ -2,7 +2,7 @@
   'use strict';
   var $ = function (i) { return document.getElementById(i); };
   var NAMES = { 1: '冬', 4: '春', 7: '夏', 10: '秋' }, KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
-  var DEAD = {}, PART = null, OPENK = {}, SORT = { uid: null, dir: -1 }, NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
+  var MODES = {}, DEAD = {}, PART = null, OPENK = {}, SORT = { uid: null, dir: -1 }, NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
   try { ptoken = localStorage.getItem('pr-token') || ''; atoken = sessionStorage.getItem('pr-admin') || ''; adminName = sessionStorage.getItem('pr-admin-name') || ''; } catch (e) {}
 
   function confirmBox(title, body, okLabel) {
@@ -174,19 +174,30 @@
   /* ---- 管理者の全体表 ---- */
   function f2(v) { return v == null ? '–' : (Math.round(v * 100) / 100).toFixed(2); }
   var TSIG = '';
+  function modeOf(k) { return (MODES[k] && MODES[k].mode) || 'entry'; }
   async function loadTable() {
-    if (!atoken) return;
+    var k = key();
+    if (!atoken) {
+      // 一般ユーザー: Party Watchのときだけ全体表を取得する
+      if (modeOf(k) !== 'watch') { if (TABLE) { TABLE = null; TSIG = ''; } renderMatrix(); return; }
+      try {
+        var pt = await api('GET', '/api/table?key=' + encodeURIComponent(k)), psig = JSON.stringify(pt);
+        if (k !== key()) return;
+        if (psig === TSIG) return; TSIG = psig; TABLE = pt; renderMatrix();
+      } catch (e) { TABLE = null; TSIG = ''; renderMatrix(); }
+      return;
+    }
     loadPeople();
     try {
-      var t = await api('GET', '/api/admin/table?key=' + encodeURIComponent(key()), undefined, atoken), sig = JSON.stringify(t);
+      var t = await api('GET', '/api/admin/table?key=' + encodeURIComponent(k), undefined, atoken), sig = JSON.stringify(t);
       if (sig === TSIG) return; TSIG = sig; TABLE = t; renderMatrix();
     }
     catch (e) { adminError(e, '全体表を読み込めませんでした'); }
   }
   function renderMatrix() {
-    $('adminSec').hidden = !atoken; if (!atoken || !TABLE) return;
+    $('adminSec').hidden = !TABLE; $('exBar').hidden = !atoken; if (!TABLE) return;
     var t = TABLE, box = $('matrix'); box.textContent = ''; $('cmBox').hidden = true;
-    $('mh').textContent = '全ユーザー一覧 ' + t.label;
+    $('mh').textContent = (atoken ? '全ユーザー一覧 ' : '全体表 ') + t.label;
     if (!t.rows.length || !t.people.length) { box.appendChild(el('div', 'empty', 'この区分の曲か、採点したユーザーがまだいません。')); return; }
     var wrap = el('div', 'mwrap'), tb = el('table', 'mx'), hr = el('tr');
     hr.appendChild(el('th', 'c1', '順位')); hr.appendChild(el('th', 'c2', '曲名'));
@@ -322,8 +333,9 @@
   async function adminLogout(silent) {
     var t = atoken; atoken = ''; adminName = ''; TABLE = null; TSIG = ''; PSIG = ''; cancelEdit(); store('pr-admin', '', true); store('pr-admin-name', '', true);
     if (t && !silent) { try { await api('POST', '/api/admin/logout', {}, t); } catch (e) {} }
-    renderAll(); go(''); if (!silent) toast('管理者画面から退出しました');
+    renderAll(); go(''); loadTable(); if (!silent) toast('管理者画面から退出しました');
   }
+  $('backUser').onclick = function () { adminLogout(false); };
   function showAdmins(list, me) {
     var box = $('admList'); box.textContent = '';
     list.forEach(function (n) { box.appendChild(el('span', 'chip', n + (n === me ? '(あなた)' : ''))); });
@@ -364,6 +376,44 @@
       if (r.url) PL[key()] = r.url; else delete PL[key()];
       $('purl').value = r.url; renderPlink(); toast(r.url ? 'プレイリストを保存しました' : 'プレイリストを外しました');
     } catch (err) { adminError(err, '保存できませんでした'); }
+  };
+
+  /* ---- 開催モード ---- */
+  var MODE_INFO = {
+    entry: { name: '通常', cls: '', text: 'Party Rankの開催をお待ちください🥹' },
+    rank: { name: 'Party Rank', cls: 'rank', text: '開催中です(採点受付中)。結果発表まで、全体表は公開されません。' },
+    watch: { name: 'Party Watch', cls: 'watch', text: 'ランキングが公開されました。下に全体表が表示されます。' }
+  };
+  function renderMode() {
+    var k = key(), md = modeOf(k), info = MODE_INFO[md], url = MODES[k] && MODES[k].video, box = $('modeBox'); box.textContent = '';
+    if (SONGS.some(function (s) { return s.key === k; }) || md !== 'entry') {
+      var d = el('div', 'mode ' + info.cls); d.appendChild(el('span', 'mb', info.name)); d.appendChild(el('span', '', (md === 'entry' ? '' : label(k) + ': ') + info.text));
+      if (md === 'watch' && url && /^https:\/\//.test(url)) { var a = el('a', 'vid', '▶ ランキング動画を見る'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; d.appendChild(a); }
+      box.appendChild(d);
+    }
+    if (atoken) {
+      $('modeNow').textContent = label(k) + ' の現在のモード: ' + info.name + (md === 'watch' && url ? '(動画リンクを公開中)' : '');
+      $('mEntry').disabled = md === 'entry'; $('mRank').disabled = md === 'rank';
+      $('mvideo').value = md === 'watch' ? url : ($('mvideo').value || '');
+      $('mwatch').textContent = md === 'watch' ? '動画リンクを更新する' : 'リンクを公開して Party Watch にする';
+    }
+  }
+  async function setMode(mode, video, okMsg) {
+    try { var r = await api('PUT', '/api/admin/mode', { key: key(), mode: mode, video: video }, atoken); MODES = r.modes; TSIG = ''; renderAll(); loadTable(); toast(okMsg); }
+    catch (err) { adminError(err, '切り替えられませんでした'); }
+  }
+  $('mRank').onclick = async function () {
+    if (!(await confirmBox('Party Rank を開始しますか?', label(key()) + ' を Party Rank モードにします。一般ユーザーには全体表は表示されません。', '開始する'))) return;
+    setMode('rank', '', 'Party Rank モードにしました');
+  };
+  $('mEntry').onclick = async function () {
+    if (!(await confirmBox('通常モードに戻しますか?', label(key()) + ' を通常モードに戻します。公開中の動画リンクと全体表は一般ユーザーから見えなくなります。', '戻す'))) return;
+    setMode('entry', '', '通常モードに戻しました');
+  };
+  $('mf').onsubmit = async function (e) {
+    e.preventDefault(); var u = $('mvideo').value.trim();
+    if (!(await confirmBox('Party Watch に切り替えますか?', label(key()) + ' の動画リンクと全体表を、一般ユーザーにも公開します。\n' + u, '公開する'))) return;
+    setMode('watch', u, 'Party Watch にしました。動画リンクと全体表を公開中です');
   };
 
   /* ---- 提出期限 ---- */
@@ -460,6 +510,7 @@
   function renderAll() {
     var admin = !!atoken;
     $('meName').textContent = ME ? ME.name + 'さんとして参加中' : '名前が未入力です';
+    $('backUser').hidden = !admin;
     $('adminBadge').hidden = !admin; $('adminBadge').textContent = admin ? '管理者: ' + adminName : '管理者';
     $('leave').hidden = !ME; $('joinPanel').hidden = !!ME;
     $('addPanel').hidden = !admin; $('adminSec').hidden = !admin;
@@ -467,7 +518,7 @@
     $('lead').textContent = admin ? '管理者画面です。曲の追加・全ユーザーの採点の確認・動画用データの書き出しができます。'
       : '名前を入力して参加し、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
     if (admin) { $('purl').value = PL[key()] || ''; $('apName').textContent = adminName; }
-    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderParticipants(); renderUserPages();
+    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderMode(); renderParticipants(); renderUserPages();
     route(true);
   }
 
@@ -479,8 +530,7 @@
   function menuItems() {
     if (atoken) return [
       { t: '管理者ホーム', r: '' }, { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
-      { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'アップデート情報の登録', r: 'news' },
-      { t: '管理者画面からの退出', cls: 'out', act: function () { adminLogout(false); } }];
+      { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'アップデート情報の登録', r: 'news' }];
     var a = [{ t: 'ホーム', r: '' }];
     if (ME) a.push({ t: 'ユーザー名の変更', r: 'rename' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
     a.push({ t: '参加者一覧', r: 'people' }, { t: '管理者画面への入室', r: 'admin-login' });
@@ -517,7 +567,7 @@
   async function refresh(silent) {
     try {
       var res = await api('GET', '/api/songs'), songs = res.songs, sig = JSON.stringify(res);
-      DEAD = res.deadlines || {};
+      DEAD = res.deadlines || {}; MODES = res.modes || {};
       try { PART = await api('GET', '/api/participants'); } catch (e) {}
       sig = JSON.stringify([res, PART]);
       if (silent === true && sig === SIG) { loadTable(); return; }

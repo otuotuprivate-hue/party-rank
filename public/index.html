@@ -5,14 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Party Rank点数評価ツール</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#4a3fe0">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header class="nav"><div class="navin"><a class="brand" href="#/">Party Rank</a><nav id="menu" aria-label="メニュー"></nav></div></header>
+<header class="nav"><div class="navin"><a class="brand" href="#/"><img src="/icon.svg" alt="" width="28" height="28">Party Rank</a><nav id="menu" aria-label="メニュー"></nav></div></header>
 <div class="wrap">
 
 <section class="view" id="v-home">
-  <h1>Party Rank点数評価ツール</h1>
+  <div class="h1row"><h1>Party Rank点数評価ツール</h1><button id="backUser" class="out" hidden>一般ユーザに戻る</button></div>
   <p class="lead" id="lead"></p>
 
   <details class="panel" id="newsBox" hidden><summary id="newsSum">アップデート情報</summary><div id="newsList" style="margin-top:8px"></div></details>
@@ -44,6 +49,7 @@
     <button id="exMine">自分のランキングをCSV出力</button>
   </div>
   <div class="tabs" id="tabs" aria-label="曲のある区分"></div>
+  <div id="modeBox" class="modebox" aria-live="polite"></div>
 
   <div class="panel" id="addPanel" hidden>
     <form id="f">
@@ -62,6 +68,17 @@
       <label>この区分の提出期限(表示のみ。期限後も採点はできます)<input id="dtime" type="datetime-local"></label>
       <button class="pri">期限を保存</button><button type="button" id="dclear">期限を外す</button>
     </form>
+    <h3 class="sub">開催モード(この区分)</h3>
+    <p class="hint" id="modeNow" style="margin:0 0 8px"></p>
+    <div class="bar">
+      <button type="button" id="mEntry">通常モードに戻す</button>
+      <button type="button" id="mRank" class="pri">Party Rank を開始</button>
+    </div>
+    <form id="mf" class="inl">
+      <label style="flex:1;min-width:240px">ランキング動画のリンク(https://…)<input id="mvideo" type="url" maxlength="500" placeholder="https://www.youtube.com/watch?v=…" required></label>
+      <button class="pri" id="mwatch">リンクを公開して Party Watch にする</button>
+    </form>
+    <p class="hint" style="margin:6px 0 0">通常モード(初期状態)では「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間も、一般ユーザーにこのランキングの全体表は見えません。動画リンクを公開すると Party Watch になり、動画リンクと全体表が一般ユーザーにも見えるようになります(ひとことは公開されません)。</p>
     <h3 class="sub">年の追加</h3>
     <form id="yf" class="inl"><label>追加する年(西暦)<input id="ynew" type="number" min="1950" max="2100" required></label><button class="pri">年を追加</button></form>
     <div class="m" id="yList" style="margin-top:6px"></div>
@@ -69,7 +86,7 @@
 
   <div id="adminSec" hidden>
     <div class="bar" style="margin-top:22px"><h2 id="mh" style="margin:0"></h2><span class="grow"></span></div>
-    <div class="bar">
+    <div class="bar" id="exBar">
       <button id="exTbl">全体表CSV(集計行つき)</button>
       <button id="exVcsv" class="sec">動画用CSV</button>
       <button id="exVjson" class="sec">動画用JSON</button>
