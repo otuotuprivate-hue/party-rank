@@ -16,7 +16,7 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {} };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [] };
 function save() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = DB_FILE + '.tmp';
@@ -189,6 +189,9 @@ async function api(req, res, url) {
 
   if (m === 'GET' && p === '/api/songs') {
     return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at, ord }) => ({ id, key, title, artist, anime, at, ord: ord != null ? ord : at })), playlists: db.playlists, years: db.years, notices: db.notices.slice().reverse(), deadlines: db.deadlines, modes: publicModes() });
+  }
+  if (m === 'GET' && p === '/api/pasts') {
+    return send(res, 200, { pasts: db.pasts.map(({ id, key, title, url, at }) => ({ id, key, title, url, at })) });
   }
   if (m === 'GET' && p === '/api/table') {
     // Party Watchモードのランキングだけ、全体表を一般にも公開する(ひとことは含めない)
@@ -367,6 +370,21 @@ async function api(req, res, url) {
       } else throw bad('モードが正しくありません');
       save();
       return send(res, 200, { modes: publicModes() });
+    }
+    if (p === '/api/admin/pasts' && m === 'POST') {
+      const key = clean(body.key, 20), title = clean(body.title, 100), v = clean(body.url, 500);
+      if (!validKey(key)) throw bad('年代・クール・種別を選んでください');
+      if (!title) throw bad('動画のタイトルを入力してください');
+      let u; try { u = new URL(v); } catch (e) { u = null; }
+      if (!u || u.protocol !== 'https:') throw bad('動画のリンクは https:// から始まるURLを入力してください');
+      if (db.pasts.length >= 500) throw bad('登録数の上限(500件)に達しています');
+      db.pasts.push({ id: id(), key, title, url: u.href, at: Date.now() }); save();
+      return send(res, 200, { pasts: db.pasts });
+    }
+    const pam = p.match(/^\/api\/admin\/pasts\/([\w-]+)$/);
+    if (pam && m === 'DELETE') {
+      db.pasts = db.pasts.filter((x) => x.id !== pam[1]); save();
+      return send(res, 200, { pasts: db.pasts });
     }
     if (p === '/api/admin/years' && m === 'POST') {
       const y = Number(body.year);
