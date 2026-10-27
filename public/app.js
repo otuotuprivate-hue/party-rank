@@ -2,7 +2,7 @@
   'use strict';
   var $ = function (i) { return document.getElementById(i); };
   var NAMES = { 1: '冬', 4: '春', 7: '夏', 10: '秋' }, KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
-  var MODES = {}, DEAD = {}, PART = null, OPENK = {}, SORT = { uid: null, dir: -1 }, NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
+  var PASTS = [], MODES = {}, DEAD = {}, PART = null, OPENK = {}, SORT = { uid: null, dir: -1 }, NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
   try { ptoken = localStorage.getItem('pr-token') || ''; atoken = sessionStorage.getItem('pr-admin') || ''; adminName = sessionStorage.getItem('pr-admin-name') || ''; } catch (e) {}
 
   function confirmBox(title, body, okLabel) {
@@ -378,6 +378,53 @@
     } catch (err) { adminError(err, '保存できませんでした'); }
   };
 
+  /* ---- 過去のParty Rank ---- */
+  function sk2(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
+  function yearList() { return Array.prototype.map.call(yr.options, function (o) { return o.value; }); }
+  function fillYearSel(sel, allLabel, def) {
+    var keep = sel.value; sel.textContent = '';
+    if (allLabel) sel.appendChild(new Option(allLabel, ''));
+    yearList().forEach(function (y) { sel.appendChild(new Option(y + '年', y)); });
+    var want = keep !== '' && keep != null ? keep : (def || '');
+    if (Array.prototype.some.call(sel.options, function (o) { return o.value === want; })) sel.value = want; else if (!allLabel) sel.selectedIndex = 0;
+  }
+  function sortedPasts() {
+    return PASTS.slice().sort(function (a, b) { return sk2(b.key) - sk2(a.key) || KINDS.indexOf(a.key.split('-')[2]) - KINDS.indexOf(b.key.split('-')[2]) || b.at - a.at; });
+  }
+  function renderPasts() {
+    fillYearSel($('pfY'), 'すべての年代');
+    var y = $('pfY').value, c = $('pfC').value, k = $('pfK').value, box = $('pastList'); box.textContent = '';
+    var list = sortedPasts().filter(function (x) { var p = x.key.split('-'); return (!y || p[0] === y) && (!c || p[1] === c) && (!k || p[2] === k); });
+    if (!list.length) { box.appendChild(el('div', 'empty', PASTS.length ? '条件に合う動画はありません。' : 'まだ登録された動画はありません。')); return; }
+    list.forEach(function (x) {
+      var r = el('div', 'pastrow'), d = el('div', 'pt1'); d.appendChild(el('div', 't', x.title)); d.appendChild(el('div', 'm', label(x.key))); r.appendChild(d);
+      var a = el('a', 'vid', '▶ 動画を見る'); a.href = x.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; r.appendChild(a);
+      var pl = PL[x.key]; if (pl && /^https:\/\//.test(pl)) { var b = el('a', 'pl', 'プレイリスト'); b.href = pl; b.target = '_blank'; b.rel = 'noopener noreferrer'; r.appendChild(b); }
+      box.appendChild(r);
+    });
+  }
+  $('pfY').onchange = $('pfC').onchange = $('pfK').onchange = renderPasts;
+  function renderPastAdmin() {
+    fillYearSel($('payr'), '', yr.value);
+    var box = $('paAdm'); box.textContent = ''; $('paSum').textContent = '登録済みの動画(' + PASTS.length + '件)';
+    if (!PASTS.length) { box.appendChild(el('span', 'm', 'まだ登録はありません。')); return; }
+    sortedPasts().forEach(function (x) {
+      var r = el('div', 'pastrow'), d = el('div', 'pt1'); d.appendChild(el('div', 't', x.title)); d.appendChild(el('div', 'm', label(x.key) + ' / ' + x.url)); r.appendChild(d);
+      var del = el('button', 'ghost', '削除'); del.setAttribute('aria-label', x.title + 'を削除');
+      del.onclick = async function () {
+        if (!(await confirmBox('登録を削除しますか?', '「' + x.title + '」(' + label(x.key) + ')を一覧から外します。'))) return;
+        try { var rs = await api('DELETE', '/api/admin/pasts/' + x.id, undefined, atoken); PASTS = rs.pasts; renderPastAdmin(); toast('削除しました'); } catch (e) { adminError(e, '削除できませんでした'); }
+      };
+      r.appendChild(del); box.appendChild(r);
+    });
+  }
+  $('paf').onsubmit = async function (e) {
+    e.preventDefault();
+    var k = $('payr').value + '-' + $('pacour').value + '-' + $('pakind').value;
+    try { var r = await api('POST', '/api/admin/pasts', { key: k, title: $('patitle').value, url: $('paurl').value }, atoken); PASTS = r.pasts; $('patitle').value = ''; $('paurl').value = ''; renderPastAdmin(); toast('登録しました'); }
+    catch (err) { adminError(err, '登録できませんでした'); }
+  };
+
   /* ---- 開催モード ---- */
   var MODE_INFO = {
     entry: { name: '通常', cls: '', text: 'Party Rankの開催をお待ちください🥹' },
@@ -386,7 +433,7 @@
   };
   function renderMode() {
     var k = key(), md = modeOf(k), info = MODE_INFO[md], url = MODES[k] && MODES[k].video, box = $('modeBox'); box.textContent = '';
-    if (SONGS.some(function (s) { return s.key === k; }) || md !== 'entry') {
+    {
       var d = el('div', 'mode ' + info.cls); d.appendChild(el('span', 'mb', info.name)); d.appendChild(el('span', '', (md === 'entry' ? '' : label(k) + ': ') + info.text));
       if (md === 'watch' && url && /^https:\/\//.test(url)) { var a = el('a', 'vid', '▶ ランキング動画を見る'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; d.appendChild(a); }
       box.appendChild(d);
@@ -523,28 +570,41 @@
   }
 
   /* ---- メニューとページの切り替え ---- */
-  var VIEWS = { '': 'v-home', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
-  var ADMIN_ONLY = { admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1 };
+  var VIEWS = { '': 'v-home', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
+  var ADMIN_ONLY = { pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1 };
   function curRoute() { var h = (location.hash || '').replace(/^#\/?/, ''); return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
   function go(r) { var t = '#/' + (r || ''); if (location.hash === t || (!r && (location.hash === '' || location.hash === '#'))) route(false); else location.hash = t; }
   function menuItems() {
-    if (atoken) return [
-      { t: '管理者ホーム', r: '' }, { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
-      { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'アップデート情報の登録', r: 'news' }];
-    var a = [{ t: 'ホーム', r: '' }];
+    var about = { t: 'Party Rankとは', r: 'about' }, past = { t: '過去のParty Rank', r: 'pasts' };
+    if (atoken) return [about, { t: '管理者ホーム', r: '' }, past, { sep: 1 },
+      { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
+      { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'アップデート情報の登録', r: 'news' },
+      { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }];
+    var a = [about, { t: 'ホーム', r: '' }];
     if (ME) a.push({ t: 'ユーザー名の変更', r: 'rename' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
-    a.push({ t: '参加者一覧', r: 'people' }, { t: '管理者画面への入室', r: 'admin-login' });
+    a.push({ t: '参加者一覧', r: 'people' }, past, { sep: 1 }, { t: '管理者画面への入室', r: 'admin-login' });
     return a;
   }
   function renderMenu(cur) {
-    var m = $('menu'); m.textContent = '';
+    var m = $('menu'), n = 0; m.textContent = '';
     menuItems().forEach(function (it) {
-      var b = el('button', (it.cls || '') + (it.act ? '' : (it.r === cur ? ' on' : ''))); b.textContent = it.t; b.type = 'button';
-      if (!it.act && it.r === cur) b.setAttribute('aria-current', 'page');
-      b.onclick = function () { if (it.act) it.act(); else go(it.r); };
+      if (it.sep) { m.appendChild(document.createElement('hr')); return; }
+      var b = el('button', it.r === cur ? 'on' : ''); b.textContent = it.t; b.type = 'button'; b.style.setProperty('--i', n++);
+      if (it.r === cur) b.setAttribute('aria-current', 'page');
+      b.tabIndex = m.classList.contains('open') ? 0 : -1;
+      b.onclick = function () { closeMenu(); go(it.r); };
       m.appendChild(b);
     });
   }
+  function setMenu(open) {
+    $('menu').classList.toggle('open', open); $('menuBg').classList.toggle('open', open);
+    $('menuBtn').setAttribute('aria-expanded', open ? 'true' : 'false'); $('menuBtn').setAttribute('aria-label', open ? 'メニューを閉じる' : 'メニューを開く');
+    Array.prototype.forEach.call($('menu').querySelectorAll('button'), function (b) { b.tabIndex = open ? 0 : -1; });
+  }
+  function closeMenu() { setMenu(false); }
+  $('menuBtn').onclick = function () { var open = !$('menu').classList.contains('open'); setMenu(open); if (open) { var f = $('menu').querySelector('button.on') || $('menu').querySelector('button'); if (f) setTimeout(function () { f.focus(); }, 60); } };
+  $('menuBg').onclick = closeMenu;
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('menu').classList.contains('open')) { closeMenu(); $('menuBtn').focus(); } });
   function route(soft) {
     var r = curRoute();
     if ((ADMIN_ONLY[r] && !atoken) || (NEED_ME[r] && !ME) || (r === 'admin-login' && atoken)) r = '';
@@ -559,6 +619,9 @@
     else if (r === 'admins') loadAdmins();
     else if (r === 'users') { PSIG = ''; loadPeople(true); }
     else if (r === 'news') renderNews();
+    else if (r === 'pasts') { renderPasts(); api('GET', '/api/pasts').then(function (d) { PASTS = d.pasts || []; if (curRoute() === 'pasts') renderPasts(); }).catch(function () {}); }
+    else if (r === 'pastadmin') renderPastAdmin();
+    else if (r === 'years') renderYears();
     else if (r === 'adminpw') { $('apmsg').textContent = ''; $('apName').textContent = adminName; }
     else if (r === 'admin-login') { $('lmsg').textContent = ''; $('adm').focus(); }
   }
@@ -569,7 +632,8 @@
       var res = await api('GET', '/api/songs'), songs = res.songs, sig = JSON.stringify(res);
       DEAD = res.deadlines || {}; MODES = res.modes || {};
       try { PART = await api('GET', '/api/participants'); } catch (e) {}
-      sig = JSON.stringify([res, PART]);
+      try { PASTS = (await api('GET', '/api/pasts')).pasts || []; } catch (e) {}
+      sig = JSON.stringify([res, PART, PASTS]);
       if (silent === true && sig === SIG) { loadTable(); return; }
       SIG = sig; SONGS = songs; PL = res.playlists || {}; NEWS = res.notices || [];
       var ny = res.years || []; if (JSON.stringify(ny) !== JSON.stringify(YEARS)) { YEARS = ny; buildYears(Number(yr.value)); }

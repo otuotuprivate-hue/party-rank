@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Party Rank点数評価ツール</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap">
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -13,7 +13,10 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header class="nav"><div class="navin"><a class="brand" href="#/"><img src="/icon.svg" alt="" width="28" height="28">Party Rank</a><nav id="menu" aria-label="メニュー"></nav></div></header>
+<header class="nav"><div class="navin"><a class="brand" href="#/"><img src="/icon.svg" alt="" width="28" height="28">Party Rank</a><span class="grow"></span>
+<button id="menuBtn" class="burger" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button></div>
+<nav id="menu" aria-label="メニュー"></nav></header>
+<div id="menuBg" class="menubg"></div>
 <div class="wrap">
 
 <section class="view" id="v-home">
@@ -50,6 +53,7 @@
   </div>
   <div class="tabs" id="tabs" aria-label="曲のある区分"></div>
   <div id="modeBox" class="modebox" aria-live="polite"></div>
+  <p class="deadline" id="dline"></p>
 
   <div class="panel" id="addPanel" hidden>
     <form id="f">
@@ -79,9 +83,6 @@
       <button class="pri" id="mwatch">リンクを公開して Party Watch にする</button>
     </form>
     <p class="hint" style="margin:6px 0 0">通常モード(初期状態)では「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間も、一般ユーザーにこのランキングの全体表は見えません。動画リンクを公開すると Party Watch になり、動画リンクと全体表が一般ユーザーにも見えるようになります(ひとことは公開されません)。</p>
-    <h3 class="sub">年の追加</h3>
-    <form id="yf" class="inl"><label>追加する年(西暦)<input id="ynew" type="number" min="1950" max="2100" required></label><button class="pri">年を追加</button></form>
-    <div class="m" id="yList" style="margin-top:6px"></div>
   </div>
 
   <div id="adminSec" hidden>
@@ -99,10 +100,69 @@
   <h2 id="rh"></h2>
   <div id="rank"></div>
   <h2 id="lh"></h2>
-  <p class="deadline" id="dline"></p>
   <p class="plink" id="plink"></p>
   <div id="list"></div>
-</div>
+</section>
+
+<section class="view" id="v-about" hidden>
+  <h2>Party Rankとは</h2>
+  <div class="panel about">
+    <p>Party Rank(パーティーランク)は、<b>みんなでアニソンに点数を付けて、みんなでランキングを作って楽しむ</b>イベントです。同じ曲リストを全員が聴いて、それぞれが自分の基準で採点し、その平均点で順位が決まります。</p>
+  </div>
+  <div class="panel about"><h3 class="sub">遊び方</h3>
+    <ol class="steps">
+      <li><b>名前を入れて参加</b><span>ホームで名前を入力します。合言葉(任意)を決めておくと、別の端末からでも同じ名前で続きを採点できます。</span></li>
+      <li><b>曲に点数を付ける</b><span>年・クール・種別(OP / ED など)ごとの曲リストに、0〜10点を付けます。付けた点数からあなた自身のランキングができます。</span></li>
+      <li><b>☆を1曲だけ付ける</b><span>各クールで、いちばん推したい曲に☆を1つ付けられます。</span></li>
+      <li><b>結果発表をみんなで見る</b><span>全員の点数の平均で、曲の順位が決まります。結果はランキング動画で発表され、動画の公開後はこのサイトでも全体表が見られます。</span></li>
+    </ol>
+  </div>
+  <div class="panel about"><h3 class="sub">開催のモード</h3>
+    <dl class="modes">
+      <dt><span class="mb">通常</span></dt><dd>Party Rankの開催前です。「開催をお待ちください」と表示されます。</dd>
+      <dt><span class="mb rank">Party Rank</span></dt><dd>採点の受付中から開催中までの期間です。結果発表まで、みんなの全体表は見えません。</dd>
+      <dt><span class="mb watch">Party Watch</span></dt><dd>ランキング動画が公開された状態です。動画のリンクと、みんなの全体表が見られます。</dd>
+    </dl>
+  </div>
+  <div class="panel about"><h3 class="sub">メニューの使い方</h3>
+    <p>画面右上の「三本線」を押すとメニューが開きます。ユーザー名や合言葉の変更、参加者の一覧、過去のParty Rank(ランキング動画)の閲覧ができます。</p>
+  </div>
+</section>
+
+<section class="view" id="v-pasts" hidden>
+  <h2>過去のParty Rank</h2>
+  <p class="hint">これまでに開催したランキング動画の一覧です。年代・クール・種別で絞り込めます。</p>
+  <div class="bar" id="pastFilter">
+    <select id="pfY" aria-label="年代"></select>
+    <select id="pfC" aria-label="クール"><option value="">すべてのクール</option><option value="1">冬</option><option value="4">春</option><option value="7">夏</option><option value="10">秋</option></select>
+    <select id="pfK" aria-label="種別"><option value="">すべての種別</option><option>OP</option><option>ED</option><option>挿入歌</option><option>キャラソン</option></select>
+  </div>
+  <div id="pastList"></div>
+</section>
+
+<section class="view" id="v-pastadmin" hidden>
+  <h2>過去のParty Rankの登録</h2>
+  <p class="hint">ランキング動画のタイトルとリンクを登録します。登録した内容は「過去のParty Rank」に表示されます。</p>
+  <div class="panel">
+    <form id="paf" class="inl">
+      <label style="flex:1;min-width:220px">動画のタイトル<input id="patitle" maxlength="100" required placeholder="例: 2025年秋アニメOP Party Rank"></label>
+      <label style="flex:1;min-width:220px">動画のリンク(https://…)<input id="paurl" type="url" maxlength="500" required placeholder="https://www.youtube.com/watch?v=…"></label>
+      <label>年代<select id="payr"></select></label>
+      <label>クール<select id="pacour"><option value="1">冬(1月〜)</option><option value="4">春(4月〜)</option><option value="7">夏(7月〜)</option><option value="10">秋(10月〜)</option></select></label>
+      <label>種別<select id="pakind"><option>OP</option><option>ED</option><option>挿入歌</option><option>キャラソン</option></select></label>
+      <button class="pri">登録する</button>
+    </form>
+  </div>
+  <div class="panel"><h3 class="sub" id="paSum">登録済みの動画</h3><div id="paAdm"></div></div>
+</section>
+
+<section class="view" id="v-years" hidden>
+  <h2>年代の追加</h2>
+  <p class="hint">年・クールの選択肢に、2000年より前の年や、まだ選べない年を追加できます。</p>
+  <div class="panel">
+    <form id="yf" class="inl"><label>追加する年(西暦)<input id="ynew" type="number" min="1950" max="2100" required></label><button class="pri">年を追加</button></form>
+    <div class="m" id="yList" style="margin-top:8px"></div>
+  </div>
 </section>
 
 <section class="view" id="v-rename" hidden>
