@@ -16,7 +16,7 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {} };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {} };
 function save() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = DB_FILE + '.tmp';
@@ -170,6 +170,16 @@ function tableJson(t, desc) {
     overallAverage: r2(t.overallAvg), items,
   };
 }
+/* モード: video があれば watch(全体表を公開)、rank が true なら rank(開催中)、どちらも無ければ entry */
+function modeOf(key) {
+  const m = db.modes[key] || {};
+  return m.video ? 'watch' : m.rank ? 'rank' : 'entry';
+}
+function publicModes() {
+  const out = {};
+  Object.keys(db.modes).forEach((k) => { const m = db.modes[k] || {}; out[k] = { mode: modeOf(k), video: m.video || '' }; });
+  return out;
+}
 function allKeys() { return [...new Set(db.songs.map((s) => s.key))]; }
 
 /* ---------- API ---------- */
@@ -178,7 +188,16 @@ async function api(req, res, url) {
   const body = m === 'GET' || m === 'DELETE' ? {} : await readBody(req);
 
   if (m === 'GET' && p === '/api/songs') {
-    return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at, ord }) => ({ id, key, title, artist, anime, at, ord: ord != null ? ord : at })), playlists: db.playlists, years: db.years, notices: db.notices.slice().reverse(), deadlines: db.deadlines });
+    return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at, ord }) => ({ id, key, title, artist, anime, at, ord: ord != null ? ord : at })), playlists: db.playlists, years: db.years, notices: db.notices.slice().reverse(), deadlines: db.deadlines, modes: publicModes() });
+  }
+  if (m === 'GET' && p === '/api/table') {
+    // Party Watchモードのランキングだけ、全体表を一般にも公開する(ひとことは含めない)
+    const key = url.searchParams.get('key') || '';
+    if (!validKey(key)) throw bad('区分が正しくありません');
+    if (modeOf(key) !== 'watch') throw new HttpError(403, 'このランキングの全体表はまだ公開されていません');
+    const t = buildTable(key);
+    t.rows.forEach((r) => { r.comments = {}; });
+    return send(res, 200, t);
   }
   if (m === 'GET' && p === '/api/participants') {
     // 名前と採点した曲数だけを返す(点数・コメントは含めない)
@@ -334,6 +353,21 @@ async function api(req, res, url) {
       db.deadlines[key] = Math.round(at); save();
       return send(res, 200, { deadlines: db.deadlines });
     }
+    if (p === '/api/admin/mode' && m === 'PUT') {
+      const key = clean(body.key, 20);
+      if (!validKey(key)) throw bad('区分が正しくありません');
+      const to = String(body.mode || '');
+      if (to === 'entry') delete db.modes[key];
+      else if (to === 'rank') db.modes[key] = { rank: true, video: '' };
+      else if (to === 'watch') {
+        const v = clean(body.video, 500);
+        let u; try { u = new URL(v); } catch (e) { u = null; }
+        if (!u || u.protocol !== 'https:') throw bad('ランキング動画のリンクは https:// から始まるURLを入力してください');
+        db.modes[key] = { rank: false, video: u.href };
+      } else throw bad('モードが正しくありません');
+      save();
+      return send(res, 200, { modes: publicModes() });
+    }
     if (p === '/api/admin/years' && m === 'POST') {
       const y = Number(body.year);
       if (!Number.isInteger(y) || y < 1950 || y > 2100) throw bad('年は1950〜2100の数字で入力してください');
@@ -442,7 +476,7 @@ async function api(req, res, url) {
 }
 
 /* ---------- 静的ファイル ---------- */
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.webmanifest': 'application/manifest+json; charset=utf-8' };
 const SEC = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
   'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
