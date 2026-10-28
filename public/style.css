@@ -270,5 +270,6 @@ details.adm[open]>summary{padding-bottom:8px}
 .savestate{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));max-width:min(92vw,520px);background:var(--acc2);color:#fff;padding:9px 16px;border-radius:14px;font-size:13px;font-weight:700;z-index:60;box-shadow:0 6px 20px rgba(20,19,60,.3);text-align:center}
 
 /* 順位・点数は途中で折り返さない(2桁以上でも横に並べる) */
-.rank,.pt{white-space:nowrap;overflow-wrap:normal;word-break:normal}
-@media(max-width:560px){.rank{font-size:26px}.top1 .rank{font-size:32px}}
+li>.rank,li>.pt{white-space:nowrap;overflow-wrap:normal;word-break:normal}
+@media(max-width:560px){li>.rank{font-size:26px}.top1>.rank{font-size:32px}}
+.mode.rank{font-family:inherit;color:inherit;text-align:left;font-size:14px}
