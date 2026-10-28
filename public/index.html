@@ -118,7 +118,7 @@
       <label style="flex:1;min-width:240px">ランキング動画のリンク(https://…)<input id="mvideo" type="url" maxlength="500" placeholder="https://www.youtube.com/watch?v=…" required></label>
       <button class="pri" id="mwatch">リンクを公開して Party Watch にする</button>
     </form>
-    <p class="hint" style="margin:6px 0 0">通常モード(初期状態)では「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間も、一般ユーザーにこのランキングの全体表は見えません。動画リンクを公開すると Party Watch になり、動画リンクと全体表が一般ユーザーにも見えるようになります(ひとことは公開されません)。</p></div>
+    <p class="hint" style="margin:6px 0 0">通常モード(初期状態)では「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間も、一般ユーザーにこのランキングの全体表は見えません。動画リンクを公開すると Party Watch になり、動画リンク・全体表・みんなのひとこと が一般ユーザーにも見えるようになります。</p></div>
     </details>
   </div>
 
@@ -130,6 +130,7 @@
       <button id="exVjson" class="sec">動画用JSON</button>
       <label class="m"><input type="checkbox" id="desc"> 順位の低い順に並べる(順位発表用)</label>
     </div>
+    <p class="hint" id="mvHint" hidden style="margin:4px 0">各ユーザーの下の ◀ ▶ で、列の順番を変えられます(CSV・動画用データにも、この順番で出力されます)。<button id="exReset" type="button" class="sec">名前順に戻す</button></p>
     <div id="matrix"></div>
     <details class="panel" id="cmBox" hidden style="margin-top:12px"><summary id="cmSum"></summary><div id="cmList" style="margin-top:8px"></div></details>
   </div>
@@ -236,16 +237,41 @@
   </div>
 </section>
 
-<section class="view" id="v-rename" hidden>
-  <h2>ユーザー名の変更</h2>
-  <div class="panel">
-    <p class="hint" id="rNote" hidden>まだ合言葉が設定されていないため、名前を変更できません。先にメニューの「パスワード(合言葉)の再設定」で合言葉を設定してください。</p>
-    <form id="rf" class="inl">
-      <label>新しい名前<input id="rn" maxlength="30" required></label>
-      <label>合言葉(確認用)<input id="rpw" type="password" maxlength="60" required autocomplete="current-password"></label>
-      <button class="pri">名前を変更する</button><button type="button" id="rcancel">キャンセル</button>
+<section class="view" id="v-profile" hidden>
+  <h2>プロフィール</h2>
+  <div class="panel pfcard" id="pfCard"></div>
+  <div id="pfEdit" hidden>
+    <h3 class="sub">プロフィールを編集</h3>
+    <p class="hint">自己紹介とXのリンクは、このサイトに参加している誰でも見られます。</p>
+    <form class="panel" id="pfForm">
+      <label class="blk">自己紹介(200字まで)<textarea id="pfBio" maxlength="200" rows="4"></textarea></label>
+      <div class="hint" id="pfCnt" style="text-align:right">0/200</div>
+      <label class="blk">Xのアカウント(@ID か https://x.com/ID)<input id="pfX" maxlength="120" placeholder="@your_id" autocomplete="off"></label>
+      <div class="bar"><button class="pri" id="pfSave">プロフィールを保存</button></div>
+      <div class="m" id="pfMsg" role="alert"></div>
     </form>
-    <div class="m" id="rmsg" role="alert" style="margin-top:6px"></div>
+    <h3 class="sub">アイコン</h3>
+    <p class="hint">参加者の一覧や全体表に表示され、ランキング動画にも使われます。</p>
+    <div class="panel icobox">
+      <div id="icPrev" class="icprev"></div>
+      <div class="icctl">
+        <label class="blk">画像を選ぶ(PNG・JPEG・WebPなど)<input id="icFile" type="file" accept="image/*"></label>
+        <p class="hint" style="margin:0">正方形に切り抜いて保存します。顔や中心の絵が真ん中に来る画像がおすすめです。</p>
+        <div class="bar" style="margin:0"><button id="icSave" class="pri" type="button" disabled>このアイコンにする</button><button id="icDel" type="button">アイコンを外す</button></div>
+        <div class="m" id="icMsg" role="alert"></div>
+      </div>
+    </div>
+    <h3 class="sub">ユーザー名の変更</h3>
+    <div class="panel">
+      <p class="hint" id="rNote" hidden>まだ合言葉が設定されていないため、名前を変更できません。先に下の「パスワード(合言葉)の再設定」で合言葉を設定してください。</p>
+      <form id="rf" class="inl">
+        <label>新しい名前<input id="rn" maxlength="30" required></label>
+        <label>合言葉(確認用)<input id="rpw" type="password" maxlength="60" required autocomplete="current-password"></label>
+        <button class="pri">名前を変更する</button>
+      </form>
+      <div class="m" id="rmsg" role="alert" style="margin-top:6px"></div>
+    </div>
+    <div class="bar"><button type="button" id="pfPw">パスワード(合言葉)の再設定</button></div>
   </div>
 </section>
 
@@ -332,20 +358,6 @@
   <h2>お知らせ</h2>
   <p class="hint">タイトルをタップすると、本文が開きます。</p>
   <div id="nAll" class="panel nlist"></div>
-</section>
-
-<section class="view" id="v-icon" hidden>
-  <h2>アイコンの設定</h2>
-  <p class="hint">あなたのアイコンです。参加者の一覧や全体表に表示され、ランキング動画にも使われます。</p>
-  <div class="panel icobox">
-    <div id="icPrev" class="icprev"></div>
-    <div class="icctl">
-      <label class="blk">画像を選ぶ(PNG・JPEG・WebPなど)<input id="icFile" type="file" accept="image/*"></label>
-      <p class="hint" style="margin:0">正方形に切り抜いて保存します。顔や中心の絵が真ん中に来る画像がおすすめです。</p>
-      <div class="bar" style="margin:0"><button id="icSave" class="pri" type="button" disabled>このアイコンにする</button><button id="icDel" type="button">アイコンを外す</button><button id="icBack" type="button">戻る</button></div>
-      <div class="m" id="icMsg" role="alert"></div>
-    </div>
-  </div>
 </section>
 
 </div>

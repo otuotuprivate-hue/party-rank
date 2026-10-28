@@ -30,6 +30,8 @@
     }
     return s;
   }
+  function admTag() { var t = el('span', 'admtag', '管理者'); return t; }
+  function uLink(u, cls) { var a = el('a', cls || 'ulink', u.name); a.href = '#/profile/' + encodeURIComponent(u.id); return a; }
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function () { e.classList.remove('show'); }, 2600); }
   function store(k, v, sess) { try { (sess ? sessionStorage : localStorage)[v ? 'setItem' : 'removeItem'](k, v); } catch (e) {} }
 
@@ -213,10 +215,9 @@
     $('pCurWrap').hidden = !has;
     $('pNote').textContent = has ? '合言葉を変えるには、現在の合言葉が必要です。' : 'まだ合言葉が設定されていません。合言葉を決めると、別の端末からも同じ名前で使え、名前の変更もできるようになります。';
   }
-  $('rcancel').onclick = function () { go(''); };
   $('rf').onsubmit = async function (e) {
     e.preventDefault(); $('rmsg').textContent = '';
-    try { var r = await api('PUT', '/api/me/name', { name: $('rn').value, pass: $('rpw').value }, ptoken); ME.name = r.name; $('rpw').value = ''; renderAll(); loadTable(); loadPart(); toast('名前を変更しました'); go(''); }
+    try { var r = await api('PUT', '/api/me/name', { name: $('rn').value, pass: $('rpw').value }, ptoken); ME.name = r.name; $('rpw').value = ''; renderAll(); loadTable(); loadPart(); toast('名前を変更しました'); renderProfile(); }
     catch (err) { $('rmsg').textContent = err.message; if (err.status === 401) forget(); }
   };
   $('pcancel').onclick = function () { go(''); };
@@ -228,6 +229,55 @@
   };
 
   /* ---- 管理者の全体表 ---- */
+  async function moveUser(i, d) {
+    var ids = TABLE.people.map(function (u) { return u.id; }), j = i + d;
+    if (j < 0 || j >= ids.length) return;
+    var tmp = ids[i]; ids[i] = ids[j]; ids[j] = tmp;
+    try { TABLE = await api('PUT', '/api/admin/table-order', { key: TABLE.key, ids: ids }, atoken); TSIG = JSON.stringify(TABLE); renderMatrix(); }
+    catch (e) { adminError(e, '並び替えできませんでした'); }
+  }
+  $('exReset') && ($('exReset').onclick = async function () {
+    if (!TABLE) return;
+    try { TABLE = await api('PUT', '/api/admin/table-order', { key: TABLE.key, ids: [] }, atoken); TSIG = JSON.stringify(TABLE); renderMatrix(); toast('ユーザーの並びを名前順に戻しました'); }
+    catch (e) { adminError(e, '戻せませんでした'); }
+  });
+
+  /* ---- プロフィール ---- */
+  var PFID = '';
+  function titleClass(n) { return n > 30 ? 't5' : n > 20 ? 't4' : n > 10 ? 't3' : n > 5 ? 't2' : 't1'; }
+  async function renderProfile(idArg) {
+    var id = idArg || routeParam() || (ME && ME.id) || ''; PFID = id;
+    var card = $('pfCard'); card.textContent = '';
+    var mine = !!(ME && ME.id === id);
+    $('pfEdit').hidden = !mine;
+    if (!id) { card.appendChild(el('div', 'empty', 'ユーザーが見つかりません')); return; }
+    var u;
+    try { u = await api('GET', '/api/profile/' + encodeURIComponent(id)); }
+    catch (e) { card.appendChild(el('div', 'empty', e.status === 404 ? 'このユーザーは見つかりません(削除された可能性があります)' : e.message)); $('pfEdit').hidden = true; return; }
+    if (PFID !== id) return;
+    var top = el('div', 'pftop'); top.appendChild(avatar(u.id, u.ic, u.name, 'xl'));
+    var nm = el('div', 'pfname'), line = el('div', 'pfn'); line.appendChild(el('span', 'pfnm', u.name)); if (u.adm) line.appendChild(admTag()); nm.appendChild(line);
+    if (u.title) nm.appendChild(el('div', 'ttl ' + titleClass(u.count), u.title));
+    if (u.at) nm.appendChild(el('div', 'pfsince', 'サイト登録日 ' + fdate(u.at)));
+    top.appendChild(nm); card.appendChild(top);
+    var st = el('div', 'pfstat'); st.appendChild(el('b', '', u.count)); st.appendChild(document.createTextNode(' ランキングに参加')); card.appendChild(st);
+    if (u.x) { var xa = el('a', 'xl', xHandle(u.x)); xa.href = u.x; xa.target = '_blank'; xa.rel = 'noopener noreferrer'; card.appendChild(xa); }
+    if (u.bio) card.appendChild(el('p', 'pfbio', u.bio));
+    else if (mine) card.appendChild(el('p', 'hint', '自己紹介はまだありません。下で書いてみましょう。'));
+    if (mine) {
+      $('pfBio').value = u.bio || ''; $('pfX').value = u.x ? xHandle(u.x) : ''; $('pfCnt').textContent = (u.bio || '').length + '/200'; $('pfMsg').textContent = '';
+      ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev('');
+      $('rn').value = ME.name; $('rpw').value = ''; $('rmsg').textContent = ''; renderUserPages();
+    }
+  }
+  $('pfBio').oninput = function () { $('pfCnt').textContent = $('pfBio').value.length + '/200'; };
+  $('pfForm').onsubmit = async function (e) {
+    e.preventDefault(); $('pfMsg').textContent = '';
+    try { await api('PUT', '/api/me/profile', { bio: $('pfBio').value, x: $('pfX').value }, ptoken); toast('プロフィールを保存しました'); renderProfile(); }
+    catch (err) { $('pfMsg').textContent = err.message; if (err.status === 401) forget(); }
+  };
+  $('pfPw').onclick = function () { go('password'); };
+
   function f2(v) { return v == null ? '–' : (Math.round(v * 100) / 100).toFixed(2); }
   var TSIG = '';
   function modeOf(k) { return (MODES[k] && MODES[k].mode) || 'entry'; }
@@ -250,8 +300,41 @@
     }
     catch (e) { adminError(e, '全体表を読み込めませんでした'); }
   }
+  var CMF = '', CMOPEN = false;
+  function renderComments(t) {
+    var list = $('cmList'); list.textContent = '';
+    var withC = [], n = 0, byUser = {};
+    t.rows.forEach(function (r) {
+      var cs = t.people.filter(function (u) { return r.comments && r.comments[u.id]; });
+      if (cs.length) { withC.push({ r: r, cs: cs }); cs.forEach(function (u) { byUser[u.id] = (byUser[u.id] || 0) + 1; }); }
+    });
+    withC.forEach(function (g) { n += g.cs.length; });
+    $('cmSum').textContent = 'みんなのひとこと(' + n + '件)'; $('cmBox').hidden = !n;
+    if (!n) return;
+    if (!CMOPEN) { CMOPEN = true; $('cmBox').open = true; }
+    if (CMF && !byUser[CMF]) CMF = '';
+    var bar = el('div', 'cmbar'), sel = el('select'); sel.setAttribute('aria-label', 'ユーザーで絞り込み');
+    sel.appendChild(new Option('全員のひとこと', ''));
+    t.people.forEach(function (u) { if (byUser[u.id]) sel.appendChild(new Option(u.name + '(' + byUser[u.id] + '件)', u.id)); });
+    sel.value = CMF; sel.onchange = function () { CMF = sel.value; renderComments(t); };
+    bar.appendChild(sel); list.appendChild(bar);
+    withC.forEach(function (g) {
+      var cs = g.cs.filter(function (u) { return !CMF || u.id === CMF; }); if (!cs.length) return;
+      var card = el('div', 'cmsong'), head = el('div', 'cmhead');
+      head.appendChild(el('span', 'cmrk', g.r.rank == null ? '–' : g.r.rank + '位'));
+      var ti = el('div', 'cmti'); ti.appendChild(el('b', '', g.r.title)); var sub = [g.r.artist, g.r.anime].filter(Boolean).join(' / '); if (sub) ti.appendChild(el('small', '', sub));
+      head.appendChild(ti); head.appendChild(el('span', 'cmavg', f2(g.r.avg))); card.appendChild(head);
+      cs.forEach(function (u) {
+        var it = el('div', 'cmitem'), body = el('div', 'cmbody'), who = el('div', 'cmwho');
+        who.appendChild(uLink(u)); var v = g.r.scores[u.id]; if (typeof v === 'number') who.appendChild(el('span', 'cmsc', v.toFixed(1) + '点')); if (g.r.starBy.indexOf(u.id) >= 0) who.appendChild(el('span', 'gold', '★'));
+        body.appendChild(who); body.appendChild(el('div', 'cmtxt', g.r.comments[u.id]));
+        it.appendChild(avatar(u.id, u.ic, u.name, 's')); it.appendChild(body); card.appendChild(it);
+      });
+      list.appendChild(card);
+    });
+  }
   function renderMatrix() {
-    $('adminSec').hidden = !TABLE; $('exBar').hidden = !atoken; if (!TABLE) return;
+    $('adminSec').hidden = !TABLE; $('exBar').hidden = !atoken; $('mvHint').hidden = !atoken; if (!TABLE) return;
     var t = TABLE, box = $('matrix'); box.textContent = ''; $('cmBox').hidden = true;
     $('mh').textContent = (atoken ? '全ユーザー一覧 ' : '全体表 ') + t.label;
     if (!t.rows.length || !t.people.length) { box.appendChild(el('div', 'empty', 'この区分の曲か、採点したユーザーがまだいません。')); return; }
@@ -264,7 +347,23 @@
       function go() { if (SORT.uid !== id) { SORT.uid = id; SORT.dir = -1; } else if (SORT.dir < 0) SORT.dir = 1; else SORT.uid = null; renderMatrix(); }
       th.onclick = go; th.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
     }
-    t.people.forEach(function (u) { var th = el('th'); th.appendChild(avatar(u.id, u.ic, u.name, 's')); th.appendChild(document.createTextNode(' ' + u.name + arrow(u.id))); sortTh(th, u.id, u.name); hr.appendChild(th); });
+    t.people.forEach(function (u, ui) {
+      var th = el('th'), pl = el('a', 'avl'); pl.href = '#/profile/' + encodeURIComponent(u.id); pl.title = u.name + 'のプロフィール'; pl.onclick = function (e) { e.stopPropagation(); };
+      pl.appendChild(avatar(u.id, u.ic, u.name, 's')); th.appendChild(pl); th.appendChild(document.createTextNode(' ' + u.name + arrow(u.id)));
+      sortTh(th, u.id, u.name);
+      if (atoken) {
+        var mv = el('span', 'mv');
+        [['◀', -1, '左へ'], ['▶', 1, '右へ']].forEach(function (d) {
+          var b = el('button', '', d[0]); b.type = 'button'; b.title = u.name + 'を' + d[2] + '移動'; b.setAttribute('aria-label', b.title);
+          b.disabled = ui + d[1] < 0 || ui + d[1] >= t.people.length;
+          b.onclick = function (e) { e.stopPropagation(); moveUser(ui, d[1]); };
+          b.onkeydown = function (e) { e.stopPropagation(); };
+          mv.appendChild(b);
+        });
+        th.appendChild(mv);
+      }
+      hr.appendChild(th);
+    });
     var thAv = el('th', 'av', '曲の平均' + arrow('_avg')); sortTh(thAv, '_avg', '曲の平均'); hr.appendChild(thAv);
     var th0 = el('thead'); th0.appendChild(hr); tb.appendChild(th0);
     var body = el('tbody');
@@ -294,14 +393,7 @@
     var b = el('tr'), b1 = el('th', 'c1', label(t.cour + '-') + 'の☆'); b1.colSpan = 2; b1.style.textAlign = 'left'; b.appendChild(b1);
     t.people.forEach(function (u) { var n = t.starTitles[u.id], td = el('td', 'st', n || '–'); td.title = n; b.appendChild(td); }); b.appendChild(el('td', 'av', ''));
     tf.appendChild(a); tf.appendChild(b); tb.appendChild(tf); wrap.appendChild(tb); box.appendChild(wrap);
-    var list = $('cmList'); list.textContent = ''; var n = 0;
-    t.rows.forEach(function (r) {
-      t.people.forEach(function (u) {
-        var c = r.comments && r.comments[u.id]; if (!c) return; n++;
-        var line = el('div', 'cmrow'); line.appendChild(el('b', '', r.title + ' / ' + u.name + ': ')); line.appendChild(document.createTextNode(c)); list.appendChild(line);
-      });
-    });
-    $('cmSum').textContent = 'ひとこと(' + n + '件)'; $('cmBox').hidden = !n;
+    renderComments(t);
   }
   async function download(path, fallback) {
     try {
@@ -466,7 +558,7 @@
       if (!r.people.length) { box.appendChild(el('span', 'm', 'まだ参加者はいません。')); return; }
       r.people.forEach(function (u) {
         var row = el('div', 'urow'), top = el('div', 'bar'); top.style.marginBottom = '0';
-        top.appendChild(avatar(u.id, u.ic, u.name, 's')); top.appendChild(el('b', '', u.name)); top.appendChild(el('span', 'm', '(採点 ' + u.scored + '曲・合言葉' + (u.hasPass ? 'あり' : 'なし') + ')')); top.appendChild(el('span', 'grow'));
+        top.appendChild(avatar(u.id, u.ic, u.name, 's')); var nb = el('b'); nb.appendChild(uLink(u)); top.appendChild(nb); if (u.adm) top.appendChild(admTag()); top.appendChild(el('span', 'm', '(採点 ' + u.scored + '曲・合言葉' + (u.hasPass ? 'あり' : 'なし') + ')')); top.appendChild(el('span', 'grow'));
         var rs = el('button', '', '合言葉をリセット'), del = el('button', 'ghost', '削除'); del.setAttribute('aria-label', u.name + 'を削除');
         top.appendChild(rs); top.appendChild(del); row.appendChild(top);
         var form = el('form', 'inl'); form.hidden = true;
@@ -491,7 +583,7 @@
   $('lf').onsubmit = async function (e) {
     e.preventDefault(); $('lmsg').textContent = '';
     try {
-      var r = await api('POST', '/api/admin/login', { name: $('adm').value, password: $('pw').value });
+      var r = await api('POST', '/api/admin/login', { name: $('adm').value, password: $('pw').value, person: ptoken || undefined });
       atoken = r.token; adminName = r.name; store('pr-admin', atoken, true); store('pr-admin-name', adminName, true);
       $('pw').value = ''; await enterAdmin(); go(''); toast(adminName + 'として管理者画面に入りました');
     } catch (err) { $('lmsg').textContent = err.message; }
@@ -654,14 +746,13 @@
   };
   $('icSave').onclick = async function () {
     if (!ICDATA) return; $('icMsg').textContent = '';
-    try { var r = await api('PUT', '/api/me/icon', { data: ICDATA }, ptoken); ME.icon = r.icon; ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; PSIG = ''; TSIG = ''; renderAll(); loadTable(); loadPart(); toast('アイコンを設定しました'); go(''); }
+    try { var r = await api('PUT', '/api/me/icon', { data: ICDATA }, ptoken); ME.icon = r.icon; ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; PSIG = ''; TSIG = ''; renderAll(); loadTable(); loadPart(); toast('アイコンを設定しました'); renderProfile(); }
     catch (err) { $('icMsg').textContent = err.message; if (err.status === 401) forget(); }
   };
   $('icDel').onclick = async function () {
-    try { await api('DELETE', '/api/me/icon', undefined, ptoken); ME.icon = 0; ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; TSIG = ''; renderAll(); loadTable(); loadPart(); toast('アイコンを外しました'); iconPrev(''); }
+    try { await api('DELETE', '/api/me/icon', undefined, ptoken); ME.icon = 0; ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; TSIG = ''; renderAll(); loadTable(); loadPart(); toast('アイコンを外しました'); renderProfile(); }
     catch (err) { $('icMsg').textContent = err.message; }
   };
-  $('icBack').onclick = function () { go(''); };
 
   /* ---- 過去のParty Rank ---- */
   function sk2(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
@@ -784,7 +875,7 @@
     if (!PART) return;
     $('partTotal').textContent = '全体のユーザー(' + PART.people.length + '人)';
     if (!PART.people.length) all.appendChild(el('span', 'm', 'まだ参加者はいません。'));
-    PART.people.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); c.appendChild(document.createTextNode(u.name)); all.appendChild(c); });
+    PART.people.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); c.appendChild(uLink(u)); if (u.adm) c.appendChild(admTag()); all.appendChild(c); });
     function sk(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
     var keep = sel.value; sel.textContent = '';
     sel.appendChild(new Option('(ランキングを選んでください)', ''));
@@ -799,7 +890,7 @@
     var g = PART && PART.keys.filter(function (x) { return x.key === k; })[0];
     if (!g) { out.appendChild(el('span', 'm', 'ランキングを選ぶと、そのランキングの参加者が表示されます。')); return; }
     if (!g.participants.length) out.appendChild(el('span', 'm', 'まだ採点した人はいません。'));
-    g.participants.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); c.appendChild(document.createTextNode(u.name + '(採点 ' + u.scored + '/' + g.songs + '曲)')); out.appendChild(c); });
+    g.participants.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); c.appendChild(uLink(u)); if (u.adm) c.appendChild(admTag()); c.appendChild(document.createTextNode('(採点 ' + u.scored + '/' + g.songs + '曲)')); out.appendChild(c); });
   }
   $('partKey').onchange = renderPartKey;
 
@@ -895,19 +986,20 @@
   window.addEventListener('resize', fitSoon);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
 
-  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', icon: 'v-icon', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
-  var ADMIN_ONLY = { adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1, icon: 1 };
-  function curRoute() { var h = (location.hash || '').replace(/^#\/?/, ''); return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
+  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', profile: 'v-profile', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
+  var ADMIN_ONLY = { adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { password: 1 };
+  function routeParam() { var p = (location.hash || '').replace(/^#\/?/, '').split('/')[1]; try { return p ? decodeURIComponent(p) : ''; } catch (e) { return ''; } }
+  function curRoute() { var h = (location.hash || '').replace(/^#\/?/, '').split('/')[0]; return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
   function go(r) { var t = '#/' + (r || ''); if (location.hash === t || (!r && (location.hash === '' || location.hash === '#'))) route(false); else location.hash = t; }
   function menuItems() {
     var about = { t: 'Party Rankとは', r: 'about' }, past = { t: '過去のParty Rank', r: 'pasts' };
     var news = { t: 'お知らせ', r: 'notices' }, inv = { t: '友だちを招待', r: 'invite' };
-    if (atoken) return [about, { t: '管理者ホーム', r: '' }, news, inv, past, { sep: 1 },
+    if (atoken) return [about, { t: '管理者ホーム', r: '' }].concat(ME ? [{ t: 'プロフィール', r: 'profile' }] : [], [news, inv, past, { sep: 1 },
       { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
       { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'お知らせの登録', r: 'news' },
-      { t: 'Xアカウントの登録', r: 'adminx' }, { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }];
+      { t: 'Xアカウントの登録', r: 'adminx' }, { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }]);
     var a = [about, { t: 'ホーム', r: '' }, news, inv];
-    if (ME) a.push({ t: 'アイコンの設定', r: 'icon' }, { t: 'ユーザー名の変更', r: 'rename' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
+    if (ME) a.push({ t: 'プロフィール', r: 'profile' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
     a.push({ t: '参加者一覧', r: 'people' }, past, { sep: 1 }, { t: '管理者画面への入室', r: 'admin-login' });
     return a;
   }
@@ -933,13 +1025,13 @@
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('menu').classList.contains('open')) { closeMenu(); $('menuBtn').focus(); } });
   function route(soft) {
     var r = curRoute();
-    if ((ADMIN_ONLY[r] && !atoken) || (NEED_ME[r] && !ME) || (r === 'admin-login' && atoken)) r = '';
+    if ((ADMIN_ONLY[r] && !atoken) || (NEED_ME[r] && !ME) || (r === 'admin-login' && atoken) || (r === 'profile' && !routeParam() && !ME)) r = '';
     if (r !== curRoute()) { try { history.replaceState(null, '', '#/' + (r || '')); } catch (e) { location.hash = '#/' + (r || ''); } }
     Object.keys(VIEWS).forEach(function (k) { $(VIEWS[k]).hidden = k !== r; });
     renderMenu(r);
     if (soft) return;
     window.scrollTo(0, 0);
-    if (r === 'rename') { $('rn').value = ME ? ME.name : ''; $('rpw').value = ''; $('rmsg').textContent = ''; renderUserPages(); }
+    if (r === 'profile') renderProfile();
     else if (r === 'password') { $('pmsg').textContent = ''; renderUserPages(); }
     else if (r === 'people') loadPart();
     else if (r === 'admins') loadAdmins();
@@ -949,7 +1041,6 @@
     else if (r === 'adminx') renderAdminX();
     else if (r === 'about') loadStaff();
     else if (r === 'notices') renderNews();
-    else if (r === 'icon') { ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev(''); }
     else if (r === 'pasts') { renderPasts(); api('GET', '/api/pasts').then(function (d) { PASTS = d.pasts || []; if (curRoute() === 'pasts') renderPasts(); }).catch(function () {}); }
     else if (r === 'pastadmin') renderPastAdmin();
     else if (r === 'years') renderYears();
