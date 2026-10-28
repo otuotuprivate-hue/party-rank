@@ -273,3 +273,14 @@ details.adm[open]>summary{padding-bottom:8px}
 li>.rank,li>.pt{white-space:nowrap;overflow-wrap:normal;word-break:normal}
 @media(max-width:560px){li>.rank{font-size:26px}.top1>.rank{font-size:32px}}
 .mode.rank{font-family:inherit;color:inherit;text-align:left;font-size:14px}
+
+/* スマホ: 全体表は曲名の列を細くして、参加者の列が見えるようにする */
+@media(max-width:620px){
+  table.mx{font-size:13px}
+  .mx th,.mx td{padding:6px 7px}
+  .mx .c1{min-width:34px;max-width:34px;padding-left:4px;padding-right:4px}
+  .mx .c2{left:34px;min-width:116px;max-width:116px;width:116px;font-size:12px;line-height:1.35;font-weight:700;overflow-wrap:anywhere}
+  .mx .c2 small{font-size:10px;font-weight:500;line-height:1.3;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .mx thead th{max-width:6em;font-size:12px}
+  .mx small{font-size:11px}
+}
