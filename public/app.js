@@ -76,7 +76,7 @@
   function renderRank() {
     var k = key(), box = $('rank'); box.textContent = '';
     $('rh').textContent = (ME ? ME.name + 'さんの ' : '') + label(k) + ' ランキング';
-    if (!ME) { box.appendChild(el('div', 'empty', '名前を入力して参加すると、あなたのランキングがここに出ます。')); return; }
+    if (!ME) { box.appendChild(el('div', 'empty', 'ログインすると、あなたのランキングがここに出ます。')); return; }
     var L = rankedMine(k);
     if (!L.length) { box.appendChild(el('div', 'empty', '採点した曲がまだありません。下の曲一覧で点数を選ぶと、ここに順位が出ます。')); return; }
     var ol = el('ol');
@@ -273,6 +273,114 @@
   $('exVcsv').onclick = function () { download(exportUrl('csv'), '書き出せませんでした'); };
   $('exVjson').onclick = function () { download(exportUrl('json'), '書き出せませんでした'); };
 
+  /* ---- 画像で保存 ---- */
+  var FF = '"M PLUS Rounded 1c","Hiragino Sans","Noto Sans JP",sans-serif', DF = '"Dela Gothic One","M PLUS Rounded 1c",sans-serif';
+  function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
+  async function fontsReady() {
+    try { await Promise.all([document.fonts.load('500 16px "M PLUS Rounded 1c"'), document.fonts.load('700 16px "M PLUS Rounded 1c"'), document.fonts.load('800 16px "M PLUS Rounded 1c"'), document.fonts.load('400 16px "Dela Gothic One"')]); } catch (e) {}
+  }
+  function nameColor(n) { var h = 0; Array.from(String(n || '')).forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) % 360; }); return 'hsl(' + h + ',55%,45%)'; }
+  function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  function fitText(g, text, maxW, size, weight, min) {
+    var z = size; for (; ; ) { g.font = weight + ' ' + z + 'px ' + FF; if (g.measureText(text).width <= maxW || z <= min) break; z--; }
+    if (g.measureText(text).width > maxW) { var t = Array.from(text); while (t.length > 1 && g.measureText(t.join('') + '…').width > maxW) t.pop(); return t.join('') + '…'; }
+    return text;
+  }
+  function avatarOn(g, img, name, cx, cy, r) {
+    g.save(); g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.closePath(); g.clip();
+    if (img) { var m = Math.min(img.width, img.height); g.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, cx - r, cy - r, r * 2, r * 2); }
+    else { g.fillStyle = nameColor(name); g.fillRect(cx - r, cy - r, r * 2, r * 2); g.fillStyle = '#fff'; g.font = '800 ' + Math.round(r * 1.1) + 'px ' + FF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(Array.from(String(name || '?'))[0] || '?', cx, cy + 1); }
+    g.restore();
+  }
+  function newCanvas(W, H) {
+    var sc = Math.min(2, Math.sqrt(12000000 / (W * H))), c = document.createElement('canvas'); c.width = Math.round(W * sc); c.height = Math.round(H * sc);
+    var g = c.getContext('2d'); g.scale(sc, sc); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    var bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#f6f5fd'); bg.addColorStop(1, '#e8e5fa'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    return { c: c, g: g };
+  }
+  function band(g, W, H, title, sub, logo, av) {
+    var gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, '#3b36c9'); gr.addColorStop(1, '#e0306f'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    var x = 28;
+    if (av) { avatarOn(g, av.img, av.name, 28 + 30, H / 2, 30); x = 28 + 60 + 16; }
+    g.fillStyle = '#fff'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    var tt = fitText(g, title, W - x - 28 - (logo ? 64 : 0), 28, 800, 16); g.font = '800 ' + g.font.match(/(\d+)px/)[1] + 'px ' + FF; g.fillText(tt, x, H / 2 + 2);
+    g.globalAlpha = .85; g.font = '500 14px ' + FF; g.fillText(sub, x, H / 2 + 26); g.globalAlpha = 1;
+    if (logo) g.drawImage(logo, W - 28 - 44, (H - 44) / 2, 44, 44);
+  }
+  function footer(g, W, H, y) {
+    g.fillStyle = '#6b6a8a'; g.font = '500 12px ' + FF; g.textAlign = 'right'; g.fillText('Party Rank点数評価ツール ・ ' + fdate(Date.now()), W - 28, y); g.textAlign = 'left';
+  }
+  function showImage(canvas, name) {
+    var url = canvas.toDataURL('image/png'); $('imgPrev').src = url; $('imgSave').onclick = function () { var a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('保存しました'); };
+    var m = $('imgModal'); m.hidden = false; $('imgClose').focus();
+    function close() { m.hidden = true; document.removeEventListener('keydown', kd); }
+    function kd(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', kd); $('imgClose').onclick = close; m.onclick = function (e) { if (e.target === m) close(); };
+  }
+  async function myImage() {
+    var k = key(), L = rankedMine(k); if (!ME || !L.length) { toast('画像にできる採点がありません'); return; }
+    toast('画像を作っています…'); await fontsReady();
+    var logo = await loadImg('/icon-192.png'), avimg = ME.icon ? await loadImg('/api/icon/' + encodeURIComponent(ME.id) + '?v=' + ME.icon) : null;
+    var n = L.length, PAD = 24, HEAD = 96, CW = 420, CH = 66, G = 10, FOOT = 40, best = 1, bd = 1e9;
+    for (var c = 1; c <= 4; c++) { var r0 = Math.ceil(n / c), w0 = PAD * 2 + c * CW + (c - 1) * G, h0 = HEAD + PAD + r0 * (CH + G) - G + FOOT, d = Math.abs(w0 / h0 - 1.5); if (d < bd) { bd = d; best = c; } }
+    var cols = best, rows = Math.ceil(n / cols), W = PAD * 2 + cols * CW + (cols - 1) * G, H = HEAD + PAD + rows * (CH + G) - G + FOOT;
+    var cv = newCanvas(W, H), g = cv.g;
+    band(g, W, HEAD, ME.name + 'さんの ' + label(k) + ' ランキング', n + '曲を採点', logo, { img: avimg, name: ME.name });
+    L.forEach(function (x, i) {
+      var col = Math.floor(i / rows), row = i % rows, cx = PAD + col * (CW + G), cy = HEAD + PAD + row * (CH + G), star = ST[courOf(x.s.key)] === x.s.id;
+      g.fillStyle = '#fff'; rr(g, cx, cy, CW, CH, 12); g.fill(); g.lineWidth = x.rank === 1 ? 3 : 1; g.strokeStyle = x.rank === 1 ? '#f5b800' : '#dedcf0'; g.stroke();
+      g.fillStyle = x.rank === 1 ? '#f5b800' : '#6b6a8a'; g.font = '400 ' + (x.rank >= 100 ? 20 : 28) + 'px ' + DF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(x.rank), cx + 32, cy + CH / 2 + 1);
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      var tx = cx + 66, tw = CW - 66 - 108;
+      var title = (star ? '★ ' : '') + x.s.title; g.fillStyle = '#1c1b3a'; var t = fitText(g, title, tw, 17, 800, 12); g.fillText(t, tx, cy + 28);
+      var sub = [x.s.artist, x.s.anime].filter(Boolean).join(' / '); if (sub) { g.fillStyle = '#6b6a8a'; g.fillText(fitText(g, sub, tw, 12, 500, 10), tx, cy + 49); }
+      g.fillStyle = '#1c1b3a'; g.textAlign = 'right'; g.font = '400 26px ' + DF; g.fillText(x.v.toFixed(1), cx + CW - 30, cy + CH / 2 + 10); g.font = '700 12px ' + FF; g.fillText('点', cx + CW - 12, cy + CH / 2 + 10); g.textAlign = 'left';
+    });
+    footer(g, W, H, H - 16);
+    showImage(cv.c, 'my-ranking-' + k + '.png');
+  }
+  async function tableImage() {
+    var t = TABLE; if (!t || !t.rows.length || !t.people.length) { toast('画像にできる全体表がありません'); return; }
+    toast('画像を作っています…'); await fontsReady();
+    var logo = await loadImg('/icon-192.png'), P = t.people.length, per = P > 14 ? 52 : 64, imgs = await Promise.all(t.people.map(function (u) { return u.ic ? loadImg('/api/icon/' + encodeURIComponent(u.id) + '?v=' + u.ic) : Promise.resolve(null); }));
+    var PAD = 24, HEAD = 84, HH = 96, RH = 44, C1 = 52, C2 = 300, CA = 76, W = PAD * 2 + C1 + C2 + per * P + CA, R = t.rows.length, H = HEAD + HH + (R + 1) * RH + 52;
+    var cv = newCanvas(W, H), g = cv.g;
+    band(g, W, HEAD, '全体表 ' + t.label, '参加者' + P + '人 ・ ' + R + '曲', logo, null);
+    var x0 = PAD, y0 = HEAD + 14, tw = W - PAD * 2;
+    g.fillStyle = '#fff'; rr(g, x0, y0, tw, HH - 14 + (R + 1) * RH, 12); g.fill(); g.strokeStyle = '#dedcf0'; g.lineWidth = 1; g.stroke();
+    // 見出し
+    g.fillStyle = '#6b6a8a'; g.font = '700 13px ' + FF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('順位', x0 + C1 / 2, y0 + (HH - 14) / 2);
+    g.textAlign = 'left'; g.fillText('曲名', x0 + C1 + 8, y0 + (HH - 14) / 2);
+    t.people.forEach(function (u, i) {
+      var cx = x0 + C1 + C2 + i * per + per / 2; avatarOn(g, imgs[i], u.name, cx, y0 + 28, 17);
+      g.fillStyle = '#1c1b3a'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText(fitText(g, u.name, per - 6, 12, 700, 9), cx, y0 + 68);
+    });
+    g.fillStyle = '#1c1b3a'; g.font = '800 13px ' + FF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('曲の平均', x0 + tw - CA / 2, y0 + (HH - 14) / 2);
+    var top = y0 + HH - 14;
+    g.strokeStyle = '#dedcf0'; g.beginPath(); g.moveTo(x0, top); g.lineTo(x0 + tw, top); g.stroke();
+    t.rows.forEach(function (r, i) {
+      var y = top + i * RH; g.textBaseline = 'middle';
+      g.fillStyle = r.rank === 1 ? '#f5b800' : '#6b6a8a'; g.font = '400 18px ' + DF; g.textAlign = 'center'; g.fillText(r.rank == null ? '–' : String(r.rank), x0 + C1 / 2, y + RH / 2 + 1);
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#1c1b3a'; g.fillText(fitText(g, r.title, C2 - 12, 14, 800, 10), x0 + C1 + 8, y + 19);
+      var sub = [r.artist, r.anime].filter(Boolean).join(' / '); if (sub) { g.fillStyle = '#6b6a8a'; g.fillText(fitText(g, sub, C2 - 12, 11, 500, 9), x0 + C1 + 8, y + 35); }
+      t.people.forEach(function (u, j) {
+        var v = r.scores[u.id], cx = x0 + C1 + C2 + j * per;
+        if (typeof v === 'number') { var pc = v * 0.07; g.fillStyle = 'rgb(' + Math.round(255 - 31 * pc) + ',' + Math.round(255 - 207 * pc) + ',' + Math.round(255 - 144 * pc) + ')'; g.fillRect(cx + 2, y + 3, per - 4, RH - 6); }
+        g.fillStyle = '#1c1b3a'; g.font = '700 14px ' + FF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(typeof v === 'number' ? v.toFixed(1) : '–', cx + per / 2 - (r.starBy.indexOf(u.id) >= 0 ? 5 : 0), y + RH / 2 + 1);
+        if (r.starBy.indexOf(u.id) >= 0) { g.fillStyle = '#f5b800'; g.fillText('★', cx + per - 11, y + RH / 2 + 1); }
+      });
+      g.fillStyle = '#1c1b3a'; g.font = '800 15px ' + FF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(f2(r.avg), x0 + tw - CA / 2, y + RH / 2 + 1);
+      g.strokeStyle = '#eceaf8'; g.beginPath(); g.moveTo(x0 + 8, y + RH); g.lineTo(x0 + tw - 8, y + RH); g.stroke();
+    });
+    var yf = top + R * RH; g.fillStyle = '#6b6a8a'; g.font = '800 13px ' + FF; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText('ユーザーの平均', x0 + C1 + 8, yf + RH / 2 + 1);
+    t.people.forEach(function (u, j) { g.fillStyle = '#1c1b3a'; g.font = '700 14px ' + FF; g.textAlign = 'center'; g.fillText(f2(t.userAvg[u.id]), x0 + C1 + C2 + j * per + per / 2, yf + RH / 2 + 1); });
+    g.font = '800 15px ' + FF; g.fillText(f2(t.overallAvg), x0 + tw - CA / 2, yf + RH / 2 + 1);
+    g.textBaseline = 'alphabetic'; footer(g, W, H, H - 16);
+    showImage(cv.c, 'party-rank-' + t.key + '-table.png');
+  }
+  $('exMineImg').onclick = function () { myImage().catch(function () { toast('画像を作れませんでした'); }); };
+  $('exTblImg').onclick = function () { tableImage().catch(function () { toast('画像を作れませんでした'); }); };
+
   /* ---- 自分のCSV ---- */
   function csvCell(v) { v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   $('exMine').onclick = function () {
@@ -294,10 +402,13 @@
     e.preventDefault(); $('jmsg').textContent = '';
     try {
       var r = await api('POST', '/api/join', { name: $('jn').value, pass: $('jp').value });
-      ptoken = r.token; store('pr-token', ptoken); $('jp').value = ''; $('jn').value = ''; await loadMe(); renderAll(); loadPart(); toast(r.name + 'さんとして参加しました');
+      ptoken = r.token; store('pr-token', ptoken); $('jp').value = ''; $('jn').value = ''; await loadMe(); renderAll(); loadPart(); toast(r.name + 'さんとしてログインしました');
     } catch (err) { $('jmsg').textContent = err.message; }
   };
-  $('leave').onclick = function () { forget(); $('joinPanel').hidden = false; $('jn').focus(); };
+  $('leave').onclick = async function () {
+    if (ME && !ME.hasPass && !(await confirmBox('ログアウトしますか?', '合言葉が未設定です。ログアウトすると、同じ名前でログインし直せなくなり、これまでの点数も見られなくなります。\n先に、メニューの「パスワード(合言葉)の再設定」で合言葉を決めておくことをおすすめします。', 'ログアウトする'))) return;
+    forget(); $('joinPanel').hidden = false; $('jn').focus(); toast('ログアウトしました');
+  };
 
   /* ---- 管理者 ---- */
   var PSIG = '';
@@ -648,15 +759,15 @@
   /* ---- 描画 ---- */
   function renderAll() {
     var admin = !!atoken;
-    $('meName').textContent = ME ? ME.name + 'さんとして参加中' : '名前が未入力です';
+    $('meName').textContent = ME ? ME.name + 'さんとしてログイン中' : 'ログインしていません';
     $('backUser').hidden = !admin;
     $('adminBadge').hidden = !admin; $('adminBadge').textContent = admin ? '管理者: ' + adminName : '管理者';
     $('meAv').textContent = ''; if (ME) $('meAv').appendChild(avatar(ME.id, ME.icon, ME.name, 'm'));
     $('leave').hidden = !ME; $('joinPanel').hidden = !!ME;
     $('addPanel').hidden = !admin; $('adminSec').hidden = !admin;
-    $('exMine').hidden = !ME;
+    $('exMine').hidden = !ME; $('exMineImg').hidden = !ME;
     $('lead').textContent = admin ? '管理者画面です。曲の追加・全ユーザーの採点の確認・動画用データの書き出しができます。'
-      : '名前を入力して参加し、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
+      : '名前を入力してログインし、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
     if (admin) { $('purl').value = PL[key()] || ''; $('apName').textContent = adminName; }
     tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderMode(); renderXlinks(); renderParticipants(); renderUserPages();
     route(true);

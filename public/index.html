@@ -31,16 +31,16 @@
   <div class="panel bar" id="userBar">
     <span id="meAv"></span><span id="meName"></span><span class="badge" id="adminBadge" hidden>管理者</span>
     <span class="grow"></span>
-    <button id="leave" hidden>名前を切り替える</button>
+    <button id="leave" hidden>ログアウト</button>
   </div>
 
   <div class="panel" id="joinPanel" hidden>
     <form id="jf" class="inl">
       <label>名前<input id="jn" maxlength="30" required autocomplete="nickname"></label>
       <label>合言葉(任意・4文字以上)<input id="jp" type="password" maxlength="60" autocomplete="off"></label>
-      <button class="pri">参加して採点する</button>
+      <button class="pri">ログイン</button>
     </form>
-    <p class="hint" style="margin:8px 0 0">合言葉を決めておくと、別の端末から同じ名前で続きを採点できます。また、名前の変更には合言葉が必要です。登録なしでも使えますが、ブラウザのデータを消すと同じ名前に戻れなくなります。</p>
+    <p class="hint" style="margin:8px 0 0">はじめての名前でログインすると、そのまま新規登録になります。合言葉を決めておくと、別の端末から同じ名前でログインして続きを採点できます。名前の変更にも合言葉が必要です。合言葉なしでも使えますが、ログアウトすると同じ名前に戻れなくなります。</p>
     <div class="m" id="jmsg" role="alert"></div>
   </div>
 
@@ -52,7 +52,8 @@
     </select>
     <select id="kind" aria-label="種別"><option>OP</option><option>ED</option><option>挿入歌</option><option>キャラソン</option></select>
     <span class="grow"></span>
-    <button id="exMine">自分のランキングをCSV出力</button>
+    <button id="exMineImg" type="button">ランキングを画像で保存</button>
+    <button id="exMine">ランキングをCSVで保存</button>
   </div>
   <div class="tabs" id="tabs" aria-label="曲のある区分"></div>
   <div id="modeBox" class="modebox" aria-live="polite"></div>
@@ -68,30 +69,30 @@
     </form>
     <div class="bar" id="fcancelBar" hidden style="margin:8px 0 0"><span class="m" id="editNote"></span><button type="button" id="fcancel">編集をやめる</button></div>
     </details>
-    <details class="panel adm"><summary>プレイリスト(この区分)</summary>
+    <details class="panel adm"><summary>プレイリスト</summary>
     <form id="pf" class="inl">
-      <label style="flex:1;min-width:240px">この区分のiTunes(Apple Music)プレイリストのURL<input id="purl" type="url" maxlength="500" placeholder="https://music.apple.com/jp/playlist/…"></label>
+      <label style="flex:1;min-width:240px">iTunes(Apple Music)プレイリストのURL<input id="purl" type="url" maxlength="500" placeholder="https://music.apple.com/jp/playlist/…"></label>
       <button class="pri">プレイリストを保存</button>
     </form>
     <p class="hint" style="margin:6px 0 0">貼れるのは管理者だけです。空にして保存すると、リンクを外せます。リンクは参加者にも表示されます。</p>
     </details>
-    <details class="panel adm"><summary>プレイリスト未収録曲のリンク(この区分)</summary>
+    <details class="panel adm"><summary>プレイリスト未収録曲のリンク</summary>
     <form id="xf" class="inl">
       <label style="flex:1;min-width:200px">動画タイトル(曲名)<input id="xtitle" maxlength="100" required></label>
       <label style="flex:1;min-width:160px">アーティスト名<input id="xartist" maxlength="60"></label>
       <label style="flex:2;min-width:240px">リンク(https://…)<input id="xurl" type="url" maxlength="500" required placeholder="https://www.youtube.com/watch?v=…"></label>
       <button class="pri">リンクを追加</button>
     </form>
-    <p class="hint" style="margin:6px 0 0">追加したリンクは、この区分の画面にだけ表示されます。1件もないときは、一般ユーザーの画面には何も出ません。</p>
+    <p class="hint" style="margin:6px 0 0">追加したリンクは、いま選んでいるランキングの画面にだけ表示されます。1件もないときは、一般ユーザーの画面には何も出ません。</p>
     <div id="xAdm" style="margin-top:8px"></div>
     </details>
-    <details class="panel adm"><summary>提出期限(この区分)</summary>
+    <details class="panel adm"><summary>提出期限</summary>
     <form id="df" class="inl">
-      <label>この区分の提出期限(表示のみ。期限後も採点はできます)<input id="dtime" type="datetime-local"></label>
+      <label>提出期限(表示のみ。期限後も採点はできます)<input id="dtime" type="datetime-local"></label>
       <button class="pri">期限を保存</button><button type="button" id="dclear">期限を外す</button>
     </form>
     </details>
-    <details class="panel adm"><summary>開催モード(この区分)</summary>
+    <details class="panel adm"><summary>開催モード</summary>
         <p class="hint" id="modeNow" style="margin:0 0 8px"></p>
     <div class="bar">
       <button type="button" id="mEntry">通常モードに戻す</button>
@@ -106,7 +107,7 @@
   </div>
 
   <div id="adminSec" hidden>
-    <div class="bar" style="margin-top:22px"><h2 id="mh" style="margin:0"></h2><span class="grow"></span></div>
+    <div class="bar" style="margin-top:22px"><h2 id="mh" style="margin:0"></h2><span class="grow"></span><button id="exTblImg" type="button">全体表を画像で保存</button></div>
     <div class="bar" id="exBar">
       <button id="exTbl">全体表CSV(集計行つき)</button>
       <button id="exVcsv" class="sec">動画用CSV</button>
@@ -132,7 +133,7 @@
   </div>
   <div class="panel about"><h3 class="sub">遊び方</h3>
     <ol class="steps">
-      <li><b>名前を入れて参加</b><span>ホームで名前を入力します。合言葉(任意)を決めておくと、別の端末からでも同じ名前で続きを採点できます。</span></li>
+      <li><b>名前を入れてログイン</b><span>ホームで名前を入力します。はじめての名前は、そのまま新規登録になります。合言葉(任意)を決めておくと、別の端末からでも同じ名前で続きを採点できます。</span></li>
       <li><b>曲に点数を付ける</b><span>年・クール・種別(OP / ED など)ごとの曲リストに、0〜10点を付けます。付けた点数からあなた自身のランキングができます。</span></li>
       <li><b>☆を1曲だけ付ける</b><span>各クールで、いちばん推したい曲に☆を1つ付けられます。</span></li>
       <li><b>結果発表をみんなで見る</b><span>全員の点数の平均で、曲の順位が決まります。結果はランキング動画で発表され、動画の公開後はこのサイトでも全体表が見られます。</span></li>
@@ -303,7 +304,13 @@
   <div class="mbox"><h3 id="mTitle"></h3><p id="mBody"></p>
     <div class="bar" style="justify-content:flex-end;margin:12px 0 0"><button id="mCancel">キャンセル</button><button class="danger" id="mOk">削除する</button></div></div>
 </div>
+<div class="modal" id="imgModal" role="dialog" aria-modal="true" aria-label="画像のプレビュー" hidden>
+  <div class="mbox imgbox"><img id="imgPrev" alt="保存する画像のプレビュー">
+    <div class="bar" style="justify-content:center;margin:12px 0 0"><button class="pri" id="imgSave" type="button">画像を保存</button><button id="imgClose" type="button">閉じる</button></div>
+    <p class="hint" style="margin:8px 0 0;text-align:center">スマホでは、画像を長押しして保存することもできます。</p></div>
+</div>
 <div class="toast" id="toast" role="status"></div>
+<script src="/phrase.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

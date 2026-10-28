@@ -185,6 +185,28 @@ details.adm>summary{padding:13px 14px;font-weight:800;list-style:none;display:fl
 details.adm>summary::-webkit-details-marker{display:none}
 details.adm>summary::before{content:"›";color:var(--acc2);font-size:20px;line-height:1;transition:transform .2s;width:12px}
 details.adm[open]>summary::before{transform:rotate(90deg)}
-details.adm>:not(summary){margin-left:14px;margin-right:14px}
+details.adm>:not(summary){margin-left:14px!important;margin-right:14px!important}
 details.adm>:last-child{margin-bottom:14px}
 .view>h2:first-child{margin-top:6px}
+
+/* ---- 日本語の折り返し ---- */
+body{word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
+@supports (word-break:auto-phrase){body{word-break:auto-phrase}}
+h1,h2,.lead,.hint{text-wrap:balance}
+p,.m,.nbody{text-wrap:pretty}
+input,textarea,select{word-break:normal;overflow-wrap:normal}
+
+/* ---- 画像プレビュー ---- */
+.imgbox{max-width:min(96vw,1100px);max-height:94vh;overflow:auto}
+.imgbox img{display:block;max-width:100%;max-height:68vh;margin:0 auto;border-radius:10px;border:1px solid var(--line)}
+
+/* ---- PCは幅広く ---- */
+@media (min-width:1000px){
+  .wrap{max-width:1160px}
+  .navin{max-width:1160px;margin:0 auto}
+  .view:not(#v-home){max-width:860px}
+  #rank ol,#list{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;align-items:start}
+  #list .row,#list .empty{margin-bottom:0}
+  #list .empty{grid-column:1/-1}
+  #rank .empty{grid-column:1/-1}
+}
