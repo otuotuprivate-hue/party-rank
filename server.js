@@ -16,7 +16,7 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [] };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [], torder: {}, adminLinked: false };
 function save() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = DB_FILE + '.tmp';
@@ -46,6 +46,11 @@ function load() {
     addAdmin(process.env.ADMIN_NAME || 'taetae', process.env.ADMIN_PASSWORD || 'Taiga0119');
     save();
   }
+  // 管理者タグ: 初回だけ、同じ名前のユーザーを管理者本人とみなして結びつける(以後は管理者ログイン時に結びつく)
+  if (!db.adminLinked) {
+    db.admins.forEach((a) => { const u = db.people.find((x) => x.name.toLowerCase() === a.name.toLowerCase()); if (u && !a.pid) a.pid = u.id; });
+    db.adminLinked = true; save();
+  }
   // 旧形式のお知らせ(タイトルなし)には、本文の1行目からタイトルを付ける
   db.notices.forEach((n) => { if (!n.title) n.title = String(n.text || '').split('\n')[0].slice(0, 30) || 'お知らせ'; });
 }
@@ -71,6 +76,22 @@ function normX(v) {
   return 'https://x.com/' + h;
 }
 const iconAt = (u) => (u && u.icon ? u.icon.at : 0);
+const isAdminPerson = (pid) => db.admins.some((a) => a.pid === pid);
+function rankCount(pid) {
+  const sk = {}; db.songs.forEach((s) => { sk[s.id] = s.key; });
+  const ks = new Set(); Object.keys(db.scores[pid] || {}).forEach((sid) => { if (sk[sid]) ks.add(sk[sid]); });
+  return ks.size;
+}
+// 称号: ランキング参加数(1曲でも採点したランキングの数)で決まる
+function titleOf(n) {
+  if (n < 1) return '';
+  if (n <= 5) return '駆け出しParty Ranker';
+  if (n <= 10) return '中級Party Ranker';
+  if (n <= 20) return '上級Party Ranker';
+  if (n <= 30) return 'キングParty Ranker';
+  return 'Party Rankの神';
+}
+const cleanBio = (v) => String(v == null ? '' : v).replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 200);
 const clean = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
 const isScore = (v) => typeof v === 'number' && v >= 0 && v <= 10 && Math.round(v * 2) === v * 2;
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
@@ -139,6 +160,9 @@ function buildTable(key) {
   const people = db.people
     .filter((p) => Object.keys(db.scores[p.id] || {}).some((sid) => ids.has(sid)))
     .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  // 管理者が決めた並び順(決めていない人は、名前順で後ろに続く)
+  const ord = db.torder[key] || [];
+  if (ord.length) { const ix = (p) => { const i = ord.indexOf(p.id); return i < 0 ? 1e9 : i; }; people.sort((a, b) => ix(a) - ix(b)); }
   const rows = songs.map((s) => {
     const scores = {}; const vals = [];
     people.forEach((p) => { const v = (db.scores[p.id] || {})[s.id]; if (typeof v === 'number') { scores[p.id] = v; vals.push(v); } });
@@ -225,12 +249,11 @@ async function api(req, res, url) {
     return send(res, 200, { pasts: db.pasts.map(({ id, key, title, url, at }) => ({ id, key, title, url, at })) });
   }
   if (m === 'GET' && p === '/api/table') {
-    // Party Watchモードのランキングだけ、全体表を一般にも公開する(ひとことは含めない)
+    // Party Watchモードのランキングだけ、全体表とひとことを一般にも公開する
     const key = url.searchParams.get('key') || '';
     if (!validKey(key)) throw bad('区分が正しくありません');
     if (modeOf(key) !== 'watch') throw new HttpError(403, 'このランキングの全体表はまだ公開されていません');
     const t = buildTable(key);
-    t.rows.forEach((r) => { r.comments = {}; });
     return send(res, 200, t);
   }
   if (m === 'GET' && p === '/api/participants') {
@@ -241,9 +264,26 @@ async function api(req, res, url) {
     db.people.forEach((u) => {
       const cnt = {};
       Object.keys(db.scores[u.id] || {}).forEach((sid) => { if (songKey[sid]) cnt[songKey[sid]] = (cnt[songKey[sid]] || 0) + 1; });
-      Object.keys(cnt).forEach((k) => { (by[k] = by[k] || []).push({ id: u.id, ic: iconAt(u), name: u.name, scored: cnt[k] }); });
+      Object.keys(cnt).forEach((k) => { (by[k] = by[k] || []).push({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), scored: cnt[k] }); });
     });
-    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
+    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id) })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
+  }
+  const prm = p.match(/^\/api\/profile\/([0-9a-z]+)$/);
+  if (m === 'GET' && prm) {
+    const u = db.people.find((x) => x.id === prm[1]);
+    if (!u) throw new HttpError(404, 'ユーザーが見つかりません');
+    const n = rankCount(u.id);
+    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, title: titleOf(n), adm: isAdminPerson(u.id) });
+  }
+  if (p === '/api/me/profile' && m === 'PUT') {
+    const me = person(req);
+    const x = normX(body.x);
+    if (x === null) throw bad('Xのアカウントは、@ID か https://x.com/ID の形で入力してください(IDは英数字と_、15文字まで)');
+    const bio = cleanBio(body.bio);
+    if (bio) me.bio = bio; else delete me.bio;
+    if (x) me.x = x; else delete me.x;
+    save();
+    return send(res, 200, { bio: me.bio || '', x: me.x || '' });
   }
   if (m === 'POST' && p === '/api/join') {
     if (limited(req, 'join', 30, 10 * 60000)) throw new HttpError(429, '試行回数が多すぎます。しばらくしてからやり直してください');
@@ -349,6 +389,8 @@ async function api(req, res, url) {
     const ok = checkPw(pw, a ? a.salt : '0'.repeat(32), a ? a.hash : '0'.repeat(64)) && !!a;
     if (!ok) throw new HttpError(401, '管理者名かパスワードが違います');
     const t = token();
+    const me = body.person && db.people.find((x) => x.token === String(body.person));
+    if (me) a.pid = me.id; // ユーザーとしてもログイン中なら、そのユーザーに管理者タグをつける
     db.sessions[t] = { name: a.name, exp: Date.now() + SESSION_MS }; save();
     return send(res, 200, { token: t, name: a.name });
   }
@@ -358,6 +400,14 @@ async function api(req, res, url) {
     if (p === '/api/admin/table' && m === 'GET') {
       const key = url.searchParams.get('key') || '';
       if (!validKey(key)) throw bad('区分が正しくありません');
+      return send(res, 200, buildTable(key));
+    }
+    if (p === '/api/admin/table-order' && m === 'PUT') {
+      const key = clean(body.key, 20);
+      if (!validKey(key)) throw bad('区分が正しくありません');
+      const ids = (Array.isArray(body.ids) ? body.ids : []).filter((v) => typeof v === 'string' && /^[0-9a-z]+$/.test(v)).slice(0, 500);
+      if (ids.length) db.torder[key] = [...new Set(ids)]; else delete db.torder[key];
+      save();
       return send(res, 200, buildTable(key));
     }
     if (p === '/api/admin/export' && m === 'GET') {
@@ -503,7 +553,7 @@ async function api(req, res, url) {
       return send(res, 200, { ok: true, url: u.href });
     }
     if (p === '/api/admin/people' && m === 'GET') {
-      return send(res, 200, { people: db.people.map((x) => ({ id: x.id, name: x.name, scored: Object.keys(db.scores[x.id] || {}).length, hasPass: !!x.hash, ic: iconAt(x) })) });
+      return send(res, 200, { people: db.people.map((x) => ({ id: x.id, name: x.name, scored: Object.keys(db.scores[x.id] || {}).length, hasPass: !!x.hash, ic: iconAt(x), adm: isAdminPerson(x.id) })) });
     }
     const pm = p.match(/^\/api\/admin\/people\/([0-9a-z]+)$/);
     if (pm && m === 'DELETE') {
@@ -512,6 +562,7 @@ async function api(req, res, url) {
       db.people.splice(i, 1);
       try { fs.unlinkSync(iconFile(pm[1])); } catch (e) { /* なし */ }
       delete db.scores[pm[1]]; delete db.stars[pm[1]]; delete db.comments[pm[1]];
+      db.admins.forEach((a) => { if (a.pid === pm[1]) delete a.pid; });
       save();
       return send(res, 200, { ok: true });
     }
