@@ -120,7 +120,8 @@
       if (ME) {
         var cm = el('input', 'cm'); cm.maxLength = 100; cm.placeholder = 'ひとこと(100字まで。見られるのは自分と管理者だけ)';
         cm.value = CM[s.id] || ''; cm.setAttribute('aria-label', s.title + 'へのひとこと');
-        cm.onchange = function () { setComment(s.id, cm.value, cm); }; row.appendChild(cm);
+        var cmT; cm.oninput = function () { clearTimeout(cmT); cmT = setTimeout(function () { setComment(s.id, cm.value); }, 900); };
+        cm.onchange = function () { clearTimeout(cmT); setComment(s.id, cm.value); }; row.appendChild(cm);
       }
       box.appendChild(row);
     });
@@ -150,19 +151,61 @@
   }
 
   /* ---- 採点・☆ ---- */
-  async function setScore(songId, v) {
-    try { await api('PUT', '/api/me/score', { songId: songId, score: v }, ptoken); if (v == null) delete SC[songId]; else SC[songId] = v; renderRank(); renderList(); loadTable(); loadPart(); }
-    catch (e) { toast(e.message); if (e.status === 401) forget(); else renderList(); }
+  /* 保存: 画面にはすぐ反映し、サーバーへの保存は裏で行う。通信できないときは(更新中のサーバー再起動なども含め)自動で再試行する */
+  var PQ = {}, PEND = {};
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function renderSaveState() {
+    var n = Object.keys(PEND).length, b = $('saveState'); b.hidden = !n;
+    if (n) b.textContent = '保存しています…(通信できないときは、自動でやり直します。このページは閉じないでください)';
   }
-  async function toggleStar(s) {
-    var c = courOf(s.key), on = ST[c] === s.id;
-    try { await api('PUT', '/api/me/star', { songId: on ? null : s.id, cour: c }, ptoken); if (on) delete ST[c]; else ST[c] = s.id; renderRank(); renderList(); loadTable(); }
-    catch (e) { toast(e.message); if (e.status === 401) forget(); }
+  function isBusy() { var a = document.activeElement; return !!(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.closest && a.closest('#list, #rank, #adminSec')); }
+  async function resync() {
+    if (!ptoken || Object.keys(PEND).length) return;
+    await loadMe(); renderRank(); if (!isBusy()) renderList();
   }
+  function persist(k, send, after) {
+    var st = PQ[k] || (PQ[k] = { busy: false, dirty: false });
+    st.dirty = true; if (st.busy) return;
+    st.busy = true; PEND[k] = 1; renderSaveState();
+    (async function () {
+      var delays = [0, 1500, 3000, 6000, 10000, 15000, 20000, 30000], failed = null;
+      while (st.dirty && !failed) {
+        st.dirty = false; var ok = false;
+        for (var i = 0; i < delays.length; i++) {
+          if (delays[i]) await sleep(delays[i]);
+          try { await send(); ok = true; break; }
+          catch (e) { if (e.status && e.status < 500 && e.status !== 429) { failed = e; break; } }
+        }
+        if (!ok && !failed) failed = new Error('通信できませんでした');
+      }
+      st.busy = false; delete PEND[k]; renderSaveState();
+      if (failed) {
+        if (failed.status === 401) { toast(failed.message); forget(); return; }
+        toast('保存できませんでした: ' + failed.message + '(画面を最新の状態に戻します)');
+        await resync(); return;
+      }
+      if (after) after();
+    })();
+  }
+  window.addEventListener('beforeunload', function (e) { if (Object.keys(PEND).length) { e.preventDefault(); e.returnValue = ''; } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) resync(); });
+  var afterSave = (function () { var t; return function () { clearTimeout(t); t = setTimeout(function () { loadTable(); loadPart(); }, 600); }; })();
 
-  async function setComment(songId, text, input) {
-    try { var r = await api('PUT', '/api/me/comment', { songId: songId, text: text }, ptoken); if (r.text) CM[songId] = r.text; else delete CM[songId]; if (input) input.value = r.text; loadTable(); }
-    catch (e) { toast(e.message); if (e.status === 401) forget(); }
+  function setScore(songId, v) {
+    if (v == null) delete SC[songId]; else SC[songId] = v;
+    renderRank();
+    persist('s' + songId, function () { return api('PUT', '/api/me/score', { songId: songId, score: typeof SC[songId] === 'number' ? SC[songId] : null }, ptoken); }, afterSave);
+  }
+  function toggleStar(s) {
+    var c = courOf(s.key), on = ST[c] === s.id;
+    if (on) delete ST[c]; else ST[c] = s.id;
+    renderRank(); renderList();
+    persist('t' + c, function () { return ST[c] ? api('PUT', '/api/me/star', { songId: ST[c], cour: c }, ptoken) : api('PUT', '/api/me/star', { songId: null, cour: c }, ptoken); }, afterSave);
+  }
+  function setComment(songId, text) {
+    text = String(text || '').slice(0, 100);
+    if (text.trim()) CM[songId] = text; else delete CM[songId];
+    persist('c' + songId, function () { return api('PUT', '/api/me/comment', { songId: songId, text: CM[songId] || '' }, ptoken); }, afterSave);
   }
   function renderUserPages() {
     var has = !!(ME && ME.hasPass);
@@ -898,14 +941,25 @@
   }
   window.addEventListener('hashchange', function () { route(false); });
   var SIG = '';
+  var SIGP = '', DEFER = false;
+  document.addEventListener('focusout', function () {
+    if (!DEFER) return;
+    setTimeout(function () { if (DEFER && !isBusy()) { DEFER = false; refresh(true); } }, 500);
+  });
   async function refresh(silent) {
     try {
       var res = await api('GET', '/api/songs'), songs = res.songs, sig = JSON.stringify(res);
-      DEAD = res.deadlines || {}; MODES = res.modes || {}; LINKS = res.links || [];
-      try { PART = await api('GET', '/api/participants'); } catch (e) {}
-      try { PASTS = (await api('GET', '/api/pasts')).pasts || []; } catch (e) {}
-      sig = JSON.stringify([res, PART, PASTS]);
+      var pt = null, pa = null;
+      try { pt = await api('GET', '/api/participants'); } catch (e) {}
+      try { pa = (await api('GET', '/api/pasts')).pasts || []; } catch (e) {}
+      if (pt) PART = pt; if (pa) PASTS = pa;
+      // 参加者・過去動画だけが変わったときは、曲一覧を作り直さない(入力中の内容が消えるため)
+      var sp = JSON.stringify([PART, PASTS]);
+      if (sp !== SIGP) { SIGP = sp; renderParticipants(); if (curRoute() === 'pasts') renderPasts(); }
       if (silent === true && sig === SIG) { loadTable(); return; }
+      // 入力中・保存中は、あとで反映する
+      if (silent === true && (isBusy() || Object.keys(PEND).length)) { DEFER = true; loadTable(); return; }
+      DEAD = res.deadlines || {}; MODES = res.modes || {}; LINKS = res.links || [];
       SIG = sig; SONGS = songs; PL = res.playlists || {}; NEWS = res.notices || [];
       var ny = res.years || []; if (JSON.stringify(ny) !== JSON.stringify(YEARS)) { YEARS = ny; buildYears(Number(yr.value)); }
     } catch (e) { if (silent !== true) toast('曲一覧を読み込めませんでした'); return; }

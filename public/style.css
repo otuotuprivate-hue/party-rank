@@ -265,3 +265,6 @@ a.xacc:hover{border-color:var(--acc2)}
 .row>:first-child{align-self:start}
 .adb>div:empty{display:none}
 details.adm[open]>summary{padding-bottom:8px}
+
+/* ---- 保存中の表示 ---- */
+.savestate{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));max-width:min(92vw,520px);background:var(--acc2);color:#fff;padding:9px 16px;border-radius:14px;font-size:13px;font-weight:700;z-index:60;box-shadow:0 6px 20px rgba(20,19,60,.3);text-align:center}
