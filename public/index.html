@@ -23,10 +23,13 @@
   <div class="h1row"><h1>Party Rank点数評価ツール</h1><button id="backUser" class="out" hidden>一般ユーザに戻る</button></div>
   <p class="lead" id="lead"></p>
 
-  <details class="panel" id="newsBox" hidden><summary id="newsSum">アップデート情報</summary><div id="newsList" style="margin-top:8px"></div></details>
+  <div class="panel" id="newsBox" hidden>
+    <div class="bar" style="margin:0 0 4px"><h3 class="sub" style="margin:0">お知らせ</h3><span class="grow"></span><button id="newsAll" class="ghost" type="button">すべて見る ›</button></div>
+    <div id="newsList" class="nlist"></div>
+  </div>
 
   <div class="panel bar" id="userBar">
-    <span id="meName"></span><span class="badge" id="adminBadge" hidden>管理者</span>
+    <span id="meAv"></span><span id="meName"></span><span class="badge" id="adminBadge" hidden>管理者</span>
     <span class="grow"></span>
     <button id="leave" hidden>名前を切り替える</button>
   </div>
@@ -55,7 +58,8 @@
   <div id="modeBox" class="modebox" aria-live="polite"></div>
   <p class="deadline" id="dline"></p>
 
-  <div class="panel" id="addPanel" hidden>
+  <div id="addPanel" hidden>
+    <details class="panel adm" open><summary>曲の追加・編集</summary>
     <form id="f">
       <label>曲名<input id="title" required maxlength="80"></label>
       <label>アーティスト<input id="artist" maxlength="60"></label>
@@ -63,17 +67,32 @@
       <button class="pri" id="fsub">曲を追加</button>
     </form>
     <div class="bar" id="fcancelBar" hidden style="margin:8px 0 0"><span class="m" id="editNote"></span><button type="button" id="fcancel">編集をやめる</button></div>
-    <form id="pf" class="inl" style="margin-top:14px">
+    </details>
+    <details class="panel adm"><summary>プレイリスト(この区分)</summary>
+    <form id="pf" class="inl">
       <label style="flex:1;min-width:240px">この区分のiTunes(Apple Music)プレイリストのURL<input id="purl" type="url" maxlength="500" placeholder="https://music.apple.com/jp/playlist/…"></label>
       <button class="pri">プレイリストを保存</button>
     </form>
     <p class="hint" style="margin:6px 0 0">貼れるのは管理者だけです。空にして保存すると、リンクを外せます。リンクは参加者にも表示されます。</p>
-    <form id="df" class="inl" style="margin-top:14px">
+    </details>
+    <details class="panel adm"><summary>プレイリスト未収録曲のリンク(この区分)</summary>
+    <form id="xf" class="inl">
+      <label style="flex:1;min-width:200px">動画タイトル(曲名)<input id="xtitle" maxlength="100" required></label>
+      <label style="flex:1;min-width:160px">アーティスト名<input id="xartist" maxlength="60"></label>
+      <label style="flex:2;min-width:240px">リンク(https://…)<input id="xurl" type="url" maxlength="500" required placeholder="https://www.youtube.com/watch?v=…"></label>
+      <button class="pri">リンクを追加</button>
+    </form>
+    <p class="hint" style="margin:6px 0 0">追加したリンクは、この区分の画面にだけ表示されます。1件もないときは、一般ユーザーの画面には何も出ません。</p>
+    <div id="xAdm" style="margin-top:8px"></div>
+    </details>
+    <details class="panel adm"><summary>提出期限(この区分)</summary>
+    <form id="df" class="inl">
       <label>この区分の提出期限(表示のみ。期限後も採点はできます)<input id="dtime" type="datetime-local"></label>
       <button class="pri">期限を保存</button><button type="button" id="dclear">期限を外す</button>
     </form>
-    <h3 class="sub">開催モード(この区分)</h3>
-    <p class="hint" id="modeNow" style="margin:0 0 8px"></p>
+    </details>
+    <details class="panel adm"><summary>開催モード(この区分)</summary>
+        <p class="hint" id="modeNow" style="margin:0 0 8px"></p>
     <div class="bar">
       <button type="button" id="mEntry">通常モードに戻す</button>
       <button type="button" id="mRank" class="pri">Party Rank を開始</button>
@@ -83,6 +102,7 @@
       <button class="pri" id="mwatch">リンクを公開して Party Watch にする</button>
     </form>
     <p class="hint" style="margin:6px 0 0">通常モード(初期状態)では「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間も、一般ユーザーにこのランキングの全体表は見えません。動画リンクを公開すると Party Watch になり、動画リンクと全体表が一般ユーザーにも見えるようになります(ひとことは公開されません)。</p>
+    </details>
   </div>
 
   <div id="adminSec" hidden>
@@ -101,6 +121,7 @@
   <div id="rank"></div>
   <h2 id="lh"></h2>
   <p class="plink" id="plink"></p>
+  <div class="xlinks" id="xlinks" hidden></div>
   <div id="list"></div>
 </section>
 
@@ -194,7 +215,7 @@
 
 <section class="view" id="v-people" hidden>
   <h2>参加者一覧</h2>
-  <p class="hint">表示されるのは名前と採点した曲数だけです。点数やひとことは見えません。</p>
+  <p class="hint">表示されるのは名前・アイコン・採点した曲数だけです。点数やひとことは見えません。</p>
   <div class="panel"><h3 class="sub" id="partTotal">全体のユーザー</h3><div id="partAll" class="ppl"></div></div>
   <div class="panel"><h3 class="sub">ランキングごとの参加者</h3>
     <label class="blk">ランキングを選ぶ<select id="partKey"></select></label>
@@ -245,11 +266,36 @@
 </section>
 
 <section class="view" id="v-news" hidden>
-  <h2>アップデート情報の登録</h2>
+  <h2>お知らせの登録</h2>
+  <p class="hint">一般ユーザーの画面には、タイトルだけが並びます。タップすると本文が開きます。投稿から7日間は「New!」と表示されます。</p>
   <div class="panel">
-    <form id="nf"><label class="blk">内容(1000字まで。全員に表示されます)<textarea id="ntext" maxlength="1000" rows="4" style="width:100%" required></textarea></label><button class="pri" style="margin-top:8px">お知らせを投稿</button></form>
+    <form id="nf">
+      <label class="blk">タイトル(60字まで)<input id="ntitle" maxlength="60" required style="width:100%"></label>
+      <label class="blk" style="margin-top:8px">本文(1000字まで)<textarea id="ntext" maxlength="1000" rows="5" style="width:100%" required></textarea></label>
+      <button class="pri" style="margin-top:8px">お知らせを投稿</button>
+    </form>
   </div>
   <div class="panel"><h3 class="sub">投稿済みのお知らせ</h3><div id="nAdm"></div></div>
+</section>
+
+<section class="view" id="v-notices" hidden>
+  <h2>お知らせ</h2>
+  <p class="hint">タイトルをタップすると、本文が開きます。</p>
+  <div id="nAll" class="panel nlist"></div>
+</section>
+
+<section class="view" id="v-icon" hidden>
+  <h2>アイコンの設定</h2>
+  <p class="hint">あなたのアイコンです。参加者の一覧や全体表に表示され、ランキング動画にも使われます。</p>
+  <div class="panel icobox">
+    <div id="icPrev" class="icprev"></div>
+    <div class="icctl">
+      <label class="blk">画像を選ぶ(PNG・JPEG・WebPなど)<input id="icFile" type="file" accept="image/*"></label>
+      <p class="hint" style="margin:0">正方形に切り抜いて保存します。顔や中心の絵が真ん中に来る画像がおすすめです。</p>
+      <div class="bar" style="margin:0"><button id="icSave" class="pri" type="button" disabled>このアイコンにする</button><button id="icDel" type="button">アイコンを外す</button><button id="icBack" type="button">戻る</button></div>
+      <div class="m" id="icMsg" role="alert"></div>
+    </div>
+  </div>
 </section>
 
 </div>

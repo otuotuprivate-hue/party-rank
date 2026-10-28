@@ -136,3 +136,55 @@ th.sortable{cursor:pointer;user-select:none}th.sortable:hover{text-decoration:un
 .pastrow a.vid{background:var(--acc2);color:#fff}
 .pastrow a.pl{border:1px solid var(--acc2);color:var(--acc2)}
 .panel>h3.sub:first-child{margin-top:0}
+
+/* ---- アイコン(アバター) ---- */
+.avt{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;color:#fff;font-weight:800;flex:none;vertical-align:middle;background:var(--acc2);line-height:1}
+.avt img{width:100%;height:100%;object-fit:cover;display:block}
+.avt.s{width:24px;height:24px;font-size:13px;margin-right:6px}
+.avt.m{width:34px;height:34px;font-size:16px;margin-right:8px}
+.avt.xl{width:112px;height:112px;font-size:48px}
+.chip.hasav{padding-left:4px}
+.mx th .avt{margin-right:4px}
+#userBar{align-items:center}
+.icobox{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.icprev{width:128px;height:128px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;border:3px solid var(--line);background:var(--bg);flex:none}
+.icprev img{width:100%;height:100%;object-fit:cover}
+.icprev .avt{width:100%;height:100%}
+.icctl{flex:1;min-width:230px;display:flex;flex-direction:column;gap:10px}
+.icctl input[type=file]{width:100%;padding:8px}
+
+/* ---- お知らせ ---- */
+.nlist{display:flex;flex-direction:column}
+.nitem{border-top:1px solid var(--line)}
+.nitem:first-child{border-top:none}
+.nitem summary{list-style:none;display:flex;align-items:center;gap:8px;padding:11px 2px;cursor:pointer;font-weight:700}
+.nitem summary::-webkit-details-marker{display:none}
+.nitem summary::before{content:"›";color:var(--acc2);font-size:20px;line-height:1;transition:transform .2s;width:12px;flex:none}
+.nitem[open] summary::before{transform:rotate(90deg)}
+.nitem .nt{flex:1;min-width:0;overflow-wrap:anywhere}
+.nitem .nd{color:var(--sub);font-weight:500;font-size:13px;white-space:nowrap}
+.newb{font-size:11px;font-weight:800;color:#fff;background:var(--acc);border-radius:999px;padding:1px 7px;letter-spacing:.02em;white-space:nowrap;animation:newp 2s ease-in-out infinite}
+@keyframes newp{50%{filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce){.newb{animation:none}}
+.nbody{padding:2px 4px 14px 22px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)}
+.news-i{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center}
+.news-i .m{flex-basis:100%}
+
+/* ---- 未収録曲のリンク ---- */
+.xlinks{margin:0 0 12px;display:flex;flex-direction:column;gap:6px}
+.xh{font-size:13px;font-weight:700;color:var(--sub)}
+a.xl{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;text-decoration:none;color:var(--ink)}
+a.xl:hover{border-color:var(--acc2)}
+a.xl .xp{color:#fff;background:var(--acc2);border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex:none}
+a.xl .xt{font-size:14px;font-weight:700;overflow-wrap:anywhere;min-width:0}
+a.xl small{display:block;font-size:12px;color:var(--sub);font-weight:500}
+.xrow{display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 0}
+.xrow .xrt{flex:1;min-width:0;overflow-wrap:anywhere}
+details.adm{padding:0}
+details.adm>summary{padding:13px 14px;font-weight:800;list-style:none;display:flex;align-items:center;gap:8px}
+details.adm>summary::-webkit-details-marker{display:none}
+details.adm>summary::before{content:"›";color:var(--acc2);font-size:20px;line-height:1;transition:transform .2s;width:12px}
+details.adm[open]>summary::before{transform:rotate(90deg)}
+details.adm>:not(summary){margin-left:14px;margin-right:14px}
+details.adm>:last-child{margin-bottom:14px}
+.view>h2:first-child{margin-top:6px}

@@ -2,7 +2,7 @@
   'use strict';
   var $ = function (i) { return document.getElementById(i); };
   var NAMES = { 1: '冬', 4: '春', 7: '夏', 10: '秋' }, KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
-  var PASTS = [], MODES = {}, DEAD = {}, PART = null, OPENK = {}, SORT = { uid: null, dir: -1 }, NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
+  var LINKS = [], ICDATA = '', PASTS = [], MODES = {}, DEAD = {}, PART = null, OPENK = {}, SORT = { uid: null, dir: -1 }, NEWS = [], SONGS = [], PL = {}, CM = {}, editId = null, ME = null, SC = {}, ST = {}, TABLE = null, ptoken = '', atoken = '', adminName = '';
   try { ptoken = localStorage.getItem('pr-token') || ''; atoken = sessionStorage.getItem('pr-admin') || ''; adminName = sessionStorage.getItem('pr-admin-name') || ''; } catch (e) {}
 
   function confirmBox(title, body, okLabel) {
@@ -18,6 +18,18 @@
     });
   }
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function avatar(id, ic, name, cls) {
+    var s = el('span', 'avt ' + (cls || '')), ch = Array.from(String(name || '?'))[0] || '?';
+    if (id && ic) {
+      var im = document.createElement('img'); im.src = '/api/icon/' + encodeURIComponent(id) + '?v=' + ic; im.alt = ''; im.loading = 'lazy';
+      im.onerror = function () { im.remove(); s.textContent = ch; };
+      s.appendChild(im);
+    } else {
+      var h = 0; Array.from(String(name || '')).forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) % 360; });
+      s.textContent = ch; s.style.background = 'hsl(' + h + ' 55% 45%)';
+    }
+    return s;
+  }
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function () { e.classList.remove('show'); }, 2600); }
   function store(k, v, sess) { try { (sess ? sessionStorage : localStorage)[v ? 'setItem' : 'removeItem'](k, v); } catch (e) {} }
 
@@ -208,7 +220,7 @@
       function go() { if (SORT.uid !== id) { SORT.uid = id; SORT.dir = -1; } else if (SORT.dir < 0) SORT.dir = 1; else SORT.uid = null; renderMatrix(); }
       th.onclick = go; th.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
     }
-    t.people.forEach(function (u) { var th = el('th', '', u.name + arrow(u.id)); sortTh(th, u.id, u.name); hr.appendChild(th); });
+    t.people.forEach(function (u) { var th = el('th'); th.appendChild(avatar(u.id, u.ic, u.name, 's')); th.appendChild(document.createTextNode(' ' + u.name + arrow(u.id))); sortTh(th, u.id, u.name); hr.appendChild(th); });
     var thAv = el('th', 'av', '曲の平均' + arrow('_avg')); sortTh(thAv, '_avg', '曲の平均'); hr.appendChild(thAv);
     var th0 = el('thead'); th0.appendChild(hr); tb.appendChild(th0);
     var body = el('tbody');
@@ -275,7 +287,7 @@
   function forget() { ptoken = ''; ME = null; SC = {}; ST = {}; CM = {}; store('pr-token', ''); renderAll(); }
   async function loadMe() {
     if (!ptoken) { ME = null; SC = {}; ST = {}; CM = {}; return; }
-    try { var m = await api('GET', '/api/me', undefined, ptoken); ME = { name: m.name, hasPass: !!m.hasPass }; SC = m.scores || {}; ST = m.stars || {}; CM = m.comments || {}; }
+    try { var m = await api('GET', '/api/me', undefined, ptoken); ME = { id: m.id, icon: m.icon || 0, name: m.name, hasPass: !!m.hasPass }; SC = m.scores || {}; ST = m.stars || {}; CM = m.comments || {}; }
     catch (e) { if (e.status === 401) forget(); }
   }
   $('jf').onsubmit = async function (e) {
@@ -299,7 +311,7 @@
       if (!r.people.length) { box.appendChild(el('span', 'm', 'まだ参加者はいません。')); return; }
       r.people.forEach(function (u) {
         var row = el('div', 'urow'), top = el('div', 'bar'); top.style.marginBottom = '0';
-        top.appendChild(el('b', '', u.name)); top.appendChild(el('span', 'm', '(採点 ' + u.scored + '曲・合言葉' + (u.hasPass ? 'あり' : 'なし') + ')')); top.appendChild(el('span', 'grow'));
+        top.appendChild(avatar(u.id, u.ic, u.name, 's')); top.appendChild(el('b', '', u.name)); top.appendChild(el('span', 'm', '(採点 ' + u.scored + '曲・合言葉' + (u.hasPass ? 'あり' : 'なし') + ')')); top.appendChild(el('span', 'grow'));
         var rs = el('button', '', '合言葉をリセット'), del = el('button', 'ghost', '削除'); del.setAttribute('aria-label', u.name + 'を削除');
         top.appendChild(rs); top.appendChild(del); row.appendChild(top);
         var form = el('form', 'inl'); form.hidden = true;
@@ -357,6 +369,7 @@
   function editSong(s) {
     editId = s.id; $('title').value = s.title; $('artist').value = s.artist || ''; $('anime').value = s.anime || '';
     $('fsub').textContent = '変更を保存'; $('fcancelBar').hidden = false; $('editNote').textContent = label(s.key) + 'の曲を編集中です。';
+    $('f').closest('details').open = true;
     $('addPanel').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('title').focus();
   }
   function cancelEdit() { editId = null; $('title').value = ''; $('artist').value = ''; $('anime').value = ''; $('fsub').textContent = '曲を追加'; $('fcancelBar').hidden = true; }
@@ -377,6 +390,74 @@
       $('purl').value = r.url; renderPlink(); toast(r.url ? 'プレイリストを保存しました' : 'プレイリストを外しました');
     } catch (err) { adminError(err, '保存できませんでした'); }
   };
+
+  /* ---- プレイリスト未収録曲のリンク ---- */
+  function renderXlinks() {
+    var k = key(), list = LINKS.filter(function (l) { return l.key === k; }), box = $('xlinks'); box.textContent = ''; box.hidden = !list.length;
+    list.forEach(function (l, i) {
+      if (!i) box.appendChild(el('div', 'xh', 'プレイリスト未収録曲のリンク'));
+      var a = el('a', 'xl'); a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.appendChild(el('span', 'xp', '▶')); var t = el('span', 'xt', l.title); if (l.artist) t.appendChild(el('small', '', l.artist)); a.appendChild(t); box.appendChild(a);
+    });
+    var adm = $('xAdm'); adm.textContent = ''; if (!atoken) return;
+    list.forEach(function (l) {
+      var r = el('div', 'xrow'), d = el('div', 'xrt'); d.appendChild(el('b', '', l.title + (l.artist ? ' / ' + l.artist : ''))); d.appendChild(el('div', 'm', l.url)); r.appendChild(d);
+      var del = el('button', 'ghost', '削除'); del.setAttribute('aria-label', l.title + 'のリンクを削除');
+      del.onclick = async function () {
+        if (!(await confirmBox('リンクを削除しますか?', '「' + l.title + '」のリンクを外します。'))) return;
+        try { var rs = await api('DELETE', '/api/admin/links/' + l.id, undefined, atoken); LINKS = rs.links; renderXlinks(); toast('削除しました'); } catch (e) { adminError(e, '削除できませんでした'); }
+      };
+      r.appendChild(del); adm.appendChild(r);
+    });
+  }
+  $('xf').onsubmit = async function (e) {
+    e.preventDefault();
+    try { var r = await api('POST', '/api/admin/links', { key: key(), title: $('xtitle').value, artist: $('xartist').value, url: $('xurl').value }, atoken); LINKS = r.links; $('xtitle').value = $('xartist').value = $('xurl').value = ''; renderXlinks(); toast('リンクを追加しました'); }
+    catch (err) { adminError(err, '追加できませんでした'); }
+  };
+
+  /* ---- アイコン ---- */
+  function iconPrev(src) {
+    var b = $('icPrev'); b.textContent = '';
+    if (src) { var im = document.createElement('img'); im.src = src; im.alt = ''; b.appendChild(im); }
+    else b.appendChild(avatar(ME && ME.id, ME && ME.icon, ME && ME.name, 'xl'));
+  }
+  $('icFile').onchange = function () {
+    var f = this.files && this.files[0]; $('icMsg').textContent = ''; ICDATA = ''; $('icSave').disabled = true;
+    if (!f) { iconPrev(''); return; }
+    if (!/^image\//.test(f.type)) { $('icMsg').textContent = '画像ファイルを選んでください'; return; }
+    if (f.size > 15 * 1024 * 1024) { $('icMsg').textContent = '画像が大きすぎます(15MBまで)'; return; }
+    var fr = new FileReader();
+    fr.onload = function () {
+      var im = new Image();
+      im.onload = function () {
+        function make(size, type, q) {
+          var c = document.createElement('canvas'); c.width = c.height = size; var g = c.getContext('2d');
+          if (type === 'image/jpeg') { g.fillStyle = '#fff'; g.fillRect(0, 0, size, size); }
+          var m = Math.min(im.width, im.height), sx = (im.width - m) / 2, sy = (im.height - m) / 2;
+          g.imageSmoothingQuality = 'high'; g.drawImage(im, sx, sy, m, m, 0, 0, size, size); return c.toDataURL(type, q);
+        }
+        var d = make(256, 'image/png');
+        if (d.length > 380000) d = make(256, 'image/jpeg', 0.9);
+        if (d.length > 380000) d = make(192, 'image/jpeg', 0.85);
+        if (d.length > 380000) { $('icMsg').textContent = '画像を小さくできませんでした。別の画像を選んでください'; return; }
+        ICDATA = d; iconPrev(d); $('icSave').disabled = false;
+      };
+      im.onerror = function () { $('icMsg').textContent = 'この画像は読み込めませんでした。PNG・JPEGなどで試してください'; };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  };
+  $('icSave').onclick = async function () {
+    if (!ICDATA) return; $('icMsg').textContent = '';
+    try { var r = await api('PUT', '/api/me/icon', { data: ICDATA }, ptoken); ME.icon = r.icon; ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; PSIG = ''; TSIG = ''; renderAll(); loadTable(); loadPart(); toast('アイコンを設定しました'); go(''); }
+    catch (err) { $('icMsg').textContent = err.message; if (err.status === 401) forget(); }
+  };
+  $('icDel').onclick = async function () {
+    try { await api('DELETE', '/api/me/icon', undefined, ptoken); ME.icon = 0; ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; TSIG = ''; renderAll(); loadTable(); loadPart(); toast('アイコンを外しました'); iconPrev(''); }
+    catch (err) { $('icMsg').textContent = err.message; }
+  };
+  $('icBack').onclick = function () { go(''); };
 
   /* ---- 過去のParty Rank ---- */
   function sk2(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
@@ -495,7 +576,7 @@
     if (!PART) return;
     $('partTotal').textContent = '全体のユーザー(' + PART.people.length + '人)';
     if (!PART.people.length) all.appendChild(el('span', 'm', 'まだ参加者はいません。'));
-    PART.people.forEach(function (n) { all.appendChild(el('span', 'chip', n)); });
+    PART.people.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); c.appendChild(document.createTextNode(u.name)); all.appendChild(c); });
     function sk(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
     var keep = sel.value; sel.textContent = '';
     sel.appendChild(new Option('(ランキングを選んでください)', ''));
@@ -510,28 +591,39 @@
     var g = PART && PART.keys.filter(function (x) { return x.key === k; })[0];
     if (!g) { out.appendChild(el('span', 'm', 'ランキングを選ぶと、そのランキングの参加者が表示されます。')); return; }
     if (!g.participants.length) out.appendChild(el('span', 'm', 'まだ採点した人はいません。'));
-    g.participants.forEach(function (u) { out.appendChild(el('span', 'chip', u.name + '(採点 ' + u.scored + '/' + g.songs + '曲)')); });
+    g.participants.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); c.appendChild(document.createTextNode(u.name + '(採点 ' + u.scored + '/' + g.songs + '曲)')); out.appendChild(c); });
   }
   $('partKey').onchange = renderPartKey;
 
   /* ---- お知らせ・年 ---- */
   function fdate(t) { var d = new Date(t); return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate(); }
+  function isNew(n) { return Date.now() - n.at < 7 * 86400000; }
+  function newsItem(n) {
+    var d = document.createElement('details'); d.className = 'nitem';
+    var sm = document.createElement('summary'); sm.appendChild(el('span', 'nt', n.title || 'お知らせ'));
+    if (isNew(n)) sm.appendChild(el('span', 'newb', 'New!'));
+    sm.appendChild(el('span', 'nd', fdate(n.at))); d.appendChild(sm); d.appendChild(el('div', 'nbody', n.text)); return d;
+  }
   function renderNews() {
-    var box = $('newsList'), adm = $('nAdm'); box.textContent = ''; adm.textContent = '';
-    $('newsBox').hidden = !NEWS.length;
-    $('newsSum').textContent = 'アップデート情報(最新: ' + (NEWS[0] ? fdate(NEWS[0].at) : '') + ')';
+    var box = $('newsList'), all = $('nAll'), adm = $('nAdm'); box.textContent = ''; all.textContent = ''; adm.textContent = '';
+    $('newsBox').hidden = !NEWS.length; $('newsAll').hidden = NEWS.length <= 3;
+    NEWS.slice(0, 3).forEach(function (n) { box.appendChild(newsItem(n)); });
+    if (!NEWS.length) all.appendChild(el('span', 'm', 'お知らせはまだありません。'));
     NEWS.forEach(function (n) {
-      var d = el('div', 'news-i'); d.appendChild(el('small', '', fdate(n.at))); d.appendChild(document.createTextNode(n.text)); box.appendChild(d);
+      all.appendChild(newsItem(n));
       if (atoken) {
-        var a = el('div', 'news-i'); a.appendChild(el('small', '', fdate(n.at))); a.appendChild(document.createTextNode(n.text.slice(0, 60) + (n.text.length > 60 ? '…' : '')));
+        var a = el('div', 'news-i'); a.appendChild(el('small', '', fdate(n.at)));
+        a.appendChild(el('b', '', n.title || 'お知らせ')); if (isNew(n)) a.appendChild(el('span', 'newb', 'New!'));
+        a.appendChild(el('div', 'm', n.text.slice(0, 60) + (n.text.length > 60 ? '…' : '')));
         var del = el('button', 'ghost', '削除'); del.onclick = async function () {
-          if (!(await confirmBox('お知らせを削除しますか?', n.text.slice(0, 80) + (n.text.length > 80 ? '…' : '')))) return;
+          if (!(await confirmBox('お知らせを削除しますか?', (n.title || '') + '\n' + n.text.slice(0, 80) + (n.text.length > 80 ? '…' : '')))) return;
           try { var r = await api('DELETE', '/api/admin/notices/' + n.id, undefined, atoken); NEWS = r.notices; renderNews(); } catch (e) { adminError(e, '削除できませんでした'); }
         };
         a.appendChild(del); adm.appendChild(a);
       }
     });
   }
+  $('newsAll').onclick = function () { go('notices'); };
   function renderYears() {
     var box = $('yList'); box.textContent = ''; if (!atoken) return;
     if (!YEARS.length) { box.textContent = '追加した年はありません(2000年〜来年は最初から選べます)。'; return; }
@@ -549,7 +641,7 @@
   };
   $('nf').onsubmit = async function (e) {
     e.preventDefault();
-    try { var r = await api('POST', '/api/admin/notices', { text: $('ntext').value }, atoken); NEWS = r.notices; $('ntext').value = ''; renderNews(); toast('お知らせを投稿しました'); }
+    try { var r = await api('POST', '/api/admin/notices', { title: $('ntitle').value, text: $('ntext').value }, atoken); NEWS = r.notices; $('ntitle').value = ''; $('ntext').value = ''; renderNews(); toast('お知らせを投稿しました'); }
     catch (err) { adminError(err, '投稿できませんでした'); }
   };
 
@@ -559,29 +651,31 @@
     $('meName').textContent = ME ? ME.name + 'さんとして参加中' : '名前が未入力です';
     $('backUser').hidden = !admin;
     $('adminBadge').hidden = !admin; $('adminBadge').textContent = admin ? '管理者: ' + adminName : '管理者';
+    $('meAv').textContent = ''; if (ME) $('meAv').appendChild(avatar(ME.id, ME.icon, ME.name, 'm'));
     $('leave').hidden = !ME; $('joinPanel').hidden = !!ME;
     $('addPanel').hidden = !admin; $('adminSec').hidden = !admin;
     $('exMine').hidden = !ME;
     $('lead').textContent = admin ? '管理者画面です。曲の追加・全ユーザーの採点の確認・動画用データの書き出しができます。'
       : '名前を入力して参加し、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
     if (admin) { $('purl').value = PL[key()] || ''; $('apName').textContent = adminName; }
-    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderMode(); renderParticipants(); renderUserPages();
+    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderMode(); renderXlinks(); renderParticipants(); renderUserPages();
     route(true);
   }
 
   /* ---- メニューとページの切り替え ---- */
-  var VIEWS = { '': 'v-home', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
-  var ADMIN_ONLY = { pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1 };
+  var VIEWS = { '': 'v-home', notices: 'v-notices', icon: 'v-icon', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
+  var ADMIN_ONLY = { pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1, icon: 1 };
   function curRoute() { var h = (location.hash || '').replace(/^#\/?/, ''); return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
   function go(r) { var t = '#/' + (r || ''); if (location.hash === t || (!r && (location.hash === '' || location.hash === '#'))) route(false); else location.hash = t; }
   function menuItems() {
     var about = { t: 'Party Rankとは', r: 'about' }, past = { t: '過去のParty Rank', r: 'pasts' };
-    if (atoken) return [about, { t: '管理者ホーム', r: '' }, past, { sep: 1 },
+    var news = { t: 'お知らせ', r: 'notices' };
+    if (atoken) return [about, { t: '管理者ホーム', r: '' }, news, past, { sep: 1 },
       { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
-      { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'アップデート情報の登録', r: 'news' },
+      { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'お知らせの登録', r: 'news' },
       { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }];
-    var a = [about, { t: 'ホーム', r: '' }];
-    if (ME) a.push({ t: 'ユーザー名の変更', r: 'rename' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
+    var a = [about, { t: 'ホーム', r: '' }, news];
+    if (ME) a.push({ t: 'アイコンの設定', r: 'icon' }, { t: 'ユーザー名の変更', r: 'rename' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
     a.push({ t: '参加者一覧', r: 'people' }, past, { sep: 1 }, { t: '管理者画面への入室', r: 'admin-login' });
     return a;
   }
@@ -619,6 +713,8 @@
     else if (r === 'admins') loadAdmins();
     else if (r === 'users') { PSIG = ''; loadPeople(true); }
     else if (r === 'news') renderNews();
+    else if (r === 'notices') renderNews();
+    else if (r === 'icon') { ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev(''); }
     else if (r === 'pasts') { renderPasts(); api('GET', '/api/pasts').then(function (d) { PASTS = d.pasts || []; if (curRoute() === 'pasts') renderPasts(); }).catch(function () {}); }
     else if (r === 'pastadmin') renderPastAdmin();
     else if (r === 'years') renderYears();
@@ -630,7 +726,7 @@
   async function refresh(silent) {
     try {
       var res = await api('GET', '/api/songs'), songs = res.songs, sig = JSON.stringify(res);
-      DEAD = res.deadlines || {}; MODES = res.modes || {};
+      DEAD = res.deadlines || {}; MODES = res.modes || {}; LINKS = res.links || [];
       try { PART = await api('GET', '/api/participants'); } catch (e) {}
       try { PASTS = (await api('GET', '/api/pasts')).pasts || []; } catch (e) {}
       sig = JSON.stringify([res, PART, PASTS]);
