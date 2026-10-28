@@ -27,7 +27,7 @@ form label{display:flex;flex-direction:column;font-size:13px;font-weight:700;col
 form.inl{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
 @media(max-width:620px){form{grid-template-columns:1fr}}
 ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-li{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+li{display:grid;grid-template-columns:minmax(52px,auto) 1fr auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 li.top1{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
 .rank{font-family:"Dela Gothic One",sans-serif;font-size:30px;text-align:center;color:var(--sub)}
 .top1 .rank{color:var(--gold);font-size:38px}
@@ -268,3 +268,7 @@ details.adm[open]>summary{padding-bottom:8px}
 
 /* ---- 保存中の表示 ---- */
 .savestate{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));max-width:min(92vw,520px);background:var(--acc2);color:#fff;padding:9px 16px;border-radius:14px;font-size:13px;font-weight:700;z-index:60;box-shadow:0 6px 20px rgba(20,19,60,.3);text-align:center}
+
+/* 順位・点数は途中で折り返さない(2桁以上でも横に並べる) */
+.rank,.pt{white-space:nowrap;overflow-wrap:normal;word-break:normal}
+@media(max-width:560px){.rank{font-size:26px}.top1 .rank{font-size:32px}}
