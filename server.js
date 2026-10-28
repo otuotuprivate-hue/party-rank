@@ -61,6 +61,15 @@ function sniffIcon(buf) {
   if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpeg';
   return null;
 }
+// Xのアカウント: 「@id」「id」「https://x.com/id」「https://twitter.com/id」を受け付け、https://x.com/id にそろえる
+function normX(v) {
+  v = clean(v, 120); if (!v) return '';
+  let h = v;
+  const m = v.match(/^(?:https?:\/\/)?(?:www\.|mobile\.)?(?:x|twitter)\.com\/@?([A-Za-z0-9_]{1,15})(?:[\/?#].*)?$/i);
+  if (m) h = m[1]; else h = v.replace(/^@/, '');
+  if (!/^[A-Za-z0-9_]{1,15}$/.test(h)) return null;
+  return 'https://x.com/' + h;
+}
 const iconAt = (u) => (u && u.icon ? u.icon.at : 0);
 const clean = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
 const isScore = (v) => typeof v === 'number' && v >= 0 && v <= 10 && Math.round(v * 2) === v * 2;
@@ -207,6 +216,10 @@ async function api(req, res, url) {
     if (!u || !u.icon) throw new HttpError(404, 'アイコンがありません');
     let buf; try { buf = fs.readFileSync(iconFile(u.id)); } catch (e) { throw new HttpError(404, 'アイコンがありません'); }
     return send(res, 200, buf, { 'Content-Type': 'image/' + (u.icon.ext === 'jpeg' ? 'jpeg' : 'png'), 'Cache-Control': 'public, max-age=31536000, immutable' });
+  }
+  if (m === 'GET' && p === '/api/staff') {
+    // 管理者のログイン名は出さず、Xのリンクだけを公開する
+    return send(res, 200, { staff: db.admins.filter((a) => a.x).map((a) => ({ x: a.x })) });
   }
   if (m === 'GET' && p === '/api/pasts') {
     return send(res, 200, { pasts: db.pasts.map(({ id, key, title, url, at }) => ({ id, key, title, url, at })) });
@@ -536,7 +549,16 @@ async function api(req, res, url) {
       save();
       return send(res, 200, { ok: true });
     }
-    if (p === '/api/admin/admins' && m === 'GET') return send(res, 200, { admins: db.admins.map((a) => a.name), me: s.name });
+    if (p === '/api/admin/admins' && m === 'GET') return send(res, 200, { admins: db.admins.map((a) => a.name), me: s.name, xs: db.admins.reduce((o, a) => { if (a.x) o[a.name] = a.x; return o; }, {}) });
+    if (p === '/api/admin/x' && m === 'PUT') {
+      const a = db.admins.find((x) => x.name === s.name);
+      if (!a) throw new HttpError(404, '管理者が見つかりません');
+      const v = normX(body.x);
+      if (v === null) throw bad('Xのアカウントは、@ID か https://x.com/ID の形で入力してください(IDは英数字と_、15文字まで)');
+      if (v) a.x = v; else delete a.x;
+      save();
+      return send(res, 200, { x: a.x || '' });
+    }
     if (p === '/api/admin/admins' && m === 'POST') {
       const name = clean(body.name, 30), pw = String(body.password || '');
       if (!name || !pw) throw bad('名前とパスワードは必須です');
@@ -562,6 +584,12 @@ function serveStatic(req, res, url) {
   if (!file.startsWith(PUBLIC_DIR + path.sep)) return send(res, 403, 'Forbidden');
   fs.readFile(file, (err, buf) => {
     if (err) return send(res, 404, 'Not found');
+    if (path.basename(file) === 'index.html') {
+      // リンクのプレビュー(OGP)用に、サイトのURLを入れる
+      const proto = String((TRUST_PROXY && req.headers['x-forwarded-proto']) || 'http').split(',')[0].trim() === 'https' ? 'https' : 'http';
+      const host = String((TRUST_PROXY && req.headers['x-forwarded-host']) || req.headers.host || 'localhost').split(',')[0].trim().replace(/[^A-Za-z0-9.:\-]/g, '');
+      buf = Buffer.from(buf.toString('utf8').replace(/__ORIGIN__/g, process.env.PUBLIC_URL || (proto + '://' + host)), 'utf8');
+    }
     res.writeHead(200, Object.assign({ 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }, SEC));
     res.end(buf);
   });
