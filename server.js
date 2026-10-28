@@ -16,7 +16,7 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [] };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [] };
 function save() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = DB_FILE + '.tmp';
@@ -46,12 +46,22 @@ function load() {
     addAdmin(process.env.ADMIN_NAME || 'taetae', process.env.ADMIN_PASSWORD || 'Taiga0119');
     save();
   }
+  // 旧形式のお知らせ(タイトルなし)には、本文の1行目からタイトルを付ける
+  db.notices.forEach((n) => { if (!n.title) n.title = String(n.text || '').split('\n')[0].slice(0, 30) || 'お知らせ'; });
 }
 load();
 
 /* ---------- 小さな道具 ---------- */
 const token = () => crypto.randomBytes(24).toString('hex');
 const id = () => Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
+const ICON_DIR = path.join(DATA_DIR, 'icons');
+const iconFile = (pid) => path.join(ICON_DIR, String(pid).replace(/[^0-9a-z]/g, '') + '.img');
+function sniffIcon(buf) {
+  if (buf.length > 8 && buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpeg';
+  return null;
+}
+const iconAt = (u) => (u && u.icon ? u.icon.at : 0);
 const clean = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
 const isScore = (v) => typeof v === 'number' && v >= 0 && v <= 10 && Math.round(v * 2) === v * 2;
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
@@ -80,10 +90,10 @@ setInterval(() => { const now = Date.now(); for (const [k, h] of hits) if (h.res
 class HttpError extends Error { constructor(code, msg) { super(msg); this.code = code; } }
 const bad = (msg) => new HttpError(400, msg);
 
-function readBody(req) {
+function readBody(req, limit) {
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
-    req.on('data', (c) => { size += c.length; if (size > 65536) { reject(new HttpError(413, '送信データが大きすぎます')); req.destroy(); } else chunks.push(c); });
+    req.on('data', (c) => { size += c.length; if (size > (limit || 65536)) { reject(new HttpError(413, '送信データが大きすぎます')); req.destroy(); } else chunks.push(c); });
     req.on('end', () => {
       if (!chunks.length) return resolve({});
       try { const o = JSON.parse(Buffer.concat(chunks).toString('utf8')); resolve(o && typeof o === 'object' ? o : {}); }
@@ -93,9 +103,9 @@ function readBody(req) {
   });
 }
 function send(res, code, body, headers) {
-  const isStr = typeof body === 'string';
+  const isStr = typeof body === 'string', isBuf = Buffer.isBuffer(body);
   res.writeHead(code, Object.assign({ 'Content-Type': isStr ? 'text/plain; charset=utf-8' : 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, headers));
-  res.end(isStr ? body : JSON.stringify(body));
+  res.end(isStr || isBuf ? body : JSON.stringify(body));
 }
 const bearer = (req) => (String(req.headers.authorization || '').match(/^Bearer ([0-9a-f]{48})$/) || [])[1] || '';
 
@@ -139,7 +149,7 @@ function buildTable(key) {
     const sg = db.songs.find((s) => s.id === sid);
     starTitles[p.id] = sg ? sg.title : '';
   });
-  return { key, label: labelOf(key), cour, people: people.map((p) => ({ id: p.id, name: p.name })), rows, userAvg, overallAvg: mean(all), starTitles };
+  return { key, label: labelOf(key), cour, people: people.map((p) => ({ id: p.id, name: p.name, ic: iconAt(p) })), rows, userAvg, overallAvg: mean(all), starTitles };
 }
 const csvCell = (v) => { v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
 const toCsv = (rows) => '﻿' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
@@ -168,6 +178,7 @@ function tableJson(t, desc) {
     participants: t.people.map((p) => p.name),
     participantAverages: t.people.reduce((o, p) => { o[p.name] = r2(t.userAvg[p.id]); return o; }, {}),
     overallAverage: r2(t.overallAvg), items,
+    icons: t.people.reduce((o, p) => { const pu = db.people.find((x) => x.id === p.id); if (pu && pu.icon) { try { o[p.name] = 'data:image/' + (pu.icon.ext === 'jpeg' ? 'jpeg' : 'png') + ';base64,' + fs.readFileSync(iconFile(p.id)).toString('base64'); } catch (e) { /* なし */ } } return o; }, {}),
   };
 }
 /* モード: video があれば watch(全体表を公開)、rank が true なら rank(開催中)、どちらも無ければ entry */
@@ -185,10 +196,17 @@ function allKeys() { return [...new Set(db.songs.map((s) => s.key))]; }
 /* ---------- API ---------- */
 async function api(req, res, url) {
   const m = req.method, p = url.pathname;
-  const body = m === 'GET' || m === 'DELETE' ? {} : await readBody(req);
+  const body = m === 'GET' || m === 'DELETE' ? {} : await readBody(req, p === '/api/me/icon' ? 450000 : 0);
 
   if (m === 'GET' && p === '/api/songs') {
-    return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at, ord }) => ({ id, key, title, artist, anime, at, ord: ord != null ? ord : at })), playlists: db.playlists, years: db.years, notices: db.notices.slice().reverse(), deadlines: db.deadlines, modes: publicModes() });
+    return send(res, 200, { songs: db.songs.map(({ id, key, title, artist, anime, at, ord }) => ({ id, key, title, artist, anime, at, ord: ord != null ? ord : at })), playlists: db.playlists, years: db.years, notices: db.notices.slice().reverse(), deadlines: db.deadlines, modes: publicModes(), links: db.links.map(({ id, key, title, artist, url }) => ({ id, key, title, artist, url })) });
+  }
+  const icm = p.match(/^\/api\/icon\/([0-9a-z]+)$/);
+  if (m === 'GET' && icm) {
+    const u = db.people.find((x) => x.id === icm[1]);
+    if (!u || !u.icon) throw new HttpError(404, 'アイコンがありません');
+    let buf; try { buf = fs.readFileSync(iconFile(u.id)); } catch (e) { throw new HttpError(404, 'アイコンがありません'); }
+    return send(res, 200, buf, { 'Content-Type': 'image/' + (u.icon.ext === 'jpeg' ? 'jpeg' : 'png'), 'Cache-Control': 'public, max-age=31536000, immutable' });
   }
   if (m === 'GET' && p === '/api/pasts') {
     return send(res, 200, { pasts: db.pasts.map(({ id, key, title, url, at }) => ({ id, key, title, url, at })) });
@@ -210,9 +228,9 @@ async function api(req, res, url) {
     db.people.forEach((u) => {
       const cnt = {};
       Object.keys(db.scores[u.id] || {}).forEach((sid) => { if (songKey[sid]) cnt[songKey[sid]] = (cnt[songKey[sid]] || 0) + 1; });
-      Object.keys(cnt).forEach((k) => { (by[k] = by[k] || []).push({ name: u.name, scored: cnt[k] }); });
+      Object.keys(cnt).forEach((k) => { (by[k] = by[k] || []).push({ id: u.id, ic: iconAt(u), name: u.name, scored: cnt[k] }); });
     });
-    return send(res, 200, { people: db.people.map((u) => u.name), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
+    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
   }
   if (m === 'POST' && p === '/api/join') {
     if (limited(req, 'join', 30, 10 * 60000)) throw new HttpError(429, '試行回数が多すぎます。しばらくしてからやり直してください');
@@ -231,7 +249,26 @@ async function api(req, res, url) {
   }
   if (p === '/api/me' && m === 'GET') {
     const me = person(req);
-    return send(res, 200, { name: me.name, hasPass: !!me.hash, scores: db.scores[me.id] || {}, stars: db.stars[me.id] || {}, comments: db.comments[me.id] || {} });
+    return send(res, 200, { id: me.id, icon: iconAt(me), name: me.name, hasPass: !!me.hash, scores: db.scores[me.id] || {}, stars: db.stars[me.id] || {}, comments: db.comments[me.id] || {} });
+  }
+  if (p === '/api/me/icon' && m === 'PUT') {
+    const me = person(req);
+    if (limited(req, 'icon', 30, 15 * 60000)) throw new HttpError(429, '操作が多すぎます。しばらくしてからやり直してください');
+    const mt = String(body.data || '').match(/^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/);
+    if (!mt) throw bad('PNGまたはJPEGの画像を選んでください');
+    const buf = Buffer.from(mt[2], 'base64');
+    const kind = sniffIcon(buf);
+    if (!kind || buf.length > 300000) throw bad('画像が正しくないか、大きすぎます(300KBまで)');
+    fs.mkdirSync(ICON_DIR, { recursive: true });
+    fs.writeFileSync(iconFile(me.id), buf);
+    me.icon = { ext: kind, at: Date.now() }; save();
+    return send(res, 200, { icon: me.icon.at });
+  }
+  if (p === '/api/me/icon' && m === 'DELETE') {
+    const me = person(req);
+    try { fs.unlinkSync(iconFile(me.id)); } catch (e) { /* なし */ }
+    delete me.icon; save();
+    return send(res, 200, { icon: 0 });
   }
   if (p === '/api/me/score' && m === 'PUT') {
     const me = person(req);
@@ -371,6 +408,21 @@ async function api(req, res, url) {
       save();
       return send(res, 200, { modes: publicModes() });
     }
+    if (p === '/api/admin/links' && m === 'POST') {
+      const key = clean(body.key, 20), title = clean(body.title, 100), artist = clean(body.artist, 60), v = clean(body.url, 500);
+      if (!validKey(key)) throw bad('区分が正しくありません');
+      if (!title) throw bad('動画タイトル(曲名)を入力してください');
+      let u; try { u = new URL(v); } catch (e) { u = null; }
+      if (!u || u.protocol !== 'https:') throw bad('リンクは https:// から始まるURLを入力してください');
+      if (db.links.filter((x) => x.key === key).length >= 60) throw bad('この区分のリンクは60件までです');
+      db.links.push({ id: id(), key, title, artist, url: u.href, at: Date.now() }); save();
+      return send(res, 200, { links: db.links.map(({ id, key, title, artist, url }) => ({ id, key, title, artist, url })) });
+    }
+    const lkm = p.match(/^\/api\/admin\/links\/([0-9a-z]+)$/);
+    if (lkm && m === 'DELETE') {
+      db.links = db.links.filter((x) => x.id !== lkm[1]); save();
+      return send(res, 200, { links: db.links.map(({ id, key, title, artist, url }) => ({ id, key, title, artist, url })) });
+    }
     if (p === '/api/admin/pasts' && m === 'POST') {
       const key = clean(body.key, 20), title = clean(body.title, 100), v = clean(body.url, 500);
       if (!validKey(key)) throw bad('年代・クール・種別を選んでください');
@@ -400,9 +452,12 @@ async function api(req, res, url) {
       return send(res, 200, { years: db.years });
     }
     if (p === '/api/admin/notices' && m === 'POST') {
-      const text = String(body.text == null ? '' : body.text).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, 1000);
-      if (!text) throw bad('お知らせの内容を入力してください');
-      db.notices.push({ id: id(), text, at: Date.now() });
+      const ctl = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
+      const title = clean(body.title, 60);
+      const text = String(body.text == null ? '' : body.text).replace(ctl, '').trim().slice(0, 1000);
+      if (!title) throw bad('お知らせのタイトルを入力してください');
+      if (!text) throw bad('お知らせの本文を入力してください');
+      db.notices.push({ id: id(), title, text, at: Date.now() });
       if (db.notices.length > 100) db.notices.shift();
       save();
       return send(res, 200, { notices: db.notices.slice().reverse() });
@@ -435,13 +490,14 @@ async function api(req, res, url) {
       return send(res, 200, { ok: true, url: u.href });
     }
     if (p === '/api/admin/people' && m === 'GET') {
-      return send(res, 200, { people: db.people.map((x) => ({ id: x.id, name: x.name, scored: Object.keys(db.scores[x.id] || {}).length, hasPass: !!x.hash })) });
+      return send(res, 200, { people: db.people.map((x) => ({ id: x.id, name: x.name, scored: Object.keys(db.scores[x.id] || {}).length, hasPass: !!x.hash, ic: iconAt(x) })) });
     }
     const pm = p.match(/^\/api\/admin\/people\/([0-9a-z]+)$/);
     if (pm && m === 'DELETE') {
       const i = db.people.findIndex((x) => x.id === pm[1]);
       if (i < 0) throw new HttpError(404, 'ユーザーが見つかりません');
       db.people.splice(i, 1);
+      try { fs.unlinkSync(iconFile(pm[1])); } catch (e) { /* なし */ }
       delete db.scores[pm[1]]; delete db.stars[pm[1]]; delete db.comments[pm[1]];
       save();
       return send(res, 200, { ok: true });
