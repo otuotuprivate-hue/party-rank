@@ -284,3 +284,9 @@ li>.rank,li>.pt{white-space:nowrap;overflow-wrap:normal;word-break:normal}
   .mx thead th{max-width:6em;font-size:12px}
   .mx small{font-size:11px}
 }
+
+/* スマホ: 曲名等は1行(はみ出す分は文字を小さくする。最小サイズでも入らなければ…で省略) */
+@media(max-width:620px){
+  #rank li>div:nth-child(2),#list .row>div:first-child{min-width:0}
+  #rank .t,#rank .ln,#list .t,#list .ln{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+}

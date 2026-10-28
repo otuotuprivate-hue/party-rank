@@ -118,7 +118,7 @@
       }
       row.appendChild(rc);
       if (ME) {
-        var cm = el('input', 'cm'); cm.maxLength = 100; cm.placeholder = 'ひとこと(100字まで。見られるのは自分と管理者だけ)';
+        var cm = el('input', 'cm'); cm.maxLength = 100; cm.placeholder = 'ひとこと(100字まで)';
         cm.value = CM[s.id] || ''; cm.setAttribute('aria-label', s.title + 'へのひとこと');
         var cmT; cm.oninput = function () { clearTimeout(cmT); cmT = setTimeout(function () { setComment(s.id, cm.value); }, 900); };
         cm.onchange = function () { clearTimeout(cmT); setComment(s.id, cm.value); }; row.appendChild(cm);
@@ -878,6 +878,23 @@
   }
 
   /* ---- メニューとページの切り替え ---- */
+  /* スマホ: 曲名・アーティスト・アニメ名は、1行に収まるよう文字を小さくする */
+  var FITMQ = window.matchMedia ? window.matchMedia('(max-width: 620px)') : { matches: false };
+  function fitLines() {
+    var nodes = document.querySelectorAll('#rank .t, #rank .ln, #list .t, #list .ln');
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i]; n.style.fontSize = '';
+      if (!FITMQ.matches || !n.clientWidth) continue;
+      var size = parseFloat(getComputedStyle(n).fontSize);
+      while (n.scrollWidth > n.clientWidth + 0.5 && size > 9) { size -= 0.5; n.style.fontSize = size + 'px'; }
+    }
+  }
+  var fitT;
+  function fitSoon() { clearTimeout(fitT); fitT = setTimeout(fitLines, 30); }
+  ['rank', 'list'].forEach(function (id) { var b = $(id); if (b && window.MutationObserver) new MutationObserver(fitSoon).observe(b, { childList: true }); });
+  window.addEventListener('resize', fitSoon);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
+
   var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', icon: 'v-icon', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
   var ADMIN_ONLY = { adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1, icon: 1 };
   function curRoute() { var h = (location.hash || '').replace(/^#\/?/, ''); return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
