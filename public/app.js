@@ -70,7 +70,8 @@
   }
   function info(s, star) {
     var b = el('div'); b.appendChild(el('div', 't', (star ? '★ ' : '') + s.title));
-    b.appendChild(el('div', 'm', [s.artist, s.anime].filter(Boolean).join(' / ')));
+    if (s.artist) b.appendChild(el('div', 'ln', s.artist));
+    if (s.anime) b.appendChild(el('div', 'ln an', s.anime));
     return b;
   }
   function renderRank() {
@@ -459,16 +460,16 @@
     renderAll(); go(''); loadTable(); if (!silent) toast('管理者画面から退出しました');
   }
   $('backUser').onclick = function () { adminLogout(false); };
-  function showAdmins(list, me) {
-    var box = $('admList'); box.textContent = '';
-    list.forEach(function (n) { box.appendChild(el('span', 'chip', n + (n === me ? '(あなた)' : ''))); });
+  function showAdmins(list, me, xs) {
+    var box = $('admList'); box.textContent = ''; xs = xs || {};
+    list.forEach(function (n) { var c = el('span', 'chip', n + (n === me ? '(あなた)' : '') + (xs[n] ? ' ' + xHandle(xs[n]) : '')); box.appendChild(c); });
   }
   async function loadAdmins() {
-    try { var r = await api('GET', '/api/admin/admins', undefined, atoken); showAdmins(r.admins, r.me); } catch (e) { adminError(e, ''); }
+    try { var r = await api('GET', '/api/admin/admins', undefined, atoken); showAdmins(r.admins, r.me, r.xs); } catch (e) { adminError(e, ''); }
   }
   $('af').onsubmit = async function (e) {
     e.preventDefault();
-    try { var r = await api('POST', '/api/admin/admins', { name: $('an').value, password: $('ap').value }, atoken); $('an').value = ''; $('ap').value = ''; showAdmins(r.admins, adminName); toast('管理者を追加しました'); }
+    try { var r = await api('POST', '/api/admin/admins', { name: $('an').value, password: $('ap').value }, atoken); $('an').value = ''; $('ap').value = ''; showAdmins(r.admins, adminName); loadAdmins(); toast('管理者を追加しました'); }
     catch (err) { if (err.status === 401) adminError(err); else toast(err.message); }
   };
   $('apf').onsubmit = async function (e) {
@@ -501,6 +502,55 @@
       $('purl').value = r.url; renderPlink(); toast(r.url ? 'プレイリストを保存しました' : 'プレイリストを外しました');
     } catch (err) { adminError(err, '保存できませんでした'); }
   };
+
+  /* ---- 招待リンク ---- */
+  var INV_DEF = 'Party Rank(みんなでアニソンに点数をつけるランキング)に参加しよう!';
+  function invUrl() { return location.origin + '/'; }
+  function invText() { return ($('invMsg').value || '').trim(); }
+  function updateShare() {
+    var u = invUrl(), t = invText();
+    $('shX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(t) + '&url=' + encodeURIComponent(u);
+    $('shL').href = 'https://line.me/R/share?text=' + encodeURIComponent((t ? t + '\n' : '') + u);
+  }
+  function renderInvite() {
+    $('invUrl').value = invUrl(); if (!$('invMsg').value) $('invMsg').value = INV_DEF;
+    $('shN').hidden = !navigator.share; updateShare();
+  }
+  function copyText(text, okMsg) {
+    function fallback() {
+      var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); toast(ok ? okMsg : 'コピーできませんでした。手動でコピーしてください');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, fallback); else fallback();
+  }
+  $('invMsg').oninput = updateShare;
+  $('invUrl').onfocus = function () { this.select(); };
+  $('shC').onclick = function () { copyText(invUrl(), 'リンクをコピーしました'); };
+  $('shD').onclick = function () { var t = invText(); copyText((t ? t + '\n' : '') + invUrl(), 'コピーしました。Discordに貼り付けてください'); };
+  $('shN').onclick = function () { navigator.share({ title: 'Party Rank', text: invText(), url: invUrl() }).catch(function () {}); };
+
+  /* ---- 管理者のX ---- */
+  var MYX = '';
+  function xHandle(u) { return '@' + String(u).replace(/^https:\/\/x\.com\//, ''); }
+  function renderAdminX() {
+    $('axmsg').textContent = ''; $('axnow').textContent = '';
+    api('GET', '/api/admin/admins', undefined, atoken).then(function (r) {
+      MYX = (r.xs && r.xs[r.me]) || ''; $('axv').value = MYX;
+      $('axnow').textContent = MYX ? '登録中: ' + xHandle(MYX) : 'まだ登録されていません。';
+    }).catch(function (e) { adminError(e, ''); });
+  }
+  $('axf').onsubmit = async function (e) {
+    e.preventDefault(); $('axmsg').textContent = '';
+    try { var r = await api('PUT', '/api/admin/x', { x: $('axv').value }, atoken); MYX = r.x; $('axv').value = MYX; $('axnow').textContent = MYX ? '登録中: ' + xHandle(MYX) : 'まだ登録されていません。'; toast(MYX ? 'Xアカウントを登録しました' : '登録を外しました'); }
+    catch (err) { if (err.status === 401) adminError(err); else $('axmsg').textContent = err.message; }
+  };
+  $('axdel').onclick = async function () { $('axv').value = ''; $('axf').requestSubmit(); };
+  async function loadStaff() {
+    try {
+      var r = await api('GET', '/api/staff'), box = $('staffList'); box.textContent = ''; $('staffBox').hidden = !r.staff.length;
+      r.staff.forEach(function (x) { var a = el('a', 'xacc', xHandle(x.x)); a.href = x.x; a.target = '_blank'; a.rel = 'noopener noreferrer'; box.appendChild(a); });
+    } catch (e) { $('staffBox').hidden = true; }
+  }
 
   /* ---- プレイリスト未収録曲のリンク ---- */
   function renderXlinks() {
@@ -663,11 +713,15 @@
     if (atoken) $('dtime').value = t ? localInput(t) : '';
     if (!t) return;
     var d = new Date(t), W = ['日', '月', '火', '水', '木', '金', '土'], diff = t - Date.now();
-    b.appendChild(document.createTextNode('提出期限: ' + d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日(' + W[d.getDay()] + ') ' + two(d.getHours()) + ':' + two(d.getMinutes())));
+    var l1 = el('div', 'dl1'); l1.appendChild(el('span', 'dll', '提出期限'));
+    l1.appendChild(el('span', 'dld', d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日(' + W[d.getDay()] + ') ' + two(d.getHours()) + ':' + two(d.getMinutes()))); b.appendChild(l1);
     var rest;
     if (diff <= 0) { rest = '期限を過ぎています'; b.className = 'deadline over'; }
-    else { var mins = Math.floor(diff / 60000), dd = Math.floor(mins / 1440), hh = Math.floor((mins % 1440) / 60); rest = 'あと' + (dd ? dd + '日' : '') + (dd || hh ? hh + '時間' : '') + (dd ? '' : (mins % 60) + '分'); }
-    b.appendChild(el('small', '', rest));
+    else {
+      var mins = Math.floor(diff / 60000), dd = Math.floor(mins / 1440), hh = Math.floor((mins % 1440) / 60);
+      rest = dd ? 'あと' + dd + '日と' + hh + '時間' : hh ? 'あと' + hh + '時間' + (mins % 60) + '分' : 'あと' + (mins % 60) + '分';
+    }
+    b.appendChild(el('div', 'dl2', rest));
   }
   setInterval(renderDeadline, 60000);
   $('df').onsubmit = async function (e) {
@@ -709,22 +763,28 @@
   /* ---- お知らせ・年 ---- */
   function fdate(t) { var d = new Date(t); return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate(); }
   function isNew(n) { return Date.now() - n.at < 7 * 86400000; }
-  function newsItem(n) {
-    var d = document.createElement('details'); d.className = 'nitem';
-    var sm = document.createElement('summary'); sm.appendChild(el('span', 'nt', n.title || 'お知らせ'));
-    if (isNew(n)) sm.appendChild(el('span', 'newb', 'New!'));
-    sm.appendChild(el('span', 'nd', fdate(n.at))); d.appendChild(sm); d.appendChild(el('div', 'nbody', n.text)); return d;
+  var NEWS_OPEN = null;
+  function newsMeta(n) { var m = el('div', 'nmeta'); if (isNew(n)) m.appendChild(el('span', 'newb', 'New!')); m.appendChild(el('span', 'nd', fdate(n.at))); return m; }
+  function newsItem(n, open) {
+    var d = document.createElement('details'); d.className = 'nitem'; d.id = 'news-' + n.id; if (open) d.open = true;
+    var sm = document.createElement('summary'), col = el('div', 'ncol'); col.appendChild(newsMeta(n)); col.appendChild(el('div', 'nt', n.title || 'お知らせ'));
+    sm.appendChild(col); d.appendChild(sm); d.appendChild(el('div', 'nbody', n.text)); return d;
+  }
+  function newsLink(n) {
+    var b = el('button', 'nlink'); b.type = 'button'; var col = el('div', 'ncol'); col.appendChild(newsMeta(n)); col.appendChild(el('div', 'nt', n.title || 'お知らせ'));
+    b.appendChild(col); b.onclick = function () { NEWS_OPEN = n.id; go('notices'); }; return b;
   }
   function renderNews() {
     var box = $('newsList'), all = $('nAll'), adm = $('nAdm'); box.textContent = ''; all.textContent = ''; adm.textContent = '';
     $('newsBox').hidden = !NEWS.length; $('newsAll').hidden = NEWS.length <= 3;
-    NEWS.slice(0, 3).forEach(function (n) { box.appendChild(newsItem(n)); });
+    NEWS.slice(0, 3).forEach(function (n) { box.appendChild(newsLink(n)); });
     if (!NEWS.length) all.appendChild(el('span', 'm', 'お知らせはまだありません。'));
+    var openEl = null;
     NEWS.forEach(function (n) {
-      all.appendChild(newsItem(n));
+      var it = newsItem(n, n.id === NEWS_OPEN); all.appendChild(it); if (n.id === NEWS_OPEN) openEl = it;
       if (atoken) {
-        var a = el('div', 'news-i'); a.appendChild(el('small', '', fdate(n.at)));
-        a.appendChild(el('b', '', n.title || 'お知らせ')); if (isNew(n)) a.appendChild(el('span', 'newb', 'New!'));
+        var a = el('div', 'news-i'); a.appendChild(newsMeta(n));
+        a.appendChild(el('b', 'nt2', n.title || 'お知らせ'));
         a.appendChild(el('div', 'm', n.text.slice(0, 60) + (n.text.length > 60 ? '…' : '')));
         var del = el('button', 'ghost', '削除'); del.onclick = async function () {
           if (!(await confirmBox('お知らせを削除しますか?', (n.title || '') + '\n' + n.text.slice(0, 80) + (n.text.length > 80 ? '…' : '')))) return;
@@ -733,6 +793,7 @@
         a.appendChild(del); adm.appendChild(a);
       }
     });
+    if (openEl && curRoute() === 'notices') { NEWS_OPEN = null; setTimeout(function () { openEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); }
   }
   $('newsAll').onclick = function () { go('notices'); };
   function renderYears() {
@@ -774,18 +835,18 @@
   }
 
   /* ---- メニューとページの切り替え ---- */
-  var VIEWS = { '': 'v-home', notices: 'v-notices', icon: 'v-icon', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
-  var ADMIN_ONLY = { pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1, icon: 1 };
+  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', icon: 'v-icon', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', rename: 'v-rename', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
+  var ADMIN_ONLY = { adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { rename: 1, password: 1, icon: 1 };
   function curRoute() { var h = (location.hash || '').replace(/^#\/?/, ''); return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
   function go(r) { var t = '#/' + (r || ''); if (location.hash === t || (!r && (location.hash === '' || location.hash === '#'))) route(false); else location.hash = t; }
   function menuItems() {
     var about = { t: 'Party Rankとは', r: 'about' }, past = { t: '過去のParty Rank', r: 'pasts' };
-    var news = { t: 'お知らせ', r: 'notices' };
-    if (atoken) return [about, { t: '管理者ホーム', r: '' }, news, past, { sep: 1 },
+    var news = { t: 'お知らせ', r: 'notices' }, inv = { t: '友だちを招待', r: 'invite' };
+    if (atoken) return [about, { t: '管理者ホーム', r: '' }, news, inv, past, { sep: 1 },
       { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
       { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'お知らせの登録', r: 'news' },
-      { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }];
-    var a = [about, { t: 'ホーム', r: '' }, news];
+      { t: 'Xアカウントの登録', r: 'adminx' }, { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }];
+    var a = [about, { t: 'ホーム', r: '' }, news, inv];
     if (ME) a.push({ t: 'アイコンの設定', r: 'icon' }, { t: 'ユーザー名の変更', r: 'rename' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
     a.push({ t: '参加者一覧', r: 'people' }, past, { sep: 1 }, { t: '管理者画面への入室', r: 'admin-login' });
     return a;
@@ -824,6 +885,9 @@
     else if (r === 'admins') loadAdmins();
     else if (r === 'users') { PSIG = ''; loadPeople(true); }
     else if (r === 'news') renderNews();
+    else if (r === 'invite') renderInvite();
+    else if (r === 'adminx') renderAdminX();
+    else if (r === 'about') loadStaff();
     else if (r === 'notices') renderNews();
     else if (r === 'icon') { ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev(''); }
     else if (r === 'pasts') { renderPasts(); api('GET', '/api/pasts').then(function (d) { PASTS = d.pasts || []; if (curRoute() === 'pasts') renderPasts(); }).catch(function () {}); }

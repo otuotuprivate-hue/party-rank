@@ -157,7 +157,7 @@ th.sortable{cursor:pointer;user-select:none}th.sortable:hover{text-decoration:un
 .nlist{display:flex;flex-direction:column}
 .nitem{border-top:1px solid var(--line)}
 .nitem:first-child{border-top:none}
-.nitem summary{list-style:none;display:flex;align-items:center;gap:8px;padding:11px 2px;cursor:pointer;font-weight:700}
+.nitem summary{list-style:none;display:flex;align-items:flex-start;gap:8px;padding:10px 2px;cursor:pointer;font-weight:700}
 .nitem summary::-webkit-details-marker{display:none}
 .nitem summary::before{content:"›";color:var(--acc2);font-size:20px;line-height:1;transition:transform .2s;width:12px;flex:none}
 .nitem[open] summary::before{transform:rotate(90deg)}
@@ -181,12 +181,10 @@ a.xl small{display:block;font-size:12px;color:var(--sub);font-weight:500}
 .xrow{display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 0}
 .xrow .xrt{flex:1;min-width:0;overflow-wrap:anywhere}
 details.adm{padding:0}
-details.adm>summary{padding:13px 14px;font-weight:800;list-style:none;display:flex;align-items:center;gap:8px}
+details.adm>summary{padding:14px 16px;font-weight:800;list-style:none;display:flex;align-items:center;gap:8px}
 details.adm>summary::-webkit-details-marker{display:none}
 details.adm>summary::before{content:"›";color:var(--acc2);font-size:20px;line-height:1;transition:transform .2s;width:12px}
 details.adm[open]>summary::before{transform:rotate(90deg)}
-details.adm>:not(summary){margin-left:14px!important;margin-right:14px!important}
-details.adm>:last-child{margin-bottom:14px}
 .view>h2:first-child{margin-top:6px}
 
 /* ---- 日本語の折り返し ---- */
@@ -210,3 +208,60 @@ input,textarea,select{word-break:normal;overflow-wrap:normal}
   #list .empty{grid-column:1/-1}
   #rank .empty{grid-column:1/-1}
 }
+
+/* ---- 余白の統一(枠と文字のあいだは 14px 16px) ---- */
+.panel,li,.row,.mode,.pastrow,a.xl{padding:14px 16px}
+.adb{padding:0 16px 16px}
+.adb>:first-child{margin-top:0}
+.adb>:last-child{margin-bottom:0}
+.adb .hint{margin:8px 0 0}
+
+/* ---- 曲カード: 曲名・アーティスト・作品名を1行ずつ ---- */
+.t{line-height:1.45}
+.row{grid-template-rows:1fr auto;align-items:center}
+.row>.cm{grid-column:1/-1}
+.row .rc{align-self:center}
+.ln{font-size:14px;color:var(--sub);overflow-wrap:anywhere;line-height:1.5}
+.ln.an{font-weight:500}
+@media(min-width:1000px){#rank ol,#list{align-items:stretch}}
+
+/* ---- お知らせ: New!と日付はタイトルの上に小さく ---- */
+.nitem summary,button.nlink{align-items:flex-start}
+.ncol{flex:1;min-width:0}
+.nmeta{display:flex;align-items:center;gap:8px;margin-bottom:1px;min-height:18px}
+.nitem .nd,.nmeta .nd{font-size:12px;color:var(--sub);font-weight:500;white-space:nowrap}
+.nitem summary::before{margin-top:18px}
+.nitem .nt,.nlink .nt{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+button.nlink{display:flex;gap:8px;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);border-radius:0;padding:10px 2px;cursor:pointer;color:var(--ink)}
+button.nlink::after{content:"›";color:var(--acc2);font-size:20px;line-height:1;margin-top:16px}
+.nlist>button.nlink:first-child{border-top:none}
+button.nlink:hover .nt{text-decoration:underline}
+.news-i .nmeta{flex-basis:100%}
+.news-i .nt2{flex:1;min-width:0}
+
+/* ---- 提出期限 ---- */
+.deadline{font-weight:700}
+.deadline .dl1{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.deadline .dll{font-size:12px;font-weight:700;color:var(--sub)}
+.deadline .dld{white-space:nowrap}
+.deadline .dl2{font-size:13px;font-weight:500;color:var(--sub)}
+.deadline.over .dl2{color:#d6334a}
+
+/* ---- 招待リンク ---- */
+.share{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.sh{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 18px;font-weight:700;text-decoration:none;cursor:pointer;font-size:15px}
+.sh:hover{filter:brightness(1.06)}
+.shx{background:#111;border-color:#111;color:#fff}
+.shl{background:#06c755;border-color:#06c755;color:#fff}
+.shd{background:#5865f2;border-color:#5865f2;color:#fff}
+a.xacc{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;color:var(--ink);font-weight:700;background:var(--card)}
+a.xacc::before{content:"𝕏";font-weight:800}
+a.xacc:hover{border-color:var(--acc2)}
+#meAv:empty{display:none}
+
+/* ---- 仕上げ ---- */
+.row{align-items:start}
+.row .rc{align-self:start;padding-top:2px}
+.row>:first-child{align-self:start}
+.adb>div:empty{display:none}
+details.adm[open]>summary{padding-bottom:8px}

@@ -10,6 +10,17 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#4a3fe0">
+<meta name="description" content="みんなでやるアニソンランキング。曲に点数をつけて、いっしょに順位をつくろう。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Party Rank">
+<meta property="og:title" content="Party Rank点数評価ツール">
+<meta property="og:description" content="みんなでやるアニソンランキング。曲に点数をつけて、いっしょに順位をつくろう。">
+<meta property="og:url" content="__ORIGIN__/">
+<meta property="og:image" content="__ORIGIN__/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Party Rank点数評価ツール">
+<meta name="twitter:description" content="みんなでやるアニソンランキング。曲に点数をつけて、いっしょに順位をつくろう。">
+<meta name="twitter:image" content="__ORIGIN__/ogp.png">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -61,22 +72,25 @@
 
   <div id="addPanel" hidden>
     <details class="panel adm" open><summary>曲の追加・編集</summary>
+    <div class="adb">
     <form id="f">
       <label>曲名<input id="title" required maxlength="80"></label>
       <label>アーティスト<input id="artist" maxlength="60"></label>
       <label>アニメ作品名<input id="anime" maxlength="80"></label>
       <button class="pri" id="fsub">曲を追加</button>
     </form>
-    <div class="bar" id="fcancelBar" hidden style="margin:8px 0 0"><span class="m" id="editNote"></span><button type="button" id="fcancel">編集をやめる</button></div>
+    <div class="bar" id="fcancelBar" hidden style="margin:8px 0 0"><span class="m" id="editNote"></span><button type="button" id="fcancel">編集をやめる</button></div></div>
     </details>
     <details class="panel adm"><summary>プレイリスト</summary>
+    <div class="adb">
     <form id="pf" class="inl">
       <label style="flex:1;min-width:240px">iTunes(Apple Music)プレイリストのURL<input id="purl" type="url" maxlength="500" placeholder="https://music.apple.com/jp/playlist/…"></label>
       <button class="pri">プレイリストを保存</button>
     </form>
-    <p class="hint" style="margin:6px 0 0">貼れるのは管理者だけです。空にして保存すると、リンクを外せます。リンクは参加者にも表示されます。</p>
+    <p class="hint" style="margin:6px 0 0">貼れるのは管理者だけです。空にして保存すると、リンクを外せます。リンクは参加者にも表示されます。</p></div>
     </details>
     <details class="panel adm"><summary>プレイリスト未収録曲のリンク</summary>
+    <div class="adb">
     <form id="xf" class="inl">
       <label style="flex:1;min-width:200px">動画タイトル(曲名)<input id="xtitle" maxlength="100" required></label>
       <label style="flex:1;min-width:160px">アーティスト名<input id="xartist" maxlength="60"></label>
@@ -84,15 +98,17 @@
       <button class="pri">リンクを追加</button>
     </form>
     <p class="hint" style="margin:6px 0 0">追加したリンクは、いま選んでいるランキングの画面にだけ表示されます。1件もないときは、一般ユーザーの画面には何も出ません。</p>
-    <div id="xAdm" style="margin-top:8px"></div>
+    <div id="xAdm" style="margin-top:8px"></div></div>
     </details>
     <details class="panel adm"><summary>提出期限</summary>
+    <div class="adb">
     <form id="df" class="inl">
       <label>提出期限(表示のみ。期限後も採点はできます)<input id="dtime" type="datetime-local"></label>
       <button class="pri">期限を保存</button><button type="button" id="dclear">期限を外す</button>
-    </form>
+    </form></div>
     </details>
     <details class="panel adm"><summary>開催モード</summary>
+    <div class="adb">
         <p class="hint" id="modeNow" style="margin:0 0 8px"></p>
     <div class="bar">
       <button type="button" id="mEntry">通常モードに戻す</button>
@@ -102,7 +118,7 @@
       <label style="flex:1;min-width:240px">ランキング動画のリンク(https://…)<input id="mvideo" type="url" maxlength="500" placeholder="https://www.youtube.com/watch?v=…" required></label>
       <button class="pri" id="mwatch">リンクを公開して Party Watch にする</button>
     </form>
-    <p class="hint" style="margin:6px 0 0">通常モード(初期状態)では「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間も、一般ユーザーにこのランキングの全体表は見えません。動画リンクを公開すると Party Watch になり、動画リンクと全体表が一般ユーザーにも見えるようになります(ひとことは公開されません)。</p>
+    <p class="hint" style="margin:6px 0 0">通常モード(初期状態)では「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間も、一般ユーザーにこのランキングの全体表は見えません。動画リンクを公開すると Party Watch になり、動画リンクと全体表が一般ユーザーにも見えるようになります(ひとことは公開されません)。</p></div>
     </details>
   </div>
 
@@ -146,6 +162,9 @@
       <dt><span class="mb watch">Party Watch</span></dt><dd>ランキング動画が公開された状態です。動画のリンクと、みんなの全体表が見られます。</dd>
     </dl>
   </div>
+  <div class="panel about" id="staffBox" hidden><h3 class="sub">運営のX</h3>
+    <div id="staffList" class="ppl"></div>
+  </div>
   <div class="panel about"><h3 class="sub">メニューの使い方</h3>
     <p>画面右上の「三本線」を押すとメニューが開きます。ユーザー名や合言葉の変更、参加者の一覧、過去のParty Rank(ランキング動画)の閲覧ができます。</p>
   </div>
@@ -184,6 +203,36 @@
   <div class="panel">
     <form id="yf" class="inl"><label>追加する年(西暦)<input id="ynew" type="number" min="1950" max="2100" required></label><button class="pri">年を追加</button></form>
     <div class="m" id="yList" style="margin-top:8px"></div>
+  </div>
+</section>
+
+<section class="view" id="v-invite" hidden>
+  <h2>友だちを招待</h2>
+  <p class="hint">招待リンクを送って、いっしょにParty Rankを楽しみましょう。X・LINE・Discordなどで共有できます。</p>
+  <div class="panel">
+    <label class="blk">招待リンク<input id="invUrl" readonly style="width:100%"></label>
+    <label class="blk" style="margin-top:10px">いっしょに送るメッセージ(140字まで・書き換えできます)<textarea id="invMsg" rows="3" maxlength="140" style="width:100%"></textarea></label>
+    <div class="share" id="shareBtns">
+      <a class="sh shx" id="shX" target="_blank" rel="noopener noreferrer">Xで共有</a>
+      <a class="sh shl" id="shL" target="_blank" rel="noopener noreferrer">LINEで共有</a>
+      <button class="sh shd" id="shD" type="button">Discord用にコピー</button>
+      <button class="sh" id="shC" type="button">リンクだけコピー</button>
+      <button class="sh" id="shN" type="button" hidden>そのほかのアプリで共有</button>
+    </div>
+    <p class="hint" style="margin:10px 0 0">Discordは、コピーしたメッセージをチャットに貼り付けて送ってください。リンクを貼ると、プレビュー(ロゴと説明)が表示されます。</p>
+  </div>
+</section>
+
+<section class="view" id="v-adminx" hidden>
+  <h2>Xアカウントの登録</h2>
+  <p class="hint">あなた(管理者)のXアカウントを登録すると、「Party Rankとは」のページに、運営のリンクとして表示されます。管理者のログイン名は表示されません。</p>
+  <div class="panel">
+    <form id="axf" class="inl">
+      <label style="flex:1;min-width:240px">XのアカウントのURL、または @ID<input id="axv" maxlength="120" placeholder="https://x.com/○○○ または @○○○"></label>
+      <button class="pri">保存</button><button type="button" id="axdel">登録を外す</button>
+    </form>
+    <div class="m" id="axmsg" role="alert" style="margin-top:6px"></div>
+    <div class="m" id="axnow" style="margin-top:6px"></div>
   </div>
 </section>
 
