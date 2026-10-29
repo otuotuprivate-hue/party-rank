@@ -82,7 +82,8 @@ const ctr = (pid) => (db.counters[pid] = db.counters[pid] || {});
 const bump = (pid, k, n = 1) => { const c = ctr(pid); c[k] = (c[k] || 0) + n; };
 const jstDay = (t) => new Date(t + 9 * 3600000).toISOString().slice(0, 10);
 const luckyTime = (pid) => { const d = new Date(Date.now() + 9 * 3600000); if (d.getUTCHours() === d.getUTCMinutes()) bump(pid, 'zorome'); };
-const BURST = {};
+const BURST = {}, SEEN = {}, ONLINE_MS = 75000;
+const isOn = (pid) => SEEN[pid] && Date.now() - SEEN[pid] < ONLINE_MS;
 const isAdminPerson = (pid) => db.admins.some((a) => a.pid === pid);
 function rankCount(pid) {
   const sk = {}; db.songs.forEach((s) => { sk[s.id] = s.key; });
@@ -276,7 +277,7 @@ const TITLE_DEFS = [
   { id: 'viewer', name: '視聴者', desc: '過去のParty Rankの動画リンクを5回開いた' },
   { id: 'resonance', name: '共鳴者', desc: '公開済みのランキングで、ほかのユーザーと点数のつけ方が90%以上一致した(共通の10曲以上)' },
   { id: 'camera', name: 'カメラマン', desc: 'ランキング画像(自分・全体)を合計5回以上保存した' },
-  { id: 'constellation', name: '星座になれたら', desc: '1つのランキングで、1曲に5人以上が☆をつけ、その一員だった' },
+  { id: 'constellation', name: '星座になれたら', desc: '1つのランキングで、1曲に3人以上が☆をつけ、その一員だった' },
   { id: 'zero', name: 'ミスターゼロ', desc: '1つのランキングで、0.0点を5曲以上につけた' },
   { id: 'collector', name: '称号コレクター', desc: '称号を合計20個獲得した' },
   { id: 'gunshi', name: '軍師', desc: '全曲を採点し、自分のランキングが全体ランキングとほぼ完全に一致した(順位相関0.95以上・10曲以上)' },
@@ -380,7 +381,40 @@ const TITLE_DEFS = [
   { id: 'kaibun', name: '回文職人', desc: '3文字以上の回文(上から読んでも下から読んでも同じ)のひとことを書いた' },
   { id: 'lucky77', name: 'スリーセブン', desc: 'ちょうど77文字のひとことを書いた' },
   { id: 'pittari', name: 'ぴったり賞', desc: '10曲以上のランキングで全曲を採点し、点数の合計がちょうど100の倍数だった' },
+  // ---- 第5弾 ----
+  { id: 'tenzero', name: '天国と地獄', desc: '1つのランキングで、0点と10点を、それぞれ5曲以上につけた' },
+  { id: 'allten', name: '全部満点', desc: '5曲以上のランキングで、全曲に10点をつけた' },
+  { id: 'allzero', name: '虚無', desc: '5曲以上のランキングで、全曲に0点をつけた' },
+  { id: 'ladder', name: '右肩上がり', desc: '8曲以上のランキングで全曲を採点し、曲リストの上から順に点数が下がらず、最初と最後で5点以上の差があった' },
+  { id: 'descent', name: '右肩下がり', desc: '8曲以上のランキングで全曲を採点し、曲リストの上から順に点数が上がらず、最初と最後で5点以上の差があった' },
+  { id: 'ichimai', name: '推しの一点豪華', desc: '10曲以上のランキングで全曲を採点し、10点が1曲だけ、ほかの曲はすべて6.0点以下だった' },
+  { id: 'sniper', name: '狙撃手', desc: '全曲を採点し、自分が最高点をつけた曲(1曲だけ)が全体1位、最低点をつけた曲(1曲だけ)が全体最下位だった' },
+  { id: 'tragic', name: '悲劇の推し', desc: '全曲を採点し、自分が最高点をつけた曲(1曲だけ)が、全体の最下位だった' },
+  { id: 'manjo', name: '満場一致', desc: '3人以上が採点した曲のうち、採点した全員が8.0点以上をつけた曲に、自分も8.0点以上をつけたものが3曲以上あった' },
+  { id: 'midpoint', name: 'ちょうど真ん中', desc: '5曲以上のランキングで全曲を採点し、自分の平均点がちょうど5.00点だった' },
+  { id: 'jackpot', name: 'ジャックポット', desc: '10曲以上のランキングで全曲を採点し、点数の合計がちょうど777点だった' },
+  { id: 'nito', name: '二刀流', desc: '同じクールの、2種類以上の区分(OP・EDなど)で、全曲を採点した' },
+  { id: 'yonkan', name: '四種の神器', desc: '同じクールの、OP・ED・挿入歌・キャラソンの4区分すべてで、全曲を採点した' },
+  { id: 'shiki', name: '四季折々', desc: '同じ年の、冬・春・夏・秋の4クールすべてで、全曲を採点した(区分は問いません)' },
+  { id: 'rensen', name: '連戦連勝', desc: '同じ区分(OPなど)で、3クール連続して全曲を採点した' },
+  { id: 'konami', name: 'コナミコマンド', desc: 'キーボードで ↑↑↓↓←→←→BA と入力した' },
+  { id: 'revkonami', name: '逆コナミ', desc: 'キーボードで ↓↓↑↑→←→←AB と入力した' },
+  { id: 'hadouken', name: '波動拳', desc: 'キーボードで ↓ → P と入力した' },
+  { id: 'shoryuken', name: '昇龍拳', desc: 'キーボードで → ↓ → P と入力した' },
+  { id: 'typeparty', name: 'パーティー開始', desc: 'キーボードで「party」と入力した(入力欄の外で)' },
+  { id: 'typeanison', name: 'アニソン好き', desc: 'キーボードで「anison」と入力した(入力欄の外で)' },
+  { id: 'sudo', name: 'スーパーユーザー', desc: 'キーボードで「sudo」と入力した(入力欄の外で)' },
+  { id: 'gg', name: 'グッドゲーム', desc: 'キーボードで「gg」と入力した(入力欄の外で)' },
+  { id: 'calltaiga', name: '運営を呼んだ', desc: 'キーボードで「taiga」と入力した(入力欄の外で)' },
+  { id: 'logo7', name: 'ロゴ連打', desc: '画面左上のロゴを、7回すばやく連続でタップした' },
+  { id: 'logohold', name: 'ロゴ長押し', desc: '画面左上のロゴを、3秒以上長押しした' },
+  { id: 'ctrls', name: '保存魔', desc: 'Ctrl+S(Macは⌘+S)を押した' },
+  { id: 'esc5', name: 'エスケープ', desc: 'Escキーを5回連続で押した' },
+  { id: 'tab20', name: 'タブ職人', desc: 'Tabキーを、10秒以内に20回押した' },
+  { id: 'allcmd', name: 'コマンドマスター', desc: '他のコマンド系の称号14個を、すべて獲得した' },
 ];
+const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["staff", "コレクション・特別"]];
+const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "bonjin": ["score", 1], "harsh": ["score", 1], "nostar": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "allten": ["score", 4], "allzero": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 2], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "yonkan": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 2], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "hadouken": ["cmd", 2], "shoryuken": ["cmd", 2], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 2], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "konami": ["cmd", 3], "revkonami": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4]};
 const TITLE_BY_ID = Object.fromEntries(TITLE_DEFS.map((t) => [t.id, t]));
 const RANK_TIER = (n) => (n >= 31 ? 5 : n >= 21 ? 4 : n >= 11 ? 3 : n >= 6 ? 2 : n >= 1 ? 1 : 0);
 const EMOJIS = ['👍', '❤️', '😂', '🔥', '😢'];
@@ -437,7 +471,7 @@ function compatOf(a, b) {
   Object.keys(a).forEach((sid) => { if (typeof b[sid] === 'number') { n++; sum += Math.abs(a[sid] - b[sid]); } });
   return n ? { n, pct: Math.max(0, Math.round((100 - (sum / n) * 10) * 10) / 10) } : { n: 0, pct: 0 };
 }
-function keyTitles(k, out, doneCount) {
+function keyTitles(k, out, doneCount, doneKeys) {
   const T = tableOf(k), rows = T.rows, N = rows.length;
   if (!N || !T.people.length) return;
   const add = (pid, id) => { if (!out.has(pid)) out.set(pid, new Set()); out.get(pid).add(id); };
@@ -446,6 +480,7 @@ function keyTitles(k, out, doneCount) {
   const worst3 = nR >= 6 && q3(asc[2].avg) < q3(asc[3].avg) ? new Set(asc.slice(0, 3).map((r) => r.id)) : null;
   const rankAt = (db.modes[k] || {}).rankAt, deadline = db.deadlines[k];
   const sids = rows.map((r) => r.id);
+  const ordIds = db.songs.filter((x) => x.key === k).sort(songOrder).map((x) => x.id);
   let yariBest = null; const fin = [];
   T.people.forEach((p) => {
     const pid = p.id, sc = rows.map((r) => r.scores[pid]), have = sc.filter((v) => typeof v === 'number');
@@ -456,8 +491,29 @@ function keyTitles(k, out, doneCount) {
     if (have.filter((v) => v === 7 || v === 7.5).length >= 30) add(pid, 'lucky7');
     if (have.filter((v) => v === 0).length >= 5) add(pid, 'zero');
     if (have.filter((v) => v === 10).length >= 3) add(pid, 'ten');
-    if (done) { doneCount[pid] = (doneCount[pid] || 0) + 1; fin.push({ pid, avg }); }
+    if (done) { doneCount[pid] = (doneCount[pid] || 0) + 1; fin.push({ pid, avg }); (doneKeys[pid] = doneKeys[pid] || []).push(k); }
     if (done && N >= 10 && Math.round(have.reduce((a, b) => a + b, 0) * 10) % 1000 === 0) add(pid, 'pittari');
+    if (done && N >= 10 && Math.round(have.reduce((a, b) => a + b, 0) * 10) === 7770) add(pid, 'jackpot');
+    if (have.filter((v) => v === 0).length >= 5 && have.filter((v) => v === 10).length >= 5) add(pid, 'tenzero');
+    if (done && N >= 5 && have.every((v) => v === 10)) add(pid, 'allten');
+    if (done && N >= 5 && have.every((v) => v === 0)) add(pid, 'allzero');
+    if (done && N >= 5 && Math.abs(avg - 5) < 1e-9) add(pid, 'midpoint');
+    if (done && N >= 10 && have.filter((v) => v === 10).length === 1 && have.filter((v) => v !== 10).every((v) => v <= 6)) add(pid, 'ichimai');
+    if (done && N >= 8) {
+      const scs = ordIds.map((sid) => (db.scores[pid] || {})[sid]);
+      if (scs.length === N && scs.every((v) => typeof v === 'number')) {
+        if (scs.every((v, i) => !i || v >= scs[i - 1]) && scs[N - 1] - scs[0] >= 5) add(pid, 'ladder');
+        if (scs.every((v, i) => !i || v <= scs[i - 1]) && scs[0] - scs[N - 1] >= 5) add(pid, 'descent');
+      }
+    }
+    if (done && nR >= 6) {
+      const mxv = Math.max(...have), mnv = Math.min(...have), hi = rows.filter((r) => r.scores[pid] === mxv), lo = rows.filter((r) => r.scores[pid] === mnv), lastRank = ranked[nR - 1].rank;
+      if (mxv !== mnv && hi.length === 1 && lastRank !== 1) {
+        if (hi[0].rank === lastRank) add(pid, 'tragic');
+        if (lo.length === 1 && hi[0].rank === 1 && lo[0].rank === lastRank) add(pid, 'sniper');
+      }
+    }
+    if (rows.filter((r) => r.count >= 3 && typeof r.scores[pid] === 'number' && r.scores[pid] >= 8 && Object.values(r.scores).every((v) => v >= 8)).length >= 3) add(pid, 'manjo');
     if (done && Math.min(...have) >= 5) add(pid, 'kind');
     if (done && Math.max(...have) <= 5) add(pid, 'ice');
     if (rows.filter((r) => typeof r.scores[pid] === 'number' && Math.abs(r.scores[pid] - r.avg) <= 0.1).length >= 5) add(pid, 'dompisha');
@@ -536,8 +592,8 @@ let emVer = -1, emMemo = null;
 function computeEarned() {
   if (emVer === VER && emMemo) return emMemo;
   const out = new Map(), fk = allKeys().filter(frozen);
-  const doneCount = {};
-  fk.forEach((k) => keyTitles(k, out, doneCount));
+  const doneCount = {}, doneKeys = {};
+  fk.forEach((k) => keyTitles(k, out, doneCount, doneKeys));
   // なろう系(凍結済みランキング全体で数える)
   const isk = /異世界|転生/;
   db.people.forEach((u) => {
@@ -598,6 +654,17 @@ function computeEarned() {
       const dset = new Set(days.map((d) => d.slice(5)));
       if (dset.has('10-31')) set.add('halloween'); if (dset.has('12-25')) set.add('xmas'); if (dset.has('01-01')) set.add('newyear'); if (dset.has('07-07')) set.add('tanabata'); if (dset.has('11-11')) set.add('pocky');
       if ((cc.zorome || 0) >= 1) set.add('zorome'); if ((cc.kaibun || 0) >= 1) set.add('kaibun'); if ((cc.lucky77 || 0) >= 1) set.add('lucky77');
+      { // 連続・組み合わせ系
+        const dk = doneKeys[u.id] || [], byCour = {}, byYear = {}, byKind = {};
+        dk.forEach((kk) => { const pp = kk.split('-'), cour = pp[0] + '-' + pp[1], kind = pp[2]; (byCour[cour] = byCour[cour] || new Set()).add(kind); (byYear[pp[0]] = byYear[pp[0]] || new Set()).add(Number(pp[1])); (byKind[kind] = byKind[kind] || new Set()).add(Number(pp[0]) * 12 + Number(pp[1])); });
+        if (Object.values(byCour).some((x) => x.size >= 2)) set.add('nito');
+        if (Object.values(byCour).some((x) => KINDS.every((kd) => x.has(kd)))) set.add('yonkan');
+        if (Object.values(byYear).some((x) => [1, 4, 7, 10].every((mo) => x.has(mo)))) set.add('shiki');
+        if (Object.values(byKind).some((x) => Array.from(x).some((v) => x.has(v + 3) && x.has(v + 6)))) set.add('rensen');
+      }
+      const CMDS = ['konami', 'revkonami', 'hadouken', 'shoryuken', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'];
+      CMDS.forEach((id) => { if ((cc.cmd || {})[id]) set.add(id); });
+      if (CMDS.every((id) => set.has(id))) set.add('allcmd');
       if ((cc.bug || 0) >= 1) set.add('bughunter');
       if ((cc.frozenTry || 0) >= 1) set.add('debugger');
       if (Object.keys(db.comments[u.id] || {}).some((sid) => Array.from(db.comments[u.id][sid]).length === 100) && Array.from(u.bio || '').length === 200) set.add('boundary');
@@ -667,6 +734,25 @@ async function api(req, res, url) {
     const t = buildTable(key);
     return send(res, 200, t);
   }
+  if (p === '/api/me/stats' && m === 'GET') {
+    const me = person(req), sc = db.scores[me.id] || {}, dist = {}, per = {}, mine = [];
+    db.songs.forEach((sg) => {
+      const v = sc[sg.id]; if (typeof v !== 'number') return;
+      dist[v] = (dist[v] || 0) + 1; mine.push({ title: sg.title, key: sg.key, v });
+      const o = (per[sg.key] = per[sg.key] || { key: sg.key, n: 0, sum: 0, total: 0 }); o.n++; o.sum += v;
+    });
+    db.songs.forEach((sg) => { if (per[sg.key]) per[sg.key].total++; });
+    const ord = (k) => { const q = k.split('-'); return Number(q[0]) * 100 + Number(q[1]) + KINDS.indexOf(q[2]) / 10; };
+    const keys = Object.values(per).sort((a, b) => ord(a.key) - ord(b.key)).map((o) => ({ key: o.key, label: labelOf(o.key), n: o.n, total: o.total, avg: o.sum / o.n, all: modeOf(o.key) === 'watch' ? (tableOf(o.key).overallAvg == null ? null : tableOf(o.key).overallAvg) : null }));
+    mine.sort((a, b) => b.v - a.v);
+    const tot = mine.length, sum = mine.reduce((a, x) => a + x.v, 0);
+    return send(res, 200, { total: tot, avg: tot ? sum / tot : null, dist, keys, top: mine.slice(0, 3).map((x) => ({ title: x.title, label: labelOf(x.key), v: x.v })), low: mine.slice(-3).reverse().map((x) => ({ title: x.title, label: labelOf(x.key), v: x.v })) });
+  }
+  if (p === '/api/me/ping' && m === 'POST') { const me = person(req); SEEN[me.id] = Date.now(); return send(res, 200, { ok: true }); }
+  if (p === '/api/online' && m === 'GET') {
+    const list = db.people.filter((u) => isOn(u.id)).map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id) }));
+    return send(res, 200, { count: list.length, people: list });
+  }
   if (m === 'GET' && p === '/api/participants') {
     // 名前と採点した曲数だけを返す(点数・コメントは含めない)
     const songKey = {}, total = {};
@@ -677,7 +763,7 @@ async function api(req, res, url) {
       Object.keys(db.scores[u.id] || {}).forEach((sid) => { if (songKey[sid]) cnt[songKey[sid]] = (cnt[songKey[sid]] || 0) + 1; });
       Object.keys(cnt).forEach((k) => { (by[k] = by[k] || []).push({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), scored: cnt[k] }); });
     });
-    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id) })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
+    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), on: !!isOn(u.id) })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
   }
   const optPerson = () => { const t = bearer(req); return (t && db.people.find((x) => x.token === t)) || null; };
   if (p === '/api/me/titles' && m === 'GET') {
@@ -685,8 +771,10 @@ async function api(req, res, url) {
     if (awardFor(me.id)) save();
     const T = db.titles[me.id] || {};
     const vis = TITLE_DEFS.filter((d) => !d.hidden || isAdminPerson(me.id));
-    const earned = vis.filter((d) => T[d.id]).map((d) => ({ id: d.id, name: d.name, desc: d.desc, at: T[d.id].at, fresh: !T[d.id].seen }));
-    return send(res, 200, { earned, locked: vis.length - earned.length, total: vis.length, equipped: equippedOf(me) || '' });
+    const hc = {}; Object.keys(db.titles).forEach((pid) => Object.keys(db.titles[pid]).forEach((id) => { hc[id] = (hc[id] || 0) + 1; }));
+    const earned = vis.filter((d) => T[d.id]).map((d) => ({ id: d.id, name: d.name, desc: d.desc, holders: hc[d.id] || 0, cat: TITLE_META[d.id][0], lv: TITLE_META[d.id][1], at: T[d.id].at, fresh: !T[d.id].seen }));
+    const lockedBy = {}; vis.filter((d) => !T[d.id]).forEach((d) => { const mt = TITLE_META[d.id]; (lockedBy[mt[0]] = lockedBy[mt[0]] || []).push(mt[1]); });
+    return send(res, 200, { earned, locked: vis.length - earned.length, total: vis.length, equipped: equippedOf(me) || '', cats: TITLE_CATS, lockedBy, people: db.people.length });
   }
   if (p === '/api/me/titles/seen' && m === 'POST') {
     const me = person(req); const T = db.titles[me.id] || {};
@@ -716,6 +804,10 @@ async function api(req, res, url) {
     } else if (type === 'profile') {
       const pid = String(body.id || '');
       if (pid !== me.id && db.people.some((x) => x.id === pid)) { c.profiles = c.profiles || {}; if (Object.keys(c.profiles).length < 500) c.profiles[pid] = 1; }
+    } else if (type === 'cmd') {
+      const cid = String(body.c || '');
+      if (!['konami', 'revkonami', 'hadouken', 'shoryuken', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'].includes(cid)) throw bad('コマンドが正しくありません');
+      c.cmd = c.cmd || {}; c.cmd[cid] = 1;
     } else throw bad('種類が正しくありません');
     save();
     return send(res, 200, { ok: true });
@@ -795,7 +887,7 @@ async function api(req, res, url) {
     const u = db.people.find((x) => x.id === prm[1]);
     if (!u) throw new HttpError(404, 'ユーザーが見つかりません');
     const n = rankCount(u.id), tid = equippedOf(u);
-    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).filter((t) => !TITLE_BY_ID[t].hidden || isAdminPerson(u.id)).length, adm: isAdminPerson(u.id) });
+    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).filter((t) => !TITLE_BY_ID[t].hidden || isAdminPerson(u.id)).length, titles: Object.keys(db.titles[u.id] || {}).filter((t) => TITLE_BY_ID[t] && (!TITLE_BY_ID[t].hidden || isAdminPerson(u.id))).sort((a, b) => TITLE_CATS.findIndex((c) => c[0] === TITLE_META[a][0]) - TITLE_CATS.findIndex((c) => c[0] === TITLE_META[b][0]) || TITLE_META[b][1] - TITLE_META[a][1]).map((t) => ({ id: t, name: TITLE_BY_ID[t].name })), adm: isAdminPerson(u.id) });
   }
   if (p === '/api/me/profile' && m === 'PUT') {
     const me = person(req);
@@ -959,7 +1051,7 @@ async function api(req, res, url) {
       const cnt = {}; Object.keys(db.titles).forEach((pid) => Object.keys(db.titles[pid]).forEach((id) => { cnt[id] = (cnt[id] || 0) + 1; }));
       const who = {}; db.people.forEach((u) => { Object.keys(db.titles[u.id] || {}).forEach((id) => { (who[id] = who[id] || []).push(u.name); }); });
       const byPerson = db.people.map((u) => ({ id: u.id, name: u.name, adm: isAdminPerson(u.id), titles: TITLE_DEFS.filter((d) => (db.titles[u.id] || {})[d.id]).map((d) => d.id) })).filter((x) => x.titles.length);
-      return send(res, 200, { titles: TITLE_DEFS.map((d) => ({ id: d.id, name: d.name, desc: d.desc, hidden: !!d.hidden, holders: cnt[d.id] || 0, who: (who[d.id] || []).slice(0, 300) })), people: db.people.length, byPerson });
+      return send(res, 200, { cats: TITLE_CATS, titles: TITLE_DEFS.map((d) => ({ id: d.id, name: d.name, desc: d.desc, hidden: !!d.hidden, cat: TITLE_META[d.id][0], lv: TITLE_META[d.id][1], holders: cnt[d.id] || 0, who: (who[d.id] || []).slice(0, 300) })), people: db.people.length, byPerson });
     }
     if (p === '/api/admin/table-order' && m === 'PUT') {
       const key = clean(body.key, 20);
@@ -995,6 +1087,24 @@ async function api(req, res, url) {
       song.ord = Math.max(-1, ...db.songs.filter((x) => x.key === key).map((x) => (x.ord != null ? x.ord : x.at))) + 1;
       db.songs.push(song); save();
       return send(res, 200, song);
+    }
+    if (p === '/api/admin/songs-bulk' && m === 'POST') {
+      const key = clean(body.key, 20);
+      if (!validKey(key)) throw bad('区分が正しくありません');
+      const lines = String(body.text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 300);
+      if (!lines.length) throw bad('曲の一覧を貼り付けてください');
+      const cur = db.songs.filter((x) => x.key === key);
+      let ordv = Math.max(-1, ...cur.map((x) => (x.ord != null ? x.ord : x.at))) + 1, added = 0, skipped = 0;
+      const seen = new Set(cur.map((x) => x.title + '\u0000' + x.artist));
+      lines.forEach((l) => {
+        const parts = (l.includes('\t') ? l.split('\t') : l.includes(' / ') ? l.split(' / ') : l.includes('／') ? l.split('／') : l.split(',')).map((x) => x.trim());
+        const title = clean(parts[0], 80), artist = clean(parts[1] || '', 60), anime = clean(parts[2] || '', 80);
+        if (!title || seen.has(title + '\u0000' + artist)) { skipped++; return; }
+        seen.add(title + '\u0000' + artist);
+        db.songs.push({ id: id(), key, title, artist, anime, at: Date.now() + added, ord: ordv++ }); added++;
+      });
+      if (added) save();
+      return send(res, 200, { added, skipped });
     }
     if (p === '/api/admin/songs/order' && m === 'PUT') {
       const key = clean(body.key, 20);
