@@ -16,8 +16,10 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [], torder: {}, adminLinked: false };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [], torder: {}, adminLinked: false, stamps: {}, pred: {}, reacts: {}, titles: {}, counters: {} };
+let VER = 0;
 function save() {
+  VER++;
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = DB_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
@@ -104,10 +106,19 @@ const labelOf = (key) => {
 const songOrder = (a, b) => (a.ord != null ? a.ord : a.at) - (b.ord != null ? b.ord : b.at) || a.at - b.at;
 const validKey = (k) => /^\d{4}-(1|4|7|10)-/.test(k) && KINDS.includes(String(k).split('-')[2]);
 
+const PRIVATE_ADDR = /^(::1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|f[cd][0-9a-f]{2}:|::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.))/i;
+// アクセス元のIP。Renderなどの中継(プロキシ)の内側からの接続のときだけ、X-Forwarded-For を信用する
+function clientIp(req) {
+  const remote = req.socket.remoteAddress || '';
+  if (TRUST_PROXY || PRIVATE_ADDR.test(remote)) {
+    const f = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    if (f) return f.slice(0, 64);
+  }
+  return remote;
+}
 const hits = new Map();
 function limited(req, bucket, max, ms) {
-  let ip = req.socket.remoteAddress || '';
-  if (TRUST_PROXY) ip = String(req.headers['x-forwarded-for'] || ip).split(',')[0].trim();
+  const ip = clientIp(req);
   const k = bucket + '|' + ip;
   const now = Date.now();
   const h = hits.get(k);
@@ -217,14 +228,206 @@ function tableJson(t, desc) {
 /* モード: video があれば watch(全体表を公開)、rank が true なら rank(開催中)、どちらも無ければ entry */
 function modeOf(key) {
   const m = db.modes[key] || {};
-  return m.video ? 'watch' : m.rank ? 'rank' : 'entry';
+  return m.video ? 'watch' : m.tally ? 'tally' : m.rank ? 'rank' : 'entry';
 }
 function publicModes() {
   const out = {};
   Object.keys(db.modes).forEach((k) => { const m = db.modes[k] || {}; out[k] = { mode: modeOf(k), video: m.video || '' }; });
   return out;
 }
+// 集計中・Party Watch中は、点数・☆・ひとこと・予想を変えられない
+const frozen = (key) => { const md = modeOf(key); return md === 'tally' || md === 'watch'; };
 function allKeys() { return [...new Set(db.songs.map((s) => s.key))]; }
+
+
+/* ---------- 称号・予想ゲーム・相性 ---------- */
+const TITLE_DEFS = [
+  { id: 'rank1', name: '駆け出しParty Ranker', desc: 'ランキング参加数が1〜5(参加数が1以上)' },
+  { id: 'rank2', name: '中級Party Ranker', desc: 'ランキング参加数が6〜10(6以上)' },
+  { id: 'rank3', name: '上級Party Ranker', desc: 'ランキング参加数が11〜20(11以上)' },
+  { id: 'rank4', name: 'キングParty Ranker', desc: 'ランキング参加数が21〜30(21以上)' },
+  { id: 'rank5', name: 'Party Rankの神', desc: 'ランキング参加数が31以上' },
+  { id: 'sweet', name: '甘口審査員', desc: '1つのランキングで全曲を採点し、自分の平均点が7.50点以上だった' },
+  { id: 'bonjin', name: '凡人', desc: '1つのランキングのすべての曲に、5.0〜6.0点をつけた' },
+  { id: 'lucky7', name: 'ラッキーセブン', desc: '1つのランキングで、7.0点と7.5点を合わせて30曲以上につけた' },
+  { id: 'gyaku', name: '逆張り王子', desc: '自分が☆をつけた曲が、ランキングのワースト10に入った' },
+  { id: 'yari', name: '一番槍', desc: 'Party Rankモードになってから、そのランキングの全曲を最も早く採点した' },
+  { id: 'stairs', name: '階段', desc: '1つのランキングで、0.0〜10.0のすべての点数(0.5点刻み)を使った' },
+  { id: 'star1', name: '一番星', desc: '自分が☆をつけた曲が、ランキング1位になった' },
+  { id: 'cmleader', name: 'コメントリーダー', desc: '1つのランキングのすべての曲に、ひとことを書いた' },
+  { id: 'gyakushin', name: '逆神', desc: '自分のトップ3が、そのまま全体のワースト3になった' },
+  { id: 'manba', name: '万馬券', desc: '予想ゲームで、トップ3を順番まで完全に当てた(三連単)' },
+  { id: 'kadai', name: '過大評価?', desc: '1つのランキングで全曲を採点し、自分の平均点が全体の平均点より2.0点以上高かった' },
+  { id: 'sliding', name: '滑り込みセーフ', desc: '全曲の採点を終えたのが、提出期限の1時間前以降だった' },
+  { id: 'silent', name: 'サイレントマジョリティ', desc: '全曲を採点し、平均点が全体平均の±0.3点以内で、ひとことを一切書かなかった' },
+  { id: 'intruder', name: '不法侵入者', desc: '管理者に登録されていない名前で、管理者ログインを試みた' },
+  { id: 'viewer', name: '視聴者', desc: '過去のParty Rankの動画リンクを5回開いた' },
+  { id: 'resonance', name: '共鳴者', desc: '公開済みのランキングで、ほかのユーザーと点数のつけ方が90%以上一致した(共通の10曲以上)' },
+  { id: 'camera', name: 'カメラマン', desc: 'ランキング画像(自分・全体)を合計5回以上保存した' },
+  { id: 'constellation', name: '星座になれたら', desc: '1つのランキングで、1曲に5人以上が☆をつけ、その一員だった' },
+  { id: 'zero', name: 'ミスターゼロ', desc: '1つのランキングで、0.0点を5曲以上につけた' },
+  { id: 'collector', name: '称号コレクター', desc: '称号を合計20個獲得した' },
+  { id: 'gunshi', name: '軍師', desc: '全曲を採点し、自分のランキングが全体ランキングとほぼ完全に一致した(順位相関0.95以上・10曲以上)' },
+  { id: 'honor', name: '優等生', desc: 'プロフィールの自己紹介文を100文字以上書いた' },
+  { id: 'love', name: '愛を語る者', desc: '1つの曲に、90文字以上のひとことを残した' },
+  { id: 'isekai', name: 'なろう系', desc: 'アニメタイトルに「異世界」「転生」を含む曲に、8.0点以上を3回つけた' },
+  { id: 'creator', name: '創造神', desc: '自分の10.0点で、ある曲の全体平均点を1.0点以上引き上げた' },
+  { id: 'destroyer', name: '破壊神', desc: '自分の0.0点で、ある曲の全体平均点を1.0点以上引き下げた' },
+];
+const TITLE_BY_ID = Object.fromEntries(TITLE_DEFS.map((t) => [t.id, t]));
+const RANK_TIER = (n) => (n >= 31 ? 5 : n >= 21 ? 4 : n >= 11 ? 3 : n >= 6 ? 2 : n >= 1 ? 1 : 0);
+const EMOJIS = ['👍', '❤️', '😂', '🔥', '😢'];
+
+let tcVer = -1; const tcache = new Map();
+function tableOf(k) {
+  if (tcVer !== VER) { tcache.clear(); tcVer = VER; }
+  if (!tcache.has(k)) tcache.set(k, buildTable(k));
+  return tcache.get(k);
+}
+function ranksOf(arr) { // 同点は平均順位
+  const idx = arr.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]), out = new Array(arr.length);
+  for (let i = 0; i < idx.length;) { let j = i; while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++; for (let t = i; t <= j; t++) out[idx[t][1]] = (i + j) / 2 + 1; i = j + 1; }
+  return out;
+}
+function spearman(a, b) {
+  const x = ranksOf(a), y = ranksOf(b), n = x.length, mx = mean(x), my = mean(y);
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) ** 2; syy += (y[i] - my) ** 2; }
+  return sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0;
+}
+// 予想ゲームの採点: 順位ぴったり=3点、トップ3(ワースト3)に入っていた=1点。最大18点
+function predScore(k, pred) {
+  const T = tableOf(k), ranked = T.rows.filter((r) => r.avg != null);
+  const rd = {}, ra = {}; let n = 0, pv = null;
+  ranked.forEach((r) => { rd[r.id] = r.rank; });
+  const asc = ranked.slice().sort((a, b) => a.avg - b.avg);
+  asc.forEach((r, i) => { const q = Math.round(r.avg * 1000); if (q !== pv) { n = i + 1; pv = q; } ra[r.id] = n; });
+  const calc = (list, rk) => {
+    let pts = 0, exact = 0;
+    (list || []).forEach((sid, i) => { const r = rk[sid]; if (r == null) return; if (r <= i + 1) { pts += 3; exact++; } else if (r <= 3) pts += 1; });
+    return { pts, exact };
+  };
+  const t = calc(pred.top, rd), w = calc(pred.worst, ra);
+  return { pts: t.pts + w.pts, trifecta: t.exact === 3, worstTrifecta: w.exact === 3 };
+}
+function predBoard(k) {
+  const out = [];
+  Object.keys(db.pred[k] || {}).forEach((pid) => {
+    const u = db.people.find((x) => x.id === pid); if (!u) return;
+    const pr = db.pred[k][pid], sc = predScore(k, pr);
+    out.push({ id: u.id, name: u.name, ic: iconAt(u), adm: isAdminPerson(u.id), pts: sc.pts, trifecta: sc.trifecta, worstTrifecta: sc.worstTrifecta, top: pr.top, worst: pr.worst });
+  });
+  return out.sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name, 'ja'));
+}
+function watchScores() {
+  const sids = new Set(); allKeys().filter((k) => modeOf(k) === 'watch').forEach((k) => db.songs.forEach((s) => { if (s.key === k) sids.add(s.id); }));
+  const m = new Map();
+  db.people.forEach((u) => { const sc = db.scores[u.id] || {}, o = {}; let c = 0; Object.keys(sc).forEach((sid) => { if (sids.has(sid) && typeof sc[sid] === 'number') { o[sid] = sc[sid]; c++; } }); if (c) m.set(u.id, o); });
+  return m;
+}
+function compatOf(a, b) {
+  let n = 0, sum = 0;
+  Object.keys(a).forEach((sid) => { if (typeof b[sid] === 'number') { n++; sum += Math.abs(a[sid] - b[sid]); } });
+  return n ? { n, pct: Math.max(0, Math.round((100 - (sum / n) * 10) * 10) / 10) } : { n: 0, pct: 0 };
+}
+function keyTitles(k, out) {
+  const T = tableOf(k), rows = T.rows, N = rows.length;
+  if (!N || !T.people.length) return;
+  const add = (pid, id) => { if (!out.has(pid)) out.set(pid, new Set()); out.get(pid).add(id); };
+  const ranked = rows.filter((r) => r.avg != null), nR = ranked.length, overall = T.overallAvg;
+  const asc = ranked.slice().reverse(), q3 = (v) => Math.round(v * 1000);
+  const worst3 = nR >= 6 && q3(asc[2].avg) < q3(asc[3].avg) ? new Set(asc.slice(0, 3).map((r) => r.id)) : null;
+  const rankAt = (db.modes[k] || {}).rankAt, deadline = db.deadlines[k];
+  const sids = rows.map((r) => r.id);
+  let yariBest = null;
+  T.people.forEach((p) => {
+    const pid = p.id, sc = rows.map((r) => r.scores[pid]), have = sc.filter((v) => typeof v === 'number');
+    if (!have.length) return;
+    const done = have.length === N, avg = mean(have);
+    if (done && avg >= 7.5) add(pid, 'sweet');
+    if (done && have.every((v) => v >= 5 && v <= 6)) add(pid, 'bonjin');
+    if (have.filter((v) => v === 7 || v === 7.5).length >= 30) add(pid, 'lucky7');
+    if (have.filter((v) => v === 0).length >= 5) add(pid, 'zero');
+    let all = true; for (let v = 0; v <= 10; v += 0.5) if (!have.includes(v)) { all = false; break; }
+    if (all) add(pid, 'stairs');
+    if (rows.every((r) => r.comments[pid])) add(pid, 'cmleader');
+    if (rows.some((r) => Array.from(r.comments[pid] || '').length >= 90)) add(pid, 'love');
+    if (done && overall != null && avg - overall >= 2) add(pid, 'kadai');
+    if (done && overall != null && Math.abs(avg - overall) <= 0.3 && !rows.some((r) => r.comments[pid])) add(pid, 'silent');
+    if (done && N >= 10 && spearman(sc, rows.map((r) => r.avg)) >= 0.95) add(pid, 'gunshi');
+    rows.forEach((r) => {
+      const v = r.scores[pid], n = r.count;
+      if (typeof v === 'number' && n >= 2) {
+        const without = (r.avg * n - v) / (n - 1);
+        if (v === 10 && r.avg - without >= 1) add(pid, 'creator');
+        if (v === 0 && without - r.avg >= 1) add(pid, 'destroyer');
+      }
+      if (r.starBy.includes(pid)) {
+        if (r.rank === 1) add(pid, 'star1');
+        const pos = ranked.indexOf(r);
+        if (pos >= 0 && nR > 10 && pos >= nR - 10) add(pid, 'gyaku');
+      }
+      if (r.starBy.length >= 5 && r.starBy.includes(pid)) add(pid, 'constellation');
+    });
+    if (worst3 && have.length >= 6) {
+      const ord = rows.map((r) => ({ id: r.id, v: r.scores[pid] })).filter((x) => typeof x.v === 'number').sort((a, b) => b.v - a.v);
+      if (ord[2].v > ord[3].v && ord.slice(0, 3).every((x) => worst3.has(x.id))) add(pid, 'gyakushin');
+    }
+    // 提出時刻 = 全曲を採点し終えた時刻
+    const stp = db.stamps[pid] || {};
+    if (done && sids.every((sid) => stp[sid])) {
+      const comp = Math.max(...sids.map((sid) => stp[sid]));
+      if (deadline && comp >= deadline - 3600000 && comp <= deadline) add(pid, 'sliding');
+      if (rankAt && comp >= rankAt && (!yariBest || comp < yariBest.t)) yariBest = { pid, t: comp };
+    }
+    const pr = (db.pred[k] || {})[pid];
+    if (pr && predScore(k, pr).trifecta) add(pid, 'manba');
+  });
+  if (yariBest) add(yariBest.pid, 'yari');
+}
+let emVer = -1, emMemo = null;
+function computeEarned() {
+  if (emVer === VER && emMemo) return emMemo;
+  const out = new Map(), fk = allKeys().filter(frozen);
+  fk.forEach((k) => keyTitles(k, out));
+  // なろう系(凍結済みランキング全体で数える)
+  const isk = /異世界|転生/;
+  db.people.forEach((u) => {
+    const sc = db.scores[u.id] || {}; let n = 0;
+    fk.forEach((k) => tableOf(k).rows.forEach((r) => { if (isk.test(r.anime || '') && typeof (r.scores || {})[u.id] === 'number' && r.scores[u.id] >= 8) n++; }));
+    if (n >= 3) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('isekai'); }
+  });
+  const ws = watchScores();
+  db.people.forEach((u) => {
+    const set = out.get(u.id) || new Set(), c = db.counters[u.id] || {};
+    const t = RANK_TIER(rankCount(u.id)); for (let i = 1; i <= t; i++) set.add('rank' + i);
+    if ((c.pastclick || 0) >= 5) set.add('viewer');
+    if ((c.imgsave || 0) >= 5) set.add('camera');
+    if (c.intruder) set.add('intruder');
+    if (Array.from(u.bio || '').length >= 100) set.add('honor');
+    const mine = ws.get(u.id);
+    if (mine) for (const [oid, o] of ws) { if (oid === u.id) continue; const cp = compatOf(mine, o); if (cp.n >= 10 && cp.pct >= 90) { set.add('resonance'); break; } }
+    if (set.size) out.set(u.id, set);
+  });
+  out.forEach((set) => { if (set.size >= 20) set.add('collector'); });
+  emVer = VER; emMemo = out; return out;
+}
+// 獲得した称号を保存する(一度獲得した称号は、あとから条件を外れても残る)
+function awardFor(pid) {
+  const set = computeEarned().get(pid); if (!set) return false;
+  const T = (db.titles[pid] = db.titles[pid] || {}); let added = false;
+  set.forEach((id) => { if (!T[id]) { T[id] = { at: Date.now(), seen: false }; added = true; } });
+  if (T && !Object.keys(T).length) delete db.titles[pid];
+  return added;
+}
+function awardAll() { db.people.forEach((u) => awardFor(u.id)); }
+function equippedOf(u) {
+  const T = db.titles[u.id] || {};
+  if (u.equip === '') return null;
+  if (u.equip && T[u.equip]) return u.equip;
+  for (let i = 5; i >= 1; i--) if (T['rank' + i]) return 'rank' + i;
+  return null;
+}
 
 /* ---------- API ---------- */
 async function api(req, res, url) {
@@ -268,12 +471,113 @@ async function api(req, res, url) {
     });
     return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id) })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
   }
+  const optPerson = () => { const t = bearer(req); return (t && db.people.find((x) => x.token === t)) || null; };
+  if (p === '/api/me/titles' && m === 'GET') {
+    const me = person(req);
+    if (awardFor(me.id)) save();
+    const T = db.titles[me.id] || {};
+    const earned = TITLE_DEFS.filter((d) => T[d.id]).map((d) => ({ id: d.id, name: d.name, desc: d.desc, at: T[d.id].at, fresh: !T[d.id].seen }));
+    return send(res, 200, { earned, locked: TITLE_DEFS.length - earned.length, total: TITLE_DEFS.length, equipped: equippedOf(me) || '' });
+  }
+  if (p === '/api/me/titles/seen' && m === 'POST') {
+    const me = person(req); const T = db.titles[me.id] || {};
+    Object.keys(T).forEach((id) => { T[id].seen = true; }); save();
+    return send(res, 200, { ok: true });
+  }
+  if (p === '/api/me/title' && m === 'PUT') {
+    const me = person(req); const T = db.titles[me.id] || {};
+    if (body.id === null || body.id === '') me.equip = '';
+    else if (typeof body.id === 'string' && T[body.id]) me.equip = body.id;
+    else throw bad('その称号はまだ獲得していません');
+    save();
+    return send(res, 200, { equipped: equippedOf(me) || '' });
+  }
+  if (p === '/api/me/event' && m === 'POST') {
+    const me = person(req);
+    if (limited(req, 'ev', 60, 60000)) throw new HttpError(429, '操作が多すぎます');
+    const type = String(body.type || '');
+    if (type !== 'pastclick' && type !== 'imgsave') throw bad('種類が正しくありません');
+    const c = (db.counters[me.id] = db.counters[me.id] || {});
+    c[type] = (c[type] || 0) + 1;
+    const before = new Set(Object.keys(db.titles[me.id] || {}));
+    awardFor(me.id); save();
+    const now = db.titles[me.id] || {};
+    return send(res, 200, { ok: true, fresh: Object.keys(now).filter((id) => !before.has(id)).map((id) => TITLE_BY_ID[id].name) });
+  }
+  if (p === '/api/me/predict' && m === 'GET') {
+    const me = person(req), key = clean(url.searchParams.get('key'), 20);
+    if (!validKey(key)) throw bad('区分が正しくありません');
+    return send(res, 200, { pred: ((db.pred[key] || {})[me.id]) || null, locked: frozen(key) });
+  }
+  if (p === '/api/me/predict' && m === 'PUT') {
+    const me = person(req), key = clean(body.key, 20);
+    if (!validKey(key)) throw bad('区分が正しくありません');
+    if (frozen(key)) throw new HttpError(403, 'このランキングは集計中(または公開済み)のため、予想を変更できません');
+    const ids = new Set(db.songs.filter((x) => x.key === key).map((x) => x.id));
+    const chk = (a) => Array.isArray(a) && a.length === 3 && a.every((v) => typeof v === 'string' && ids.has(v)) && new Set(a).size === 3;
+    if (!chk(body.top) || !chk(body.worst)) throw bad('トップ3とワースト3を、重ならないように3曲ずつ選んでください');
+    if (body.top.some((v) => body.worst.includes(v))) throw bad('トップ3とワースト3で、同じ曲は選べません');
+    (db.pred[key] = db.pred[key] || {})[me.id] = { top: body.top, worst: body.worst, at: Date.now() };
+    save();
+    return send(res, 200, { ok: true });
+  }
+  if (p === '/api/predict-result' && m === 'GET') {
+    const key = clean(url.searchParams.get('key'), 20);
+    if (!validKey(key)) throw bad('区分が正しくありません');
+    if (modeOf(key) !== 'watch') throw new HttpError(403, '予想の結果は、Party Watchになると見られます');
+    const T = tableOf(key), ranked = T.rows.filter((r) => r.avg != null);
+    const asc = ranked.slice().reverse();
+    const pick = (list, f) => list.filter((r, i) => i < 3 || f(r)).map((r) => ({ id: r.id, title: r.title, avg: r2(r.avg) }));
+    const thr = (list) => list.length >= 3 ? Math.round(list[2].avg * 1000) : null;
+    return send(res, 200, {
+      top: pick(ranked, (r) => Math.round(r.avg * 1000) === thr(ranked)), worst: pick(asc, (r) => Math.round(r.avg * 1000) === thr(asc)),
+      board: predBoard(key),
+    });
+  }
+  if (p === '/api/me/compat' && m === 'GET') {
+    const me = person(req), ws = watchScores(), mine = ws.get(me.id);
+    const list = [];
+    if (mine) for (const [oid, o] of ws) {
+      if (oid === me.id) continue;
+      const u = db.people.find((x) => x.id === oid); if (!u) continue;
+      const cp = compatOf(mine, o);
+      if (cp.n >= 5) list.push({ id: u.id, name: u.name, ic: iconAt(u), adm: isAdminPerson(u.id), pct: cp.pct, n: cp.n });
+    }
+    list.sort((a, b) => b.pct - a.pct || b.n - a.n);
+    return send(res, 200, { list, mySongs: mine ? Object.keys(mine).length : 0, watchKeys: allKeys().filter((k) => modeOf(k) === 'watch').length });
+  }
+  if (p === '/api/reacts' && m === 'GET') {
+    const key = clean(url.searchParams.get('key'), 20);
+    if (!validKey(key)) throw bad('区分が正しくありません');
+    const me = optPerson(), counts = {}, mine = {};
+    if (modeOf(key) === 'watch') db.songs.filter((x) => x.key === key).forEach((song) => {
+      Object.keys(db.reacts).forEach((ck) => {
+        if (!ck.startsWith(song.id + ':')) return;
+        const o = {}; EMOJIS.forEach((e) => { const l = db.reacts[ck][e] || []; if (l.length) o[e] = l.length; if (me && l.includes(me.id)) (mine[ck] = mine[ck] || []).push(e); });
+        if (Object.keys(o).length) counts[ck] = o;
+      });
+    });
+    return send(res, 200, { counts, mine, emojis: EMOJIS });
+  }
+  if (p === '/api/me/react' && m === 'POST') {
+    const me = person(req);
+    if (limited(req, 'rx', 120, 60000)) throw new HttpError(429, '操作が多すぎます');
+    const song = db.songs.find((x) => x.id === body.songId), owner = String(body.owner || ''), em = String(body.emoji || '');
+    if (!song || !EMOJIS.includes(em) || !/^[0-9a-z]+$/.test(owner)) throw bad('リアクションを送れませんでした');
+    if (modeOf(song.key) !== 'watch') throw new HttpError(403, 'リアクションは、Party Watchになってから使えます');
+    if (!((db.comments[owner] || {})[song.id])) throw bad('そのひとことは見つかりません');
+    const ck = song.id + ':' + owner, R = (db.reacts[ck] = db.reacts[ck] || {}), l = (R[em] = R[em] || []);
+    const i = l.indexOf(me.id); if (i >= 0) l.splice(i, 1); else l.push(me.id);
+    if (!l.length) delete R[em]; if (!Object.keys(R).length) delete db.reacts[ck];
+    save();
+    return send(res, 200, { ok: true });
+  }
   const prm = p.match(/^\/api\/profile\/([0-9a-z]+)$/);
   if (m === 'GET' && prm) {
     const u = db.people.find((x) => x.id === prm[1]);
     if (!u) throw new HttpError(404, 'ユーザーが見つかりません');
-    const n = rankCount(u.id);
-    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, title: titleOf(n), adm: isAdminPerson(u.id) });
+    const n = rankCount(u.id), tid = equippedOf(u);
+    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).length, adm: isAdminPerson(u.id) });
   }
   if (p === '/api/me/profile' && m === 'PUT') {
     const me = person(req);
@@ -327,9 +631,11 @@ async function api(req, res, url) {
     const me = person(req);
     const song = db.songs.find((s) => s.id === body.songId);
     if (!song) throw bad('曲が見つかりません');
+    if (frozen(song.key)) throw new HttpError(403, 'このランキングは集計中(または公開済み)のため、点数を変更できません');
     const sc = (db.scores[me.id] = db.scores[me.id] || {});
-    if (body.score === null) delete sc[song.id];
-    else if (isScore(body.score)) sc[song.id] = body.score;
+    const stp = (db.stamps[me.id] = db.stamps[me.id] || {});
+    if (body.score === null) { delete sc[song.id]; delete stp[song.id]; }
+    else if (isScore(body.score)) { sc[song.id] = body.score; if (!stp[song.id]) stp[song.id] = Date.now(); }
     else throw bad('点数は0〜10の0.5点刻みで指定してください');
     save();
     return send(res, 200, { ok: true });
@@ -340,10 +646,14 @@ async function api(req, res, url) {
     if (body.songId === null) {
       const c = clean(body.cour, 12);
       if (!/^\d{4}-(1|4|7|10)$/.test(c)) throw bad('クールが正しくありません');
+      const cur = db.songs.find((s) => s.id === st[c]);
+      if (cur && frozen(cur.key)) throw new HttpError(403, '集計中(または公開済み)のため、☆を変更できません');
       delete st[c];
     } else {
       const song = db.songs.find((s) => s.id === body.songId);
       if (!song) throw bad('曲が見つかりません');
+      const cur = db.songs.find((s) => s.id === st[courOf(song.key)]);
+      if (frozen(song.key) || (cur && frozen(cur.key))) throw new HttpError(403, '集計中(または公開済み)のため、☆を変更できません');
       st[courOf(song.key)] = song.id;
     }
     save();
@@ -353,6 +663,7 @@ async function api(req, res, url) {
     const me = person(req);
     const song = db.songs.find((s) => s.id === body.songId);
     if (!song) throw bad('曲が見つかりません');
+    if (frozen(song.key)) throw new HttpError(403, '集計中(または公開済み)のため、ひとことを変更できません');
     const text = clean(body.text, 100);
     const cm = (db.comments[me.id] = db.comments[me.id] || {});
     if (text) cm[song.id] = text; else delete cm[song.id];
@@ -387,6 +698,11 @@ async function api(req, res, url) {
     const a = db.admins.find((x) => x.name === name);
     // 管理者名の有無が分からないよう、どちらの場合も同じ計算をする
     const ok = checkPw(pw, a ? a.salt : '0'.repeat(32), a ? a.hash : '0'.repeat(64)) && !!a;
+    if (!a && body.person) {
+      // 管理者に登録されていない名前での入室 → 称号「不法侵入者」
+      const me = db.people.find((x) => x.token === String(body.person));
+      if (me) { const c = (db.counters[me.id] = db.counters[me.id] || {}); c.intruder = 1; awardFor(me.id); save(); }
+    }
     if (!ok) throw new HttpError(401, '管理者名かパスワードが違います');
     const t = token();
     const me = body.person && db.people.find((x) => x.token === String(body.person));
@@ -460,14 +776,17 @@ async function api(req, res, url) {
       const key = clean(body.key, 20);
       if (!validKey(key)) throw bad('区分が正しくありません');
       const to = String(body.mode || '');
+      const prev = db.modes[key] || {};
       if (to === 'entry') delete db.modes[key];
-      else if (to === 'rank') db.modes[key] = { rank: true, video: '' };
+      else if (to === 'rank') db.modes[key] = { rank: true, video: '', rankAt: prev.rankAt || Date.now() };
+      else if (to === 'tally') db.modes[key] = { rank: false, tally: true, video: '', rankAt: prev.rankAt };
       else if (to === 'watch') {
         const v = clean(body.video, 500);
         let u; try { u = new URL(v); } catch (e) { u = null; }
         if (!u || u.protocol !== 'https:') throw bad('ランキング動画のリンクは https:// から始まるURLを入力してください');
-        db.modes[key] = { rank: false, video: u.href };
+        db.modes[key] = { rank: false, video: u.href, rankAt: prev.rankAt };
       } else throw bad('モードが正しくありません');
+      if (to === 'tally' || to === 'watch') awardAll();
       save();
       return send(res, 200, { modes: publicModes() });
     }
@@ -563,6 +882,7 @@ async function api(req, res, url) {
       try { fs.unlinkSync(iconFile(pm[1])); } catch (e) { /* なし */ }
       delete db.scores[pm[1]]; delete db.stars[pm[1]]; delete db.comments[pm[1]];
       db.admins.forEach((a) => { if (a.pid === pm[1]) delete a.pid; });
+      delete db.stamps[pm[1]]; delete db.titles[pm[1]]; delete db.counters[pm[1]]; Object.keys(db.pred).forEach((k) => { delete db.pred[k][pm[1]]; });
       save();
       return send(res, 200, { ok: true });
     }
@@ -646,9 +966,25 @@ function serveStatic(req, res, url) {
   });
 }
 
-http.createServer(async (req, res) => {
+/* ---------- アクセス制限(攻撃・連打への備え) ---------- */
+const RATE_MULT = Math.max(1, Number(process.env.RATE_MULT) || 1); // 負荷テスト用。通常は設定しない
+let secN = 0, secT = 0;
+function rateGuard(req, url) {
+  const now = Date.now();
+  if (now - secT >= 1000) { secT = now; secN = 0; }
+  if (++secN > 200 * RATE_MULT) return true;                               // サイト全体で毎秒200件まで
+  const api = url.pathname.startsWith('/api/'), write = req.method !== 'GET' && req.method !== 'HEAD';
+  if (write) return limited(req, 'w', 120 * RATE_MULT, 60000);             // 書き込み: 1分に120回まで
+  if (api) return limited(req, 'r', 1200 * RATE_MULT, 60000);              // 読み込み(API): 1分に1200回まで
+  return limited(req, 's', 900 * RATE_MULT, 60000);                        // 画面のファイル: 1分に900回まで
+}
+
+const srv = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
+    // 生存確認(Renderの無料プランを眠らせないための監視サービス用)。制限の対象外
+    if (url.pathname === '/healthz') return send(res, 200, 'ok');
+    if (rateGuard(req, url)) { res.setHeader('Retry-After', '30'); throw new HttpError(429, 'アクセスが多すぎます。少し待ってからやり直してください'); }
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method Not Allowed');
     serveStatic(req, res, url);
@@ -657,4 +993,6 @@ http.createServer(async (req, res) => {
     console.error(e);
     send(res, 500, { error: 'サーバーでエラーが起きました' });
   }
-}).listen(PORT, () => console.log('Party Rank: http://localhost:' + PORT));
+});
+srv.headersTimeout = 15000; srv.requestTimeout = 30000; srv.keepAliveTimeout = 10000; srv.maxConnections = 2000; // 遅い接続で居座られないようにする
+srv.listen(PORT, () => console.log('Party Rank: http://localhost:' + PORT));
