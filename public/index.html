@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header class="nav"><div class="navin"><a class="brand" href="#/"><img src="/icon.svg" alt="" width="28" height="28">Party Rank</a><span class="grow"></span>
+<header class="nav"><div class="navin"><button id="backBtn" class="backbtn" type="button" aria-label="ひとつ前に戻る" hidden>‹ 戻る</button><a class="brand" href="#/"><img src="/icon.svg" alt="" width="28" height="28">Party Rank</a><span class="grow"></span>
 <button id="menuBtn" class="burger" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button></div>
 <nav id="menu" aria-label="メニュー"></nav></header>
 <div id="menuBg" class="menubg"></div>
@@ -254,6 +254,8 @@
       <div class="bar"><button class="pri" id="pfSave">プロフィールを保存</button></div>
       <div class="m" id="pfMsg" role="alert"></div>
     </form>
+    <h3 class="sub">装備する称号</h3>
+    <div class="panel" id="pfTitleBox"><select id="pfTitle"></select><div id="pfTitlePrev" class="pftp"></div><div class="hint" id="pfTitleHint"></div></div>
     <h3 class="sub">アイコン</h3>
     <p class="hint">参加者の一覧や全体表に表示され、ランキング動画にも使われます。</p>
     <div class="panel icobox">

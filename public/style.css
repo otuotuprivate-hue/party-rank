@@ -512,3 +512,8 @@ a.avl{display:inline-block}
 .tt-bughunter{background:#0d1b0f;color:#9dff6a;border:2px solid #9dff6a;font-family:monospace;border-radius:4px}
 .tt-debugger{--g:#00ff88;background:#06120b;color:#00ff88;border:3px double #00ff88;font-family:monospace;font-size:14px;animation:ttGlow 2s infinite;text-shadow:0 0 6px #00ff88}
 .tt-boundary{--g:#ffffff;background:repeating-linear-gradient(90deg,#111 0 10px,#2a2a2a 10px 11px);color:#fff;border:3px double #fff;font-family:monospace;font-size:14px;animation:ttGlow 2.4s infinite;text-shadow:0 0 4px #000}
+
+.backbtn{border:1px solid var(--line,#d6d9e6);background:#fff;color:inherit;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;margin-right:8px;cursor:pointer;white-space:nowrap}
+.backbtn[hidden]{display:none}
+#pfTitle{width:100%;margin-bottom:8px}
+.pftp{min-height:8px}
