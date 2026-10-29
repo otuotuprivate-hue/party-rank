@@ -296,6 +296,7 @@ const TITLE_DEFS = [
   { id: 'founder', name: '古参', desc: 'サイトに登録した順で、10番目までに入っていた' },
   { id: 'champion', name: '推しが優勝', desc: '自分が1曲だけ最高点をつけた曲が、そのまま全体1位になった' },
   // ---- 依頼の7個 ----
+  { id: 'power', name: '権力者', desc: '管理者(運営)だけがもつ称号', hidden: true },
   { id: 'pr', name: '広報担当', desc: 'このサイトへの招待(共有やコピー)を行った' },
   { id: 'missionary', name: '宣教師', desc: 'このサイトへの招待(共有やコピー)を5回行った' },
   { id: 'reporter', name: '記者', desc: 'お知らせのリンクを10回以上開いた' },
@@ -573,7 +574,8 @@ function computeEarned() {
     }
     if (set.size) out.set(u.id, set);
   });
-  out.forEach((set) => { const n = set.size; if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking'); });
+  db.people.forEach((u) => { if (isAdminPerson(u.id)) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('power'); } });
+  out.forEach((set) => { const n = set.size - (set.has('power') ? 1 : 0); if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking'); });
   emVer = VER; emMemo = out; return out;
 }
 // 獲得した称号を保存する(一度獲得した称号は、あとから条件を外れても残る)
@@ -588,7 +590,8 @@ function awardAll() { db.people.forEach((u) => awardFor(u.id)); }
 function equippedOf(u) {
   const T = db.titles[u.id] || {};
   if (u.equip === '') return null;
-  if (u.equip && T[u.equip]) return u.equip;
+  if (u.equip && T[u.equip] && (!TITLE_BY_ID[u.equip].hidden || isAdminPerson(u.id))) return u.equip;
+  if (isAdminPerson(u.id) && T.power && u.equip === undefined) return 'power';
   for (let i = 5; i >= 1; i--) if (T['rank' + i]) return 'rank' + i;
   return null;
 }
@@ -640,8 +643,9 @@ async function api(req, res, url) {
     const me = person(req);
     if (awardFor(me.id)) save();
     const T = db.titles[me.id] || {};
-    const earned = TITLE_DEFS.filter((d) => T[d.id]).map((d) => ({ id: d.id, name: d.name, desc: d.desc, at: T[d.id].at, fresh: !T[d.id].seen }));
-    return send(res, 200, { earned, locked: TITLE_DEFS.length - earned.length, total: TITLE_DEFS.length, equipped: equippedOf(me) || '' });
+    const vis = TITLE_DEFS.filter((d) => !d.hidden || isAdminPerson(me.id));
+    const earned = vis.filter((d) => T[d.id]).map((d) => ({ id: d.id, name: d.name, desc: d.desc, at: T[d.id].at, fresh: !T[d.id].seen }));
+    return send(res, 200, { earned, locked: vis.length - earned.length, total: vis.length, equipped: equippedOf(me) || '' });
   }
   if (p === '/api/me/titles/seen' && m === 'POST') {
     const me = person(req); const T = db.titles[me.id] || {};
@@ -678,12 +682,14 @@ async function api(req, res, url) {
   if (p === '/api/me/predict' && m === 'GET') {
     const me = person(req), key = clean(url.searchParams.get('key'), 20);
     if (!validKey(key)) throw bad('区分が正しくありません');
-    return send(res, 200, { pred: ((db.pred[key] || {})[me.id]) || null, locked: frozen(key) });
+    return send(res, 200, { pred: ((db.pred[key] || {})[me.id]) || null, locked: modeOf(key) === 'watch', once: modeOf(key) === 'tally' });
   }
   if (p === '/api/me/predict' && m === 'PUT') {
     const me = person(req), key = clean(body.key, 20);
     if (!validKey(key)) throw bad('区分が正しくありません');
-    if (frozen(key)) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, 'このランキングは集計中(または公開済み)のため、予想を変更できません'); }
+    const mdk = modeOf(key);
+    if (mdk === 'watch') { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, 'このランキングは公開済みのため、予想できません'); }
+    if (mdk === 'tally' && (db.pred[key] || {})[me.id]) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, '集計中の予想は一度限りです。すでに提出済みのため、変更できません'); }
     const ids = new Set(db.songs.filter((x) => x.key === key).map((x) => x.id));
     const chk = (a) => Array.isArray(a) && a.length === 3 && a.every((v) => typeof v === 'string' && ids.has(v)) && new Set(a).size === 3;
     if (!chk(body.top) || !chk(body.worst)) throw bad('トップ3とワースト3を、重ならないように3曲ずつ選んでください');
@@ -748,7 +754,7 @@ async function api(req, res, url) {
     const u = db.people.find((x) => x.id === prm[1]);
     if (!u) throw new HttpError(404, 'ユーザーが見つかりません');
     const n = rankCount(u.id), tid = equippedOf(u);
-    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).length, adm: isAdminPerson(u.id) });
+    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).filter((t) => !TITLE_BY_ID[t].hidden || isAdminPerson(u.id)).length, adm: isAdminPerson(u.id) });
   }
   if (p === '/api/me/profile' && m === 'PUT') {
     const me = person(req);
@@ -896,7 +902,9 @@ async function api(req, res, url) {
     }
     if (p === '/api/admin/titles' && m === 'GET') {
       const cnt = {}; Object.keys(db.titles).forEach((pid) => Object.keys(db.titles[pid]).forEach((id) => { cnt[id] = (cnt[id] || 0) + 1; }));
-      return send(res, 200, { titles: TITLE_DEFS.map((d) => ({ id: d.id, name: d.name, desc: d.desc, holders: cnt[d.id] || 0 })), people: db.people.length });
+      const who = {}; db.people.forEach((u) => { Object.keys(db.titles[u.id] || {}).forEach((id) => { (who[id] = who[id] || []).push(u.name); }); });
+      const byPerson = db.people.map((u) => ({ id: u.id, name: u.name, adm: isAdminPerson(u.id), titles: TITLE_DEFS.filter((d) => (db.titles[u.id] || {})[d.id]).map((d) => d.id) })).filter((x) => x.titles.length);
+      return send(res, 200, { titles: TITLE_DEFS.map((d) => ({ id: d.id, name: d.name, desc: d.desc, hidden: !!d.hidden, holders: cnt[d.id] || 0, who: (who[d.id] || []).slice(0, 300) })), people: db.people.length, byPerson });
     }
     if (p === '/api/admin/table-order' && m === 'PUT') {
       const key = clean(body.key, 20);
