@@ -513,7 +513,16 @@ a.avl{display:inline-block}
 .tt-debugger{--g:#00ff88;background:#06120b;color:#00ff88;border:3px double #00ff88;font-family:monospace;font-size:14px;animation:ttGlow 2s infinite;text-shadow:0 0 6px #00ff88}
 .tt-boundary{--g:#ffffff;background:repeating-linear-gradient(90deg,#111 0 10px,#2a2a2a 10px 11px);color:#fff;border:3px double #fff;font-family:monospace;font-size:14px;animation:ttGlow 2.4s infinite;text-shadow:0 0 4px #000}
 
-.backbtn{border:1px solid var(--line,#d6d9e6);background:#fff;color:inherit;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;margin-right:8px;cursor:pointer;white-space:nowrap}
+.backbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;margin-right:8px;cursor:pointer;white-space:nowrap}
+.backbtn:hover{border-color:var(--acc2)}
 .backbtn[hidden]{display:none}
 #pfTitle{width:100%;margin-bottom:8px}
 .pftp{min-height:8px}
+
+.warnnote{border-left:4px solid var(--acc);padding-left:8px;color:var(--ink)}
+.whod{margin-top:4px;font-size:13px}.whod summary{cursor:pointer;color:var(--acc2);font-weight:700}.whol{margin-top:4px;line-height:1.8;word-break:break-all}
+.adpd{border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin-bottom:6px;background:var(--card)}.adpd summary{cursor:pointer}.adpc{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+@keyframes ttPow{0%,100%{box-shadow:0 0 8px #ff2a2a,0 0 18px #ffb000,0 0 0 2px #ffd24a}50%{box-shadow:0 0 14px #ff2a2a,0 0 30px #ffb000,0 0 0 2px #fff3b0}}
+.tt-power{background:linear-gradient(135deg,#2a0000,#8a0010 30%,#ff3b1f 50%,#8a0010 70%,#2a0000);color:#ffe9a8;border:3px double #ffd24a;font-size:15px;font-weight:900;letter-spacing:.18em;padding:4px 18px 4px 12px;animation:ttPow 1.6s infinite;text-shadow:0 0 6px #ff9a00,0 2px 2px #000}
+.tt-power .tti{filter:drop-shadow(0 0 4px #ffd24a);font-size:1.3em}
+.tt-power::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,235,160,.8) 50%,transparent 65%);background-size:60% 100%;background-repeat:no-repeat;animation:ttShine 2.2s infinite;pointer-events:none}

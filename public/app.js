@@ -1005,7 +1005,7 @@
 
 
   /* ---- 称号 ---- */
-  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '💀', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇', pr: '📣', missionary: '⛪', reporter: '📰', indecisive: '🔀', resident: '🏠', f5: '🔄', roster: '📖', loginbonus: '🎁', weekly: '📅', regular: '🪑', veteran: '🎖️', iconmaker: '🖼️', renamer: '🏷️', reviser: '✏️', linked: '🔗', dresser: '👗', hunter: '🏹', tking: '👑', explorer: '🧭', historian: '📜', manual: '📚', compatfan: '💘', neighbor: '🏘️', follower: '🐦', photog: '📸', master: '🏯', watcher: '🎬', kind: '🕊️', ice: '🧊', dompisha: '🎯', heretic: '😈', half: '➗', round: '⭕', tasty: '🍰', mvp: '🏅', lastlove: '🥀', podium: '🏆', prophet: '🔮', oneway: '➡️', variety: '🎨', nostar: '🍃', avgbody: '⚖️', regular5: '🏁', iron: '🦾', attend: '🎓', combo: '💎', traveler: '🧳', bughunter: '🐛', debugger: '🛠️', boundary: '📐' };
+  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '💀', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', power: '⚜️', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇', pr: '📣', missionary: '⛪', reporter: '📰', indecisive: '🔀', resident: '🏠', f5: '🔄', roster: '📖', loginbonus: '🎁', weekly: '📅', regular: '🪑', veteran: '🎖️', iconmaker: '🖼️', renamer: '🏷️', reviser: '✏️', linked: '🔗', dresser: '👗', hunter: '🏹', tking: '👑', explorer: '🧭', historian: '📜', manual: '📚', compatfan: '💘', neighbor: '🏘️', follower: '🐦', photog: '📸', master: '🏯', watcher: '🎬', kind: '🕊️', ice: '🧊', dompisha: '🎯', heretic: '😈', half: '➗', round: '⭕', tasty: '🍰', mvp: '🏅', lastlove: '🥀', podium: '🏆', prophet: '🔮', oneway: '➡️', variety: '🎨', nostar: '🍃', avgbody: '⚖️', regular5: '🏁', iron: '🦾', attend: '🎓', combo: '💎', traveler: '🧳', bughunter: '🐛', debugger: '🛠️', boundary: '📐' };
   function titleChip(id, name) { var c = el('span', 'ttl tt-' + id); c.appendChild(el('i', 'tti', TITLE_ICON[id] || '🏅')); c.appendChild(el('span', 'ttn', name)); return c; }
   var TT = null;
   async function checkTitles(quiet) {
@@ -1074,9 +1074,21 @@
       var r = await api('GET', '/api/admin/titles', undefined, atoken); box.textContent = '';
       var list = el('div', 'adtt');
       r.titles.forEach(function (t) {
-        var row = el('div', 'r'); row.appendChild(titleChip(t.id, t.name)); row.appendChild(el('div', 'ttdesc', t.desc)); row.appendChild(el('span', 'hd', '獲得者 ' + t.holders + '/' + r.people + '人')); list.appendChild(row);
+        var row = el('div', 'r'); row.appendChild(titleChip(t.id, t.name)); row.appendChild(el('div', 'ttdesc', t.desc)); row.appendChild(el('span', 'hd', '獲得者 ' + t.holders + '/' + r.people + '人' + (t.hidden ? '(管理者のみ)' : '')));
+        if (t.who && t.who.length) { var dt = document.createElement('details'); dt.className = 'whod'; dt.appendChild(el('summary', '', '獲得した人を見る')); dt.appendChild(el('div', 'whol', t.who.join('、'))); row.appendChild(dt); }
+        list.appendChild(row);
       });
       box.appendChild(list);
+      var byP = r.byPerson || [], nm = {}; r.titles.forEach(function (t) { nm[t.id] = t; });
+      box.appendChild(el('h3', 'sub', 'ユーザー別の獲得状況'));
+      var pl = el('div', 'adpp');
+      byP.sort(function (a, b) { return b.titles.length - a.titles.length; }).forEach(function (p) {
+        var d2 = document.createElement('details'); d2.className = 'adpd';
+        var sm = document.createElement('summary'); sm.appendChild(el('b', '', p.name)); sm.appendChild(el('span', 'hd', ' ' + p.titles.length + '個')); d2.appendChild(sm);
+        var w = el('div', 'adpc'); p.titles.forEach(function (id) { w.appendChild(titleChip(id, nm[id].name)); }); d2.appendChild(w); pl.appendChild(d2);
+      });
+      if (!byP.length) pl.appendChild(el('span', 'm', 'まだ称号を獲得した人はいません。'));
+      box.appendChild(pl);
     } catch (e) { adminError(e, ''); box.textContent = ''; }
   }
   /* ---- 予想ゲーム ---- */
@@ -1108,7 +1120,7 @@
     if (!ME) { box.appendChild(el('div', 'empty', 'ログインすると予想できます。')); return; }
     if (L.length < 6) { box.appendChild(el('div', 'empty', '曲が6曲以上になると、予想できます。')); return; }
     if (!PREDS[k]) { loadPred(k); box.appendChild(el('span', 'm', '読み込み中…')); return; }
-    var pd = PREDS[k].pred, frozen = md === 'tally' || md === 'watch';
+    var pd = PREDS[k].pred, frozen = md === 'watch' || (md === 'tally' && !!pd);
     var d = PDRAFT[k] || (PDRAFT[k] = { top: (pd && pd.top.slice()) || ['', '', ''], worst: (pd && pd.worst.slice()) || ['', '', ''] });
     var grp = el('div', 'predgrid');
     [['top', 'トップ', ['1位', '2位', '3位']], ['worst', 'ワースト', ['最下位', 'ワースト2', 'ワースト3']]].forEach(function (g) {
@@ -1124,17 +1136,19 @@
     });
     box.appendChild(grp);
     if (!frozen) {
-      var bar = el('div', 'bar'), sv = el('button', 'pri', pd ? '予想を更新する' : '予想を送信する'), msg = el('span', 'm', pd ? '送信済みです。締め切りまで変更できます。' : '');
+      var bar = el('div', 'bar'), sv = el('button', 'pri', pd ? '予想を更新する' : '予想を送信する'), msg = el('span', 'm', pd ? '送信済みです。締め切りまで変更できます。' : (md === 'tally' ? '集計中の予想は一度限りです。送信後は変更できません。' : ''));
       sv.type = 'button';
       sv.onclick = async function () {
         var all = d.top.concat(d.worst);
         if (all.some(function (v) { return !v; })) { msg.textContent = '6つすべて選んでください'; return; }
         if (new Set(all).size !== 6) { msg.textContent = '同じ曲は重ねて選べません'; return; }
+        if (md === 'tally' && !(await confirmBox('この予想を提出しますか?', '集計中の提出は一度限りで、あとから変更できません。'))) return;
         try { await api('PUT', '/api/me/predict', { key: k, top: d.top, worst: d.worst }, ptoken); PREDS[k].pred = { top: d.top.slice(), worst: d.worst.slice() }; toast('予想を送信しました'); renderPred(); }
         catch (e) { msg.textContent = e.message; if (e.status === 401) forget(); }
       };
       bar.appendChild(sv); bar.appendChild(msg); box.appendChild(bar);
-    } else if (md === 'tally') box.appendChild(el('p', 'hint', pd ? '集計中のため、予想は変更できません。結果発表をお楽しみに!' : '集計中のため、予想の受付は終了しました。'));
+    } else if (md === 'tally') box.appendChild(el('p', 'hint', '集計中の予想は一度限りのため、変更できません。結果発表をお楽しみに!'));
+    else if (md === 'watch' && !pd) box.appendChild(el('p', 'hint', '公開済みのため、予想の受付は終了しました。'));
     if (md === 'watch') {
       var r = PRESULT[k];
       if (!r) { loadPredResult(k); box.appendChild(el('span', 'm', '結果を読み込み中…')); return; }
