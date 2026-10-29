@@ -16,7 +16,7 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [], torder: {}, adminLinked: false, stamps: {}, pred: {}, reacts: {}, titles: {}, counters: {}, changes: {} };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [], torder: {}, adminLinked: false, stamps: {}, pred: {}, reacts: {}, titles: {}, counters: {}, changes: {}, texc: {} };
 let VER = 0;
 function save() {
   VER++;
@@ -81,6 +81,8 @@ const iconAt = (u) => (u && u.icon ? u.icon.at : 0);
 const ctr = (pid) => (db.counters[pid] = db.counters[pid] || {});
 const bump = (pid, k, n = 1) => { const c = ctr(pid); c[k] = (c[k] || 0) + n; };
 const jstDay = (t) => new Date(t + 9 * 3600000).toISOString().slice(0, 10);
+const luckyTime = (pid) => { const d = new Date(Date.now() + 9 * 3600000); if (d.getUTCHours() === d.getUTCMinutes()) bump(pid, 'zorome'); };
+const BURST = {};
 const isAdminPerson = (pid) => db.admins.some((a) => a.pid === pid);
 function rankCount(pid) {
   const sk = {}; db.songs.forEach((s) => { sk[s.id] = s.key; });
@@ -157,6 +159,8 @@ function person(req) {
   const t = bearer(req);
   const p = t && db.people.find((x) => x.token === t);
   if (!p) throw new HttpError(401, '名前を入力して参加してください');
+  const now = Date.now(), b = (BURST[p.id] = (BURST[p.id] || []).filter((t0) => now - t0 < 60000)); b.push(now);
+  if (b.length >= 30) { const c = ctr(p.id); if (!c.burst) { c.burst = 1; save(); } }
   return p;
 }
 function admin(req) {
@@ -167,12 +171,17 @@ function admin(req) {
 }
 
 /* ---------- 集計(管理者の全体表・動画用データ) ---------- */
+function candOf(key) {
+  const ids = new Set(db.songs.filter((s) => s.key === key).map((s) => s.id)), ex = db.texc[key] || [];
+  return db.people.filter((p) => Object.keys(db.scores[p.id] || {}).some((sid) => ids.has(sid))).sort((a, b) => a.name.localeCompare(b.name, 'ja')).map((p) => ({ id: p.id, name: p.name, on: !ex.includes(p.id) }));
+}
+function adminTbl(key) { return Object.assign({}, buildTable(key), { cand: candOf(key) }); }
 function buildTable(key) {
   const songs = db.songs.filter((s) => s.key === key).sort(songOrder);
   const ids = new Set(songs.map((s) => s.id));
   const cour = courOf(key);
   const people = db.people
-    .filter((p) => Object.keys(db.scores[p.id] || {}).some((sid) => ids.has(sid)))
+    .filter((p) => Object.keys(db.scores[p.id] || {}).some((sid) => ids.has(sid)) && !(db.texc[key] || []).includes(p.id))
     .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   // 管理者が決めた並び順(決めていない人は、名前順で後ろに続く)
   const ord = db.torder[key] || [];
@@ -288,7 +297,7 @@ const TITLE_DEFS = [
   { id: 'ambassador', name: 'リアクション大使', desc: 'ひとことへのリアクションを、合計30回以上送った' },
   { id: 'detective', name: '名探偵', desc: '予想ゲームで、12点以上を取った' },
   { id: 'mine', name: '地雷探知機', desc: '予想ゲームで、ワースト3を順番まで完全に当てた' },
-  { id: 'early', name: '早起き', desc: 'Party Rankモードになってから1時間以内に、そのランキングの全曲を採点した' },
+  { id: 'early', name: '早起き', desc: '朝5時から8時(日本時間)の間に、点数を10回つけた' },
   { id: 'night', name: '夜更かし', desc: '深夜0時〜5時(日本時間)に、10回以上点数をつけた' },
   { id: 'soulmate', name: 'ソウルメイト', desc: '公開済みのランキングで、ほかのユーザーと点数のつけ方が99%以上一致した(共通の10曲以上)' },
   { id: 'loner', name: '孤高の存在', desc: '共通の曲が10曲以上ある3人以上の全員と、点数のつけ方の一致度が60%未満だった' },
@@ -350,6 +359,27 @@ const TITLE_DEFS = [
   { id: 'bughunter', name: 'バグハンター', desc: '通信の不具合に遭遇しながらも、点数などの保存をやり遂げた' },
   { id: 'debugger', name: 'デバッガー', desc: '集計中(または公開済み)の入力を、サーバーに送ろうとした(拒否されました)' },
   { id: 'boundary', name: '境界値テスター', desc: 'ひとことをちょうど100文字、自己紹介をちょうど200文字書いた' },
+  // ---- 第4弾 ----
+  { id: 'funeoriro', name: '船降りろ', desc: '1つのランキング(3人以上が全曲採点)で、自分の平均点が参加者の中でいちばん低かった' },
+  { id: 'lost', name: '404の旅人', desc: '存在しないページのアドレスを開いた' },
+  { id: 'maxname', name: '限界ネーム', desc: 'ちょうど30文字のユーザー名にした' },
+  { id: 'burst', name: 'ストレステスト', desc: '1分以内に、サイトを30回以上操作した' },
+  { id: 'dawn', name: '午前3時のデバッグ', desc: '午前3時台(日本時間)にサイトを開いた' },
+  { id: 'resizer', name: 'ウィンドウ伸縮マニア', desc: '画面(ウィンドウ)の大きさを、30回以上変えた' },
+  { id: 'devtools', name: '検証者', desc: '開発者ツール(F12など)を開こうとした' },
+  { id: 'offline', name: '圏外の住人', desc: '通信が切れた状態から、復帰した' },
+  { id: 'relog', name: '再起動したら直った', desc: 'ログアウトして、1分以内にログインし直した' },
+  { id: 'infloop', name: '無限ループ', desc: '1つの曲の点数を、20回以上変更した' },
+  { id: 'qa', name: '品質保証', desc: 'デバッグ系の称号(バグハンター・デバッガー・境界値テスター・404の旅人・限界ネーム・ストレステスト・午前3時のデバッグ・ウィンドウ伸縮マニア・検証者・圏外の住人・再起動したら直った・無限ループ)を、すべて獲得した' },
+  { id: 'halloween', name: 'トリックオアトリート', desc: '10月31日(日本時間)にサイトに来た' },
+  { id: 'xmas', name: 'メリークリスマス', desc: '12月25日(日本時間)にサイトに来た' },
+  { id: 'newyear', name: 'あけましておめでとう', desc: '1月1日(日本時間)にサイトに来た' },
+  { id: 'tanabata', name: '七夕の願い', desc: '7月7日(日本時間)にサイトに来た' },
+  { id: 'pocky', name: 'ポッキーの日', desc: '11月11日(日本時間)にサイトに来た' },
+  { id: 'zorome', name: 'ゾロ目の奇跡', desc: '「11:11」「22:22」のように、時と分が同じ時刻に、点数かひとことを入力した(日本時間)' },
+  { id: 'kaibun', name: '回文職人', desc: '3文字以上の回文(上から読んでも下から読んでも同じ)のひとことを書いた' },
+  { id: 'lucky77', name: 'スリーセブン', desc: 'ちょうど77文字のひとことを書いた' },
+  { id: 'pittari', name: 'ぴったり賞', desc: '10曲以上のランキングで全曲を採点し、点数の合計がちょうど100の倍数だった' },
 ];
 const TITLE_BY_ID = Object.fromEntries(TITLE_DEFS.map((t) => [t.id, t]));
 const RANK_TIER = (n) => (n >= 31 ? 5 : n >= 21 ? 4 : n >= 11 ? 3 : n >= 6 ? 2 : n >= 1 ? 1 : 0);
@@ -416,7 +446,7 @@ function keyTitles(k, out, doneCount) {
   const worst3 = nR >= 6 && q3(asc[2].avg) < q3(asc[3].avg) ? new Set(asc.slice(0, 3).map((r) => r.id)) : null;
   const rankAt = (db.modes[k] || {}).rankAt, deadline = db.deadlines[k];
   const sids = rows.map((r) => r.id);
-  let yariBest = null;
+  let yariBest = null; const fin = [];
   T.people.forEach((p) => {
     const pid = p.id, sc = rows.map((r) => r.scores[pid]), have = sc.filter((v) => typeof v === 'number');
     if (!have.length) return;
@@ -426,7 +456,8 @@ function keyTitles(k, out, doneCount) {
     if (have.filter((v) => v === 7 || v === 7.5).length >= 30) add(pid, 'lucky7');
     if (have.filter((v) => v === 0).length >= 5) add(pid, 'zero');
     if (have.filter((v) => v === 10).length >= 3) add(pid, 'ten');
-    if (done) { doneCount[pid] = (doneCount[pid] || 0) + 1; }
+    if (done) { doneCount[pid] = (doneCount[pid] || 0) + 1; fin.push({ pid, avg }); }
+    if (done && N >= 10 && Math.round(have.reduce((a, b) => a + b, 0) * 10) % 1000 === 0) add(pid, 'pittari');
     if (done && Math.min(...have) >= 5) add(pid, 'kind');
     if (done && Math.max(...have) <= 5) add(pid, 'ice');
     if (rows.filter((r) => typeof r.scores[pid] === 'number' && Math.abs(r.scores[pid] - r.avg) <= 0.1).length >= 5) add(pid, 'dompisha');
@@ -482,7 +513,7 @@ function keyTitles(k, out, doneCount) {
         const pos = ranked.indexOf(r);
         if (pos >= 0 && nR > 10 && pos >= nR - 10) add(pid, 'gyaku');
       }
-      if (r.starBy.length >= 5 && r.starBy.includes(pid)) add(pid, 'constellation');
+      if (r.starBy.length >= 3 && r.starBy.includes(pid)) add(pid, 'constellation');
     });
     if (worst3 && have.length >= 6) {
       const ord = rows.map((r) => ({ id: r.id, v: r.scores[pid] })).filter((x) => typeof x.v === 'number').sort((a, b) => b.v - a.v);
@@ -494,12 +525,12 @@ function keyTitles(k, out, doneCount) {
       const comp = Math.max(...sids.map((sid) => stp[sid]));
       if (deadline && comp >= deadline - 3600000 && comp <= deadline) add(pid, 'sliding');
       if (rankAt && comp >= rankAt && (!yariBest || comp < yariBest.t)) yariBest = { pid, t: comp };
-      if (rankAt && comp >= rankAt && comp - rankAt <= 3600000) add(pid, 'early');
     }
     const pr = (db.pred[k] || {})[pid];
     if (pr) { const ps = predScore(k, pr); if (ps.trifecta) add(pid, 'manba'); if (ps.worstTrifecta) add(pid, 'mine'); if (ps.pts >= 12) add(pid, 'detective'); }
   });
   if (yariBest) add(yariBest.pid, 'yari');
+  if (fin.length >= 3) { const mn = Math.min(...fin.map((x) => Math.round(x.avg * 1000))); fin.filter((x) => Math.round(x.avg * 1000) === mn).forEach((x) => add(x.pid, 'funeoriro')); }
 }
 let emVer = -1, emMemo = null;
 function computeEarned() {
@@ -530,6 +561,7 @@ function computeEarned() {
     if ((rxIn[u.id] || 0) >= 10) set.add('popular');
     if ((rxOut[u.id] || 0) >= 30) set.add('ambassador');
     if (Object.keys(db.stamps[u.id] || {}).filter((sid) => { const h = new Date(db.stamps[u.id][sid] + 9 * 3600000).getUTCHours(); return h < 5; }).length >= 10) set.add('night');
+    if (Object.keys(db.stamps[u.id] || {}).filter((sid) => { const h = new Date(db.stamps[u.id][sid] + 9 * 3600000).getUTCHours(); return h >= 5 && h < 8; }).length >= 10) set.add('early');
     if (db.people.indexOf(u) < 10) set.add('founder');
     { // 行動の記録による称号
       const cc = c, dc = doneCount[u.id] || 0, days = Object.keys(cc.days || {}).sort(), v = cc.visits || {};
@@ -559,6 +591,13 @@ function computeEarned() {
       if (dc >= 5) set.add('regular5'); if (dc >= 10) set.add('iron');
       if (fk.length >= 3 && dc === fk.length) set.add('attend');
       if (Object.keys(db.scores[u.id] || {}).filter((sid) => songIds.has(sid)).length >= 300) set.add('traveler');
+      if ((cc.lost || 0) >= 1) set.add('lost'); if ((cc.maxname || 0) >= 1) set.add('maxname'); if ((cc.burst || 0) >= 1) set.add('burst');
+      if ((cc.dawn || 0) >= 1) set.add('dawn'); if ((cc.resize || 0) >= 30) set.add('resizer'); if ((cc.devtools || 0) >= 1) set.add('devtools');
+      if ((cc.offline || 0) >= 1) set.add('offline'); if ((cc.relog || 0) >= 1) set.add('relog');
+      if (Object.values(db.changes[u.id] || {}).some((n) => n >= 20)) set.add('infloop');
+      const dset = new Set(days.map((d) => d.slice(5)));
+      if (dset.has('10-31')) set.add('halloween'); if (dset.has('12-25')) set.add('xmas'); if (dset.has('01-01')) set.add('newyear'); if (dset.has('07-07')) set.add('tanabata'); if (dset.has('11-11')) set.add('pocky');
+      if ((cc.zorome || 0) >= 1) set.add('zorome'); if ((cc.kaibun || 0) >= 1) set.add('kaibun'); if ((cc.lucky77 || 0) >= 1) set.add('lucky77');
       if ((cc.bug || 0) >= 1) set.add('bughunter');
       if ((cc.frozenTry || 0) >= 1) set.add('debugger');
       if (Object.keys(db.comments[u.id] || {}).some((sid) => Array.from(db.comments[u.id][sid]).length === 100) && Array.from(u.bio || '').length === 200) set.add('boundary');
@@ -574,6 +613,8 @@ function computeEarned() {
     }
     if (set.size) out.set(u.id, set);
   });
+  const QA = ['bughunter', 'debugger', 'boundary', 'lost', 'maxname', 'burst', 'dawn', 'resizer', 'devtools', 'offline', 'relog', 'infloop'];
+  out.forEach((set) => { if (QA.every((id) => set.has(id))) set.add('qa'); });
   db.people.forEach((u) => { if (isAdminPerson(u.id)) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('power'); } });
   out.forEach((set) => { const n = set.size - (set.has('power') ? 1 : 0); if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking'); });
   emVer = VER; emMemo = out; return out;
@@ -665,7 +706,7 @@ async function api(req, res, url) {
     const me = person(req);
     if (limited(req, 'ev', 300, 60000)) throw new HttpError(429, '操作が多すぎます');
     const type = String(body.type || ''), c = ctr(me.id), now = Date.now();
-    const SIMPLE = ['pastclick', 'imgsave', 'invite', 'news', 'f5', 'bug', 'watchclick', 'xclick'];
+    const SIMPLE = ['lost', 'resize', 'devtools', 'offline', 'relog', 'pastclick', 'imgsave', 'invite', 'news', 'f5', 'bug', 'watchclick', 'xclick'];
     if (SIMPLE.includes(type)) bump(me.id, type);
     else if (type === 'stay') { if (!c.lastStay || now - c.lastStay >= 45000) { c.stay = (c.stay || 0) + 60; c.lastStay = now; } }
     else if (type === 'visit') {
@@ -778,13 +819,14 @@ async function api(req, res, url) {
       throw new HttpError(409, 'その名前はすでに使われています。別の名前にするか、登録時の合言葉を入力してください');
     }
     const np = { id: id(), name, token: token(), at: Date.now() };
+    if (Array.from(name).length === 30) bump(np.id, 'maxname');
     if (pass) { np.salt = crypto.randomBytes(16).toString('hex'); np.hash = hashPw(pass, np.salt); }
     db.people.push(np); save();
     return send(res, 200, { token: np.token, name: np.name });
   }
   if (p === '/api/me' && m === 'GET') {
     const me = person(req);
-    { const c = ctr(me.id), d = jstDay(Date.now()); c.days = c.days || {}; if (!c.days[d]) { c.days[d] = 1; save(); } }
+    { const c = ctr(me.id), d = jstDay(Date.now()); c.days = c.days || {}; if (!c.days[d]) { c.days[d] = 1; save(); } if (new Date(Date.now() + 9 * 3600000).getUTCHours() === 3 && !c.dawn) { c.dawn = 1; save(); } }
     return send(res, 200, { id: me.id, icon: iconAt(me), name: me.name, hasPass: !!me.hash, scores: db.scores[me.id] || {}, stars: db.stars[me.id] || {}, comments: db.comments[me.id] || {} });
   }
   if (p === '/api/me/icon' && m === 'PUT') {
@@ -816,7 +858,7 @@ async function api(req, res, url) {
     if (body.score === null) { delete sc[song.id]; delete stp[song.id]; }
     else if (isScore(body.score)) {
       if (typeof sc[song.id] === 'number' && sc[song.id] !== body.score) { const ch = (db.changes[me.id] = db.changes[me.id] || {}); ch[song.id] = (ch[song.id] || 0) + 1; }
-      sc[song.id] = body.score; if (!stp[song.id]) stp[song.id] = Date.now();
+      sc[song.id] = body.score; if (!stp[song.id]) stp[song.id] = Date.now(); luckyTime(me.id);
     }
     else throw bad('点数は0〜10の0.5点刻みで指定してください');
     save();
@@ -848,7 +890,11 @@ async function api(req, res, url) {
     if (frozen(song.key)) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, '集計中(または公開済み)のため、ひとことを変更できません'); }
     const text = clean(body.text, 100);
     const cm = (db.comments[me.id] = db.comments[me.id] || {});
-    if (text) cm[song.id] = text; else delete cm[song.id];
+    if (text) {
+      cm[song.id] = text; luckyTime(me.id);
+      const ch = Array.from(text); if (ch.length === 77) bump(me.id, 'lucky77');
+      const sq = ch.filter((c) => /[\p{L}\p{N}]/u.test(c)).map((c) => c.toLowerCase()); if (sq.length >= 3 && sq.join('') === sq.slice().reverse().join('')) bump(me.id, 'kaibun');
+    } else delete cm[song.id];
     save();
     return send(res, 200, { ok: true, text });
   }
@@ -860,7 +906,7 @@ async function api(req, res, url) {
     if (!pass || !checkPw(pass, me.salt, me.hash)) throw new HttpError(403, '合言葉が違います');
     if (!name) throw bad('名前を入力してください');
     if (db.people.some((x) => x.id !== me.id && x.name.toLowerCase() === name.toLowerCase())) throw new HttpError(409, 'その名前はすでに使われています');
-    me.name = name; bump(me.id, 'rename'); save();
+    me.name = name; bump(me.id, 'rename'); if (Array.from(name).length === 30) bump(me.id, 'maxname'); save();
     return send(res, 200, { name });
   }
   if (p === '/api/me/password' && m === 'PUT') {
@@ -898,7 +944,16 @@ async function api(req, res, url) {
     if (p === '/api/admin/table' && m === 'GET') {
       const key = url.searchParams.get('key') || '';
       if (!validKey(key)) throw bad('区分が正しくありません');
-      return send(res, 200, buildTable(key));
+      return send(res, 200, adminTbl(key));
+    }
+    if (p === '/api/admin/table-users' && m === 'PUT') {
+      const key = clean(body.key, 20);
+      if (!validKey(key)) throw bad('区分が正しくありません');
+      const cand = candOf(key).map((c) => c.id), inc = new Set((Array.isArray(body.ids) ? body.ids : []).filter((v) => typeof v === 'string'));
+      const ex = cand.filter((id) => !inc.has(id));
+      if (ex.length) db.texc[key] = ex; else delete db.texc[key];
+      save();
+      return send(res, 200, adminTbl(key));
     }
     if (p === '/api/admin/titles' && m === 'GET') {
       const cnt = {}; Object.keys(db.titles).forEach((pid) => Object.keys(db.titles[pid]).forEach((id) => { cnt[id] = (cnt[id] || 0) + 1; }));
@@ -912,7 +967,7 @@ async function api(req, res, url) {
       const ids = (Array.isArray(body.ids) ? body.ids : []).filter((v) => typeof v === 'string' && /^[0-9a-z]+$/.test(v)).slice(0, 500);
       if (ids.length) db.torder[key] = [...new Set(ids)]; else delete db.torder[key];
       save();
-      return send(res, 200, buildTable(key));
+      return send(res, 200, adminTbl(key));
     }
     if (p === '/api/admin/export' && m === 'GET') {
       const key = url.searchParams.get('key') || '', fmt = url.searchParams.get('format') || 'json';
