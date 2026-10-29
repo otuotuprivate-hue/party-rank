@@ -273,6 +273,25 @@ const TITLE_DEFS = [
   { id: 'isekai', name: 'なろう系', desc: 'アニメタイトルに「異世界」「転生」を含む曲に、8.0点以上を3回つけた' },
   { id: 'creator', name: '創造神', desc: '自分の10.0点で、ある曲の全体平均点を1.0点以上引き上げた' },
   { id: 'destroyer', name: '破壊神', desc: '自分の0.0点で、ある曲の全体平均点を1.0点以上引き下げた' },
+  { id: 'ten', name: 'ベタ褒め', desc: '1つのランキングで、10.0点を3曲以上につけた' },
+  { id: 'harsh', name: '辛口審査員', desc: '1つのランキングで全曲を採点し、自分の平均点が4.00点以下だった' },
+  { id: 'steady', name: '安定志向', desc: '10曲以上のランキングで全曲を採点し、最高点と最低点の差が2.0点以内だった' },
+  { id: 'extreme', name: '両極端', desc: '1つのランキングで、0.0点と10.0点の両方をつけた' },
+  { id: 'marathon', name: 'マラソンランナー', desc: '20曲以上あるランキングの、全曲を採点した' },
+  { id: 'oshi', name: '推し活', desc: '自分が☆をつけた曲に、10.0点をつけた' },
+  { id: 'eye', name: '目利き', desc: '自分が☆をつけた曲が、ランキングのトップ3に入った' },
+  { id: 'cmmaster', name: 'ひとこと職人', desc: 'ひとことを、合計50件以上書いた' },
+  { id: 'popular', name: '人気者', desc: '自分のひとことに、ほかのユーザーから合計10個以上のリアクションがついた' },
+  { id: 'ambassador', name: 'リアクション大使', desc: 'ひとことへのリアクションを、合計30回以上送った' },
+  { id: 'detective', name: '名探偵', desc: '予想ゲームで、12点以上を取った' },
+  { id: 'mine', name: '地雷探知機', desc: '予想ゲームで、ワースト3を順番まで完全に当てた' },
+  { id: 'early', name: '早起き', desc: 'Party Rankモードになってから1時間以内に、そのランキングの全曲を採点した' },
+  { id: 'night', name: '夜更かし', desc: '深夜0時〜5時(日本時間)に、10回以上点数をつけた' },
+  { id: 'soulmate', name: 'ソウルメイト', desc: '公開済みのランキングで、ほかのユーザーと点数のつけ方が99%以上一致した(共通の10曲以上)' },
+  { id: 'loner', name: '孤高の存在', desc: '共通の曲が10曲以上ある3人以上の全員と、点数のつけ方の一致度が60%未満だった' },
+  { id: 'contrary', name: '天邪鬼', desc: '1つのランキングで全曲を採点し、各曲の全体平均との差が、平均して2.0点以上あった' },
+  { id: 'founder', name: '古参', desc: 'サイトに登録した順で、10番目までに入っていた' },
+  { id: 'champion', name: '推しが優勝', desc: '自分が1曲だけ最高点をつけた曲が、そのまま全体1位になった' },
 ];
 const TITLE_BY_ID = Object.fromEntries(TITLE_DEFS.map((t) => [t.id, t]));
 const RANK_TIER = (n) => (n >= 31 ? 5 : n >= 21 ? 4 : n >= 11 ? 3 : n >= 6 ? 2 : n >= 1 ? 1 : 0);
@@ -348,6 +367,17 @@ function keyTitles(k, out) {
     if (done && have.every((v) => v >= 5 && v <= 6)) add(pid, 'bonjin');
     if (have.filter((v) => v === 7 || v === 7.5).length >= 30) add(pid, 'lucky7');
     if (have.filter((v) => v === 0).length >= 5) add(pid, 'zero');
+    if (have.filter((v) => v === 10).length >= 3) add(pid, 'ten');
+    if (done && avg <= 4) add(pid, 'harsh');
+    if (done && N >= 10 && Math.max(...have) - Math.min(...have) <= 2) add(pid, 'steady');
+    if (have.includes(0) && have.includes(10)) add(pid, 'extreme');
+    if (done && N >= 20) add(pid, 'marathon');
+    if (done) {
+      const dev = mean(rows.map((r) => Math.abs(r.scores[pid] - r.avg)));
+      if (dev != null && dev >= 2) add(pid, 'contrary');
+    }
+    const mx = Math.max(...have), tops = rows.filter((r) => r.scores[pid] === mx);
+    if (have.length >= 5 && tops.length === 1 && tops[0].rank === 1) add(pid, 'champion');
     let all = true; for (let v = 0; v <= 10; v += 0.5) if (!have.includes(v)) { all = false; break; }
     if (all) add(pid, 'stairs');
     if (rows.every((r) => r.comments[pid])) add(pid, 'cmleader');
@@ -364,6 +394,8 @@ function keyTitles(k, out) {
       }
       if (r.starBy.includes(pid)) {
         if (r.rank === 1) add(pid, 'star1');
+        if (r.rank != null && r.rank <= 3) add(pid, 'eye');
+        if (v === 10) add(pid, 'oshi');
         const pos = ranked.indexOf(r);
         if (pos >= 0 && nR > 10 && pos >= nR - 10) add(pid, 'gyaku');
       }
@@ -379,9 +411,10 @@ function keyTitles(k, out) {
       const comp = Math.max(...sids.map((sid) => stp[sid]));
       if (deadline && comp >= deadline - 3600000 && comp <= deadline) add(pid, 'sliding');
       if (rankAt && comp >= rankAt && (!yariBest || comp < yariBest.t)) yariBest = { pid, t: comp };
+      if (rankAt && comp >= rankAt && comp - rankAt <= 3600000) add(pid, 'early');
     }
     const pr = (db.pred[k] || {})[pid];
-    if (pr && predScore(k, pr).trifecta) add(pid, 'manba');
+    if (pr) { const ps = predScore(k, pr); if (ps.trifecta) add(pid, 'manba'); if (ps.worstTrifecta) add(pid, 'mine'); if (ps.pts >= 12) add(pid, 'detective'); }
   });
   if (yariBest) add(yariBest.pid, 'yari');
 }
@@ -397,7 +430,11 @@ function computeEarned() {
     fk.forEach((k) => tableOf(k).rows.forEach((r) => { if (isk.test(r.anime || '') && typeof (r.scores || {})[u.id] === 'number' && r.scores[u.id] >= 8) n++; }));
     if (n >= 3) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('isekai'); }
   });
-  const ws = watchScores();
+  const ws = watchScores(), songIds = new Set(db.songs.map((x) => x.id)), rxIn = {}, rxOut = {};
+  Object.keys(db.reacts).forEach((ck) => {
+    const owner = ck.split(':')[1];
+    Object.keys(db.reacts[ck]).forEach((e) => db.reacts[ck][e].forEach((pid) => { rxOut[pid] = (rxOut[pid] || 0) + 1; if (pid !== owner) rxIn[owner] = (rxIn[owner] || 0) + 1; }));
+  });
   db.people.forEach((u) => {
     const set = out.get(u.id) || new Set(), c = db.counters[u.id] || {};
     const t = RANK_TIER(rankCount(u.id)); for (let i = 1; i <= t; i++) set.add('rank' + i);
@@ -405,8 +442,20 @@ function computeEarned() {
     if ((c.imgsave || 0) >= 5) set.add('camera');
     if (c.intruder) set.add('intruder');
     if (Array.from(u.bio || '').length >= 100) set.add('honor');
+    if (Object.keys(db.comments[u.id] || {}).filter((sid) => songIds.has(sid)).length >= 50) set.add('cmmaster');
+    if ((rxIn[u.id] || 0) >= 10) set.add('popular');
+    if ((rxOut[u.id] || 0) >= 30) set.add('ambassador');
+    if (Object.keys(db.stamps[u.id] || {}).filter((sid) => { const h = new Date(db.stamps[u.id][sid] + 9 * 3600000).getUTCHours(); return h < 5; }).length >= 10) set.add('night');
+    if (db.people.indexOf(u) < 10) set.add('founder');
     const mine = ws.get(u.id);
-    if (mine) for (const [oid, o] of ws) { if (oid === u.id) continue; const cp = compatOf(mine, o); if (cp.n >= 10 && cp.pct >= 90) { set.add('resonance'); break; } }
+    if (mine) {
+      let near = 0, far = 0;
+      for (const [oid, o] of ws) {
+        if (oid === u.id) continue; const cp = compatOf(mine, o);
+        if (cp.n >= 10) { if (cp.pct >= 90) set.add('resonance'); if (cp.pct >= 99) set.add('soulmate'); near++; if (cp.pct < 60) far++; }
+      }
+      if (near >= 3 && far === near) set.add('loner');
+    }
     if (set.size) out.set(u.id, set);
   });
   out.forEach((set) => { if (set.size >= 20) set.add('collector'); });
@@ -717,6 +766,10 @@ async function api(req, res, url) {
       const key = url.searchParams.get('key') || '';
       if (!validKey(key)) throw bad('区分が正しくありません');
       return send(res, 200, buildTable(key));
+    }
+    if (p === '/api/admin/titles' && m === 'GET') {
+      const cnt = {}; Object.keys(db.titles).forEach((pid) => Object.keys(db.titles[pid]).forEach((id) => { cnt[id] = (cnt[id] || 0) + 1; }));
+      return send(res, 200, { titles: TITLE_DEFS.map((d) => ({ id: d.id, name: d.name, desc: d.desc, holders: cnt[d.id] || 0 })), people: db.people.length });
     }
     if (p === '/api/admin/table-order' && m === 'PUT') {
       const key = clean(body.key, 20);
