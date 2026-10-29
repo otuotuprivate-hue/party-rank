@@ -277,14 +277,14 @@
     else if (mine) card.appendChild(el('p', 'hint', '自己紹介はまだありません。下で書いてみましょう。'));
     if (mine) {
       $('pfBio').value = u.bio || ''; $('pfX').value = u.x ? xHandle(u.x) : ''; $('pfCnt').textContent = (u.bio || '').length + '/200'; $('pfMsg').textContent = '';
-      ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev(''); renderTitleBox();
+      ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev('');
       $('rn').value = ME.name; $('rpw').value = ''; $('rmsg').textContent = ''; renderUserPages();
     }
   }
   $('pfBio').oninput = function () { $('pfCnt').textContent = $('pfBio').value.length + '/200'; };
   $('pfForm').onsubmit = async function (e) {
     e.preventDefault(); $('pfMsg').textContent = '';
-    try { await api('PUT', '/api/me/profile', { bio: $('pfBio').value, x: $('pfX').value }, ptoken); toast('プロフィールを保存しました'); renderProfile(); }
+    try { await api('PUT', '/api/me/profile', { bio: $('pfBio').value, x: $('pfX').value }, ptoken); toast('プロフィールを保存しました'); renderProfile(); checkTitles(); }
     catch (err) { $('pfMsg').textContent = err.message; if (err.status === 401) forget(); }
   };
   $('pfPw').onclick = function () { go('password'); };
@@ -598,7 +598,7 @@
       var r = await api('POST', '/api/admin/login', { name: $('adm').value, password: $('pw').value, person: ptoken || undefined });
       atoken = r.token; adminName = r.name; store('pr-admin', atoken, true); store('pr-admin-name', adminName, true);
       $('pw').value = ''; await enterAdmin(); go(''); toast(adminName + 'として管理者画面に入りました');
-    } catch (err) { $('lmsg').textContent = err.message; }
+    } catch (err) { $('lmsg').textContent = err.message; if (ptoken) setTimeout(checkTitles, 300); }
   };
   async function enterAdmin() { await loadAdmins(); await loadTable(); renderAll(); }
   async function adminLogout(silent) {
@@ -981,13 +981,14 @@
     $('lead').textContent = admin ? '管理者画面です。曲の追加・全ユーザーの採点の確認・動画用データの書き出しができます。'
       : '名前を入力してログインし、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
     if (admin) { $('purl').value = PL[key()] || ''; $('apName').textContent = adminName; }
-    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderMode(); renderXlinks(); renderParticipants(); renderUserPages(); renderPred();
+    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderMode(); renderXlinks(); renderParticipants(); renderUserPages();
+    if (curRoute() === 'predict') { fillPredKeys(); renderPred(); }
     route(true);
   }
 
 
   /* ---- 称号 ---- */
-  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '🚨', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥' };
+  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '🚨', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇' };
   function titleChip(id, name) { var c = el('span', 'ttl tt-' + id); c.appendChild(el('i', 'tti', TITLE_ICON[id] || '🏅')); c.appendChild(el('span', 'ttn', name)); return c; }
   var TT = null;
   async function checkTitles(quiet) {
@@ -996,9 +997,9 @@
       var r = await api('GET', '/api/me/titles', undefined, ptoken); TT = r;
       var fresh = r.earned.filter(function (t) { return t.fresh; });
       if (fresh.length) {
-        toast('称号を獲得しました: ' + fresh.map(function (t) { return t.name; }).join('、'));
         api('POST', '/api/me/titles/seen', {}, ptoken).catch(function () {});
-        if (curRoute() === 'profile') renderTitleBox();
+        showTitlePop(fresh);
+        if (curRoute() === 'titles') renderTitleBox();
       }
     } catch (e) { if (e.status === 401) return; }
   }
@@ -1012,7 +1013,7 @@
       card.appendChild(el('div', 'ttdesc', t.desc));
       var b = el('button', TT.equipped === t.id ? '' : 'pri', TT.equipped === t.id ? '外す' : '装備する'); b.type = 'button';
       b.onclick = async function () {
-        try { var r = await api('PUT', '/api/me/title', { id: TT.equipped === t.id ? null : t.id }, ptoken); TT.equipped = r.equipped; renderTitleBox(); renderProfile(); }
+        try { var r = await api('PUT', '/api/me/title', { id: TT.equipped === t.id ? null : t.id }, ptoken); TT.equipped = r.equipped; renderTitleBox(); }
         catch (e) { toast(e.message); }
       };
       card.appendChild(b); grid.appendChild(card);
@@ -1020,21 +1021,54 @@
     for (var i = 0; i < TT.locked; i++) { var lc = el('div', 'ttcard lock'); lc.appendChild(el('span', 'ttl tt-lock', '？？？')); lc.appendChild(el('div', 'ttdesc', '条件は、獲得すると分かります')); grid.appendChild(lc); }
     box.appendChild(grid);
   }
-  function sendEvent(type) { if (!ptoken) return; api('POST', '/api/me/event', { type: type }, ptoken).then(function (r) { if (r.fresh && r.fresh.length) { toast('称号を獲得しました: ' + r.fresh.join('、')); checkTitles(); } }).catch(function () {}); }
+  var POPQ = [];
+  function showTitlePop(list) {
+    POPQ = POPQ.concat(list);
+    if (!$('ttlPop').hidden) return;
+    var items = POPQ.splice(0), box = $('ttlPopList'); box.textContent = '';
+    items.forEach(function (t) { var w = el('div'); w.appendChild(titleChip(t.id, t.name)); w.appendChild(el('div', 'ttdesc', t.desc)); box.appendChild(w); });
+    $('ttlPop').hidden = false; $('ttlPopOk').focus();
+  }
+  $('ttlPopOk').onclick = function () { $('ttlPop').hidden = true; if (POPQ.length) showTitlePop([]); };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('ttlPop').hidden) $('ttlPopOk').click(); });
+  function sendEvent(type) { if (!ptoken) return; api('POST', '/api/me/event', { type: type }, ptoken).then(function (r) { if (r.fresh && r.fresh.length) checkTitles(); }).catch(function () {}); }
 
+  async function loadAdminTitles() {
+    var box = $('adTtl'); box.textContent = '読み込み中…';
+    try {
+      var r = await api('GET', '/api/admin/titles', undefined, atoken); box.textContent = '';
+      var list = el('div', 'adtt');
+      r.titles.forEach(function (t) {
+        var row = el('div', 'r'); row.appendChild(titleChip(t.id, t.name)); row.appendChild(el('div', 'ttdesc', t.desc)); row.appendChild(el('span', 'hd', '獲得者 ' + t.holders + '/' + r.people + '人')); list.appendChild(row);
+      });
+      box.appendChild(list);
+    } catch (e) { adminError(e, ''); box.textContent = ''; }
+  }
   /* ---- 予想ゲーム ---- */
   var PREDS = {}, PDRAFT = {}, PRESULT = {};
+  function pk() { return $('predKey').value; }
+  function sk2p(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
+  function fillPredKeys() {
+    var sel = $('predKey'), keep = sel.value || key(), seen = {}, ks = [];
+    SONGS.forEach(function (x) { if (!seen[x.key]) { seen[x.key] = 1; ks.push(x.key); } });
+    ks.sort(function (a, b) { return sk2p(b) - sk2p(a) || KINDS.indexOf(a.split('-')[2]) - KINDS.indexOf(b.split('-')[2]); });
+    sel.textContent = ''; ks.forEach(function (k) { sel.appendChild(new Option(label(k), k)); });
+    sel.value = seen[keep] ? keep : (ks[0] || '');
+  }
+  $('predKey').onchange = function () { renderPred(); };
+  $('predBack').onclick = function () { go(''); };
+  $('ttlBack').onclick = function () { go(''); };
   async function loadPred(k) {
     if (!ME || !ptoken) return;
-    try { PREDS[k] = await api('GET', '/api/me/predict?key=' + encodeURIComponent(k), undefined, ptoken); if (k === key()) renderPred(); } catch (e) { /* */ }
+    try { PREDS[k] = await api('GET', '/api/me/predict?key=' + encodeURIComponent(k), undefined, ptoken); if (k === pk()) renderPred(); } catch (e) { /* */ }
   }
   async function loadPredResult(k) {
-    try { PRESULT[k] = await api('GET', '/api/predict-result?key=' + encodeURIComponent(k)); if (k === key()) renderPred(); } catch (e) { /* */ }
+    try { PRESULT[k] = await api('GET', '/api/predict-result?key=' + encodeURIComponent(k)); if (k === pk()) renderPred(); } catch (e) { /* */ }
   }
   function songTitle(id) { var s = SONGS.filter(function (x) { return x.id === id; })[0]; return s ? s.title : '(削除された曲)'; }
   function renderPred() {
-    var k = key(), box = $('predBox'), md = modeOf(k), L = songsOf(k), md0 = md; box.textContent = '';
-    $('ph').hidden = false;
+    var k = pk(), box = $('predBox'), md = modeOf(k), L = songsOf(k); box.textContent = '';
+    if (!k) { box.appendChild(el('div', 'empty', 'ランキングがまだありません。')); return; }
     box.appendChild(el('p', 'hint', '結果発表の前に、このランキングの「トップ3」と「ワースト3」を予想しましょう。順位までぴったり当てると3点、トップ3(ワースト3)に入っていれば1点(最大18点)。結果と全員の得点は、Party Watch になると見られます。'));
     if (!ME) { box.appendChild(el('div', 'empty', 'ログインすると予想できます。')); return; }
     if (L.length < 6) { box.appendChild(el('div', 'empty', '曲が6曲以上になると、予想できます。')); return; }
@@ -1153,20 +1187,20 @@
   window.addEventListener('resize', fitSoon);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
 
-  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', profile: 'v-profile', compat: 'v-compat', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
-  var ADMIN_ONLY = { adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { password: 1, compat: 1 };
+  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', profile: 'v-profile', compat: 'v-compat', titles: 'v-titles', predict: 'v-predict', adtitles: 'v-adtitles', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
+  var ADMIN_ONLY = { adtitles: 1, adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { password: 1, compat: 1, titles: 1, predict: 1 };
   function routeParam() { var p = (location.hash || '').replace(/^#\/?/, '').split('/')[1]; try { return p ? decodeURIComponent(p) : ''; } catch (e) { return ''; } }
   function curRoute() { var h = (location.hash || '').replace(/^#\/?/, '').split('/')[0]; return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
   function go(r) { var t = '#/' + (r || ''); if (location.hash === t || (!r && (location.hash === '' || location.hash === '#'))) route(false); else location.hash = t; }
   function menuItems() {
     var about = { t: 'Party Rankとは', r: 'about' }, past = { t: '過去のParty Rank', r: 'pasts' };
     var news = { t: 'お知らせ', r: 'notices' }, inv = { t: '友だちを招待', r: 'invite' };
-    if (atoken) return [about, { t: '管理者ホーム', r: '' }].concat(ME ? [{ t: 'プロフィール', r: 'profile' }, { t: '相性診断', r: 'compat' }] : [], [news, inv, past, { sep: 1 },
+    if (atoken) return [about, { t: '管理者ホーム', r: '' }].concat(ME ? [{ t: 'プロフィール', r: 'profile' }, { t: '称号コレクション', r: 'titles' }, { t: '予想ゲーム', r: 'predict' }, { t: '相性診断', r: 'compat' }] : [], [news, inv, past, { sep: 1 },
       { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
       { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'お知らせの登録', r: 'news' },
-      { t: 'Xアカウントの登録', r: 'adminx' }, { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }]);
+      { t: '称号の一覧と獲得条件', r: 'adtitles' }, { t: 'Xアカウントの登録', r: 'adminx' }, { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }, { sep: 1 }, { t: '一般ユーザーに戻る', act: 'back' }]);
     var a = [about, { t: 'ホーム', r: '' }, news, inv];
-    if (ME) a.push({ t: 'プロフィール', r: 'profile' }, { t: '相性診断', r: 'compat' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
+    if (ME) a.push({ t: 'プロフィール', r: 'profile' }, { t: '称号コレクション', r: 'titles' }, { t: '予想ゲーム', r: 'predict' }, { t: '相性診断', r: 'compat' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
     a.push({ t: '参加者一覧', r: 'people' }, past, { sep: 1 }, { t: '管理者画面への入室', r: 'admin-login' });
     return a;
   }
@@ -1174,10 +1208,10 @@
     var m = $('menu'), n = 0; m.textContent = '';
     menuItems().forEach(function (it) {
       if (it.sep) { m.appendChild(document.createElement('hr')); return; }
-      var b = el('button', it.r === cur ? 'on' : ''); b.textContent = it.t; b.type = 'button'; b.style.setProperty('--i', n++);
-      if (it.r === cur) b.setAttribute('aria-current', 'page');
+      var b = el('button', it.r && it.r === cur ? 'on' : ''); b.textContent = it.t; b.type = 'button'; b.style.setProperty('--i', n++);
+      if (it.r && it.r === cur) b.setAttribute('aria-current', 'page');
       b.tabIndex = m.classList.contains('open') ? 0 : -1;
-      b.onclick = function () { closeMenu(); go(it.r); };
+      b.onclick = function () { closeMenu(); if (it.act === 'back') adminLogout(false); else go(it.r); };
       m.appendChild(b);
     });
   }
@@ -1198,7 +1232,10 @@
     renderMenu(r);
     if (soft) return;
     window.scrollTo(0, 0);
-    if (r === 'profile') { renderProfile(); checkTitles().then(function () { if (curRoute() === 'profile') renderTitleBox(); }); }
+    if (r === 'profile') renderProfile();
+    else if (r === 'titles') { renderTitleBox(); checkTitles().then(function () { if (curRoute() === 'titles') renderTitleBox(); }); }
+    else if (r === 'predict') { fillPredKeys(); renderPred(); }
+    else if (r === 'adtitles') loadAdminTitles();
     else if (r === 'compat') loadCompat();
     else if (r === 'password') { $('pmsg').textContent = ''; renderUserPages(); }
     else if (r === 'people') loadPart();

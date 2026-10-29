@@ -139,8 +139,6 @@
   <h2 id="rh"></h2>
   <div class="rsum" id="rsum" hidden></div>
   <div id="rank"></div>
-  <h2 id="ph">トップ3 &amp; ワースト3 予想ゲーム</h2>
-  <div id="predBox" class="panel"></div>
   <h2 id="lh"></h2>
   <p class="plink" id="plink"></p>
   <div class="xlinks" id="xlinks" hidden></div>
@@ -157,21 +155,23 @@
       <li><b>名前を入れてログイン</b><span>ホームで名前を入力します。はじめての名前は、そのまま新規登録になります。合言葉(任意)を決めておくと、別の端末からでも同じ名前で続きを採点できます。</span></li>
       <li><b>曲に点数を付ける</b><span>年・クール・種別(OP / ED など)ごとの曲リストに、0〜10点を付けます。付けた点数からあなた自身のランキングができます。</span></li>
       <li><b>☆を1曲だけ付ける</b><span>各クールで、いちばん推したい曲に☆を1つ付けられます。</span></li>
+      <li><b>予想ゲームで遊ぶ</b><span>メニューの「予想ゲーム」で、トップ3とワースト3を予想できます(集計中になるまで)。当たると称号がもらえることも。</span></li>
       <li><b>結果発表をみんなで見る</b><span>全員の点数の平均で、曲の順位が決まります。結果はランキング動画で発表され、動画の公開後はこのサイトでも全体表が見られます。</span></li>
     </ol>
   </div>
   <div class="panel about"><h3 class="sub">開催のモード</h3>
     <dl class="modes">
       <dt><span class="mb">通常</span></dt><dd>Party Rankの開催前です。「開催をお待ちください」と表示されます。</dd>
-      <dt><span class="mb rank">Party Rank</span></dt><dd>採点の受付中から開催中までの期間です。結果発表まで、みんなの全体表は見えません。</dd>
-      <dt><span class="mb watch">Party Watch</span></dt><dd>ランキング動画が公開された状態です。動画のリンクと、みんなの全体表が見られます。</dd>
+      <dt><span class="mb rank">Party Rank</span></dt><dd>採点の受付中から開催中までの期間です。点数・☆・ひとこと・予想ゲームの入力と変更ができます。結果発表まで、みんなの全体表は見えません。</dd>
+      <dt><span class="mb tally">集計中</span></dt><dd>採点を締め切って、結果をまとめている期間です。この間は、点数・☆・ひとこと・予想の入力と変更ができません(自分の平均点やランキングは見られます)。全体表はまだ見えません。</dd>
+      <dt><span class="mb watch">Party Watch</span></dt><dd>ランキング動画が公開された状態です。動画のリンク・みんなの全体表・みんなのひとこと(リアクションもできます)・予想ゲームの結果が見られます。点数の変更はできません。</dd>
     </dl>
   </div>
   <div class="panel about" id="staffBox" hidden><h3 class="sub">運営のX</h3>
     <div id="staffList" class="ppl"></div>
   </div>
   <div class="panel about"><h3 class="sub">メニューの使い方</h3>
-    <p>画面右上の「三本線」を押すとメニューが開きます。ユーザー名や合言葉の変更、参加者の一覧、過去のParty Rank(ランキング動画)の閲覧ができます。</p>
+    <p>画面右上の「三本線」を押すとメニューが開きます。プロフィール(アイコン・自己紹介・ユーザー名)、称号コレクション、予想ゲーム、相性診断、合言葉の変更、参加者の一覧、過去のParty Rank(ランキング動画)の閲覧ができます。</p>
   </div>
 </section>
 
@@ -245,9 +245,6 @@
   <h2>プロフィール</h2>
   <div class="panel pfcard" id="pfCard"></div>
   <div id="pfEdit" hidden>
-    <h3 class="sub">称号コレクション</h3>
-    <p class="hint">獲得した称号は、ここから1つ選んで名前の下に表示できます。まだ獲得していない称号は「？？？」と表示され、条件は獲得するまで分かりません。</p>
-    <div class="panel" id="ttlBox"></div>
     <h3 class="sub">プロフィールを編集</h3>
     <p class="hint">自己紹介とXのリンクは、このサイトに参加している誰でも見られます。</p>
     <form class="panel" id="pfForm">
@@ -280,6 +277,26 @@
     </div>
     <div class="bar"><button type="button" id="pfPw">パスワード(合言葉)の再設定</button></div>
   </div>
+</section>
+
+<section class="view" id="v-titles" hidden>
+  <h2>称号コレクション</h2>
+  <p class="hint">獲得した称号は、ここから1つ選んで名前の下に表示できます。まだ獲得していない称号は「？？？」と表示され、条件は獲得するまで分かりません。</p>
+  <div class="panel" id="ttlBox"></div>
+  <div class="bar"><button type="button" id="ttlBack">戻る</button></div>
+</section>
+
+<section class="view" id="v-predict" hidden>
+  <h2>トップ3 &amp; ワースト3 予想ゲーム</h2>
+  <label class="blk" style="max-width:340px">ランキング<select id="predKey"></select></label>
+  <div id="predBox" class="panel" style="margin-top:10px"></div>
+  <div class="bar"><button type="button" id="predBack">戻る</button></div>
+</section>
+
+<section class="view" id="v-adtitles" hidden>
+  <h2>称号の一覧と獲得条件(管理者用)</h2>
+  <p class="hint">すべての称号と、獲得条件です。一般ユーザーには、獲得した称号の条件だけが見えます。「獲得者」は、獲得したユーザーの人数です。</p>
+  <div class="panel" id="adTtl"></div>
 </section>
 
 <section class="view" id="v-compat" hidden>
@@ -385,6 +402,14 @@
     <p class="hint" style="margin:8px 0 0;text-align:center">スマホでは、画像を長押しして保存することもできます。</p></div>
 </div>
 <div class="savestate" id="saveState" role="status" hidden></div>
+<div class="ttlpop" id="ttlPop" role="dialog" aria-modal="true" aria-labelledby="ttlPopH" hidden>
+  <div class="ttlpop-box">
+    <div class="ttlpop-spark" aria-hidden="true">✨</div>
+    <h3 id="ttlPopH">新たな称号を獲得しました!</h3>
+    <div id="ttlPopList"></div>
+    <button type="button" class="pri" id="ttlPopOk">やったー!</button>
+  </div>
+</div>
 <div class="bootmsg" id="bootMsg" role="status" hidden>サーバーを起動しています。1分ほどお待ちください…</div>
 <div class="toast" id="toast" role="status"></div>
 <script src="/phrase.js"></script>
