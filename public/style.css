@@ -591,8 +591,8 @@ a.avl{display:inline-block}
 .tt-yonkan{--g:#ffd24a;background:conic-gradient(from 45deg,#e63946,#ffd24a,#2a9d8f,#4361ee,#e63946);color:#fff;border:3px double #fff;font-size:14px;letter-spacing:.06em;text-shadow:0 0 4px #000,0 1px 3px #000}
 .tt-shiki{--g:#ffb6c1;background:linear-gradient(90deg,#ffc2d6 0 25%,#9be39b 25% 50%,#7ad1ff 50%,#ffb36b 75%);color:#2a2a2a;border:3px double #fff;font-size:14px;text-shadow:0 0 3px #fff}
 .tt-rensen{background:linear-gradient(135deg,#ff6a00,#ff2d2d);color:#fff;border:2px solid #ffd24a;box-shadow:0 0 8px #ff6a00;text-shadow:0 1px 2px #0008}
-.tt-konami{--g:#7df9ff;background:#0b0b2a;color:#7df9ff;border:3px double #7df9ff;font-family:monospace;font-size:14px;letter-spacing:.06em;animation:ttGlow 1.8s infinite;text-shadow:0 0 6px #7df9ff}
-.tt-revkonami{background:#2a0b0b;color:#ff9a7d;border:2px solid #ff9a7d;font-family:monospace;letter-spacing:.04em;text-shadow:0 0 5px #ff5a2d}
+.tt-ping{background:#0b1a2a;color:#7dffb0;border:2px solid #7dffb0;font-family:monospace;border-radius:4px;text-shadow:0 0 4px #00ff88}
+.tt-traceroute{--g:#7df9ff;background:linear-gradient(135deg,#0b0b2a,#12305a);color:#9fe8ff;border:3px double #7df9ff;font-family:monospace;font-size:14px;letter-spacing:.04em;text-shadow:0 0 5px #7df9ff}
 .tt-hadouken{background:radial-gradient(circle at 15% 50%,#fff 0 4px,#7de0ff 5px 10px,transparent 11px),linear-gradient(90deg,#0b3d91,#2d7be0);color:#fff;border:2px solid #7de0ff;text-shadow:0 1px 2px #000}
 .tt-shoryuken{background:linear-gradient(135deg,#c1121f,#ff7a18);color:#fff;border:2px solid #ffd24a;text-shadow:0 1px 2px #000}
 .tt-typeparty{background:linear-gradient(135deg,#ff9ff3,#feca57,#48dbfb);color:#222;border:2px solid #fff;box-shadow:0 0 0 2px #ff9ff3}
@@ -616,3 +616,20 @@ a.avl{display:inline-block}
 .stline{width:100%;max-width:440px;height:auto}.stgrid{stroke:var(--line);stroke-width:1}.stlab{fill:var(--sub);font-size:10px}.stl1{fill:none;stroke:var(--acc);stroke-width:2.5}.stl2{fill:none;stroke:var(--acc2);stroke-width:2;stroke-dasharray:4 3}.stdot{fill:var(--acc)}
 .stkeys{list-style:none;padding:0;margin:8px 0}.stkeys li{display:flex;gap:8px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.stkeys li span:first-child{flex:1}
 .stlist{padding-left:22px;margin:4px 0}.stlist li{margin:3px 0}
+
+/* 管理者の称号一覧 */
+.adtt .r{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px 0}
+.adtt .r .rmeta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px}
+.adtt .r .ttdesc{font-size:14px}
+@media(max-width:620px){.adtt .r .ttdesc{grid-column:auto;order:0}}
+/* 全体表のGreen/Red集計 */
+.mx td.gcnt{color:#0a9d4f;font-weight:800}.mx td.rcnt{color:#e0102a;font-weight:800}
+:root[data-theme="dark"] .mx td.gcnt{color:#5dffa4}:root[data-theme="dark"] .mx td.rcnt{color:#ff6b7a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mx td.gcnt{color:#5dffa4}:root:not([data-theme="light"]) .mx td.rcnt{color:#ff6b7a}}
+/* プロフィール: 装備中の称号を大きく、ほかは小さく */
+.pfname .ttw .ttl{font-size:17px;padding:5px 18px 5px 12px;margin-top:6px;box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--acc2)}
+.pfttw{gap:4px}.pfttw .ttl{font-size:10.5px;padding:1px 8px 1px 5px;border-width:1px;gap:3px;margin-top:0;box-shadow:none;animation:none}
+.pfttw .ttl::before,.pfttw .ttl::after{display:none}
+.pfname .ttw .ttl{font-size:15px;white-space:normal;line-height:1.3}
+
+.plain{padding-left:20px;margin:6px 0}.plain li{margin:6px 0}
