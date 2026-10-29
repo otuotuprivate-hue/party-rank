@@ -526,3 +526,39 @@ a.avl{display:inline-block}
 .tt-power{background:linear-gradient(135deg,#2a0000,#8a0010 30%,#ff3b1f 50%,#8a0010 70%,#2a0000);color:#ffe9a8;border:3px double #ffd24a;font-size:15px;font-weight:900;letter-spacing:.18em;padding:4px 18px 4px 12px;animation:ttPow 1.6s infinite;text-shadow:0 0 6px #ff9a00,0 2px 2px #000}
 .tt-power .tti{filter:drop-shadow(0 0 4px #ffd24a);font-size:1.3em}
 .tt-power::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,235,160,.8) 50%,transparent 65%);background-size:60% 100%;background-repeat:no-repeat;animation:ttShine 2.2s infinite;pointer-events:none}
+
+/* ===== 全体表 Green / Red ===== */
+.mx td.gmax{color:#0a9d4f;font-weight:800;text-shadow:0 0 6px rgba(20,200,100,.75)}
+.mx td.gmin{color:#e0102a;font-weight:800;text-shadow:0 0 6px rgba(255,40,60,.7)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mx td.gmax{color:#5dffa4;text-shadow:0 0 8px rgba(60,255,150,.9)}:root:not([data-theme="light"]) .mx td.gmin{color:#ff6b7a;text-shadow:0 0 8px rgba(255,60,80,.9)}}
+:root[data-theme="dark"] .mx td.gmax{color:#5dffa4;text-shadow:0 0 8px rgba(60,255,150,.9)}
+:root[data-theme="dark"] .mx td.gmin{color:#ff6b7a;text-shadow:0 0 8px rgba(255,60,80,.9)}
+.tulist{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0}.tuit{font-size:14px;white-space:nowrap}
+
+/* ===== 称号(第4弾) ===== */
+@keyframes ttSpark{0%,100%{box-shadow:0 0 5px #b9a8ff,0 0 0 1px #b9a8ff}50%{box-shadow:0 0 14px #e8e4ff,0 0 0 1px #fff}}
+.tt-constellation{--g:#b9a8ff;border:2px solid #cfc4ff;animation:ttSpark 2.6s infinite;text-shadow:0 0 5px #b9a8ff}
+.tt-constellation::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.75) 50%,transparent 65%);background-size:60% 100%;background-repeat:no-repeat;animation:ttShine 2.6s infinite;pointer-events:none}
+.tt-funeoriro{background:repeating-linear-gradient(180deg,#0b3d6b 0 6px,#0f4f8a 6px 12px);color:#fff;border:2px solid #ffd24a;text-shadow:0 1px 2px #000,0 0 3px #000}
+.tt-lost{background:#f1f2f5;color:#555;border:1px dashed #999;font-family:monospace}
+.tt-maxname{background:#fff;color:#222;border:2px solid #222;font-family:monospace;letter-spacing:.05em}
+.tt-burst{background:linear-gradient(135deg,#ffe600,#ff9500);color:#3a1f00;border:2px solid #fff;box-shadow:0 0 0 2px #ff9500,0 0 10px #ffb000;text-shadow:0 1px 0 #fff8}
+.tt-dawn{background:linear-gradient(180deg,#0b1030,#1d2a6b);color:#dfe6ff;border:2px solid #5a6fd6}
+.tt-resizer{background:#eef2f7;color:#2c3e50;border:2px dashed #7f8c9a}
+.tt-devtools{background:#1e1e1e;color:#9cdcfe;border:2px solid #3c3c3c;font-family:monospace;border-radius:4px}
+.tt-offline{background:repeating-linear-gradient(45deg,#e9e9ee 0 6px,#d7d7de 6px 12px);color:#555;border:2px solid #aaa;font-style:italic}
+.tt-relog{background:#fff7e0;color:#6a4a00;border:2px solid #e0b030}
+.tt-infloop{--g:#7df9ff;background:conic-gradient(from 0deg,#6a00ff,#00c8ff,#00ff9d,#ffe600,#ff3b8d,#6a00ff);color:#fff;border:3px double #fff;font-size:14px;letter-spacing:.08em;animation:ttGlow 1.6s infinite;text-shadow:0 0 4px #000,0 1px 3px #000,0 0 3px #000}
+.tt-infloop .tti{animation:spin 2s linear infinite;display:inline-block}
+.tt-qa{--g:#ffd24a;background:linear-gradient(135deg,#0d1b0f,#0b3a1c 40%,#0d1b0f);color:#b9ffcf;border:3px double #ffd24a;font-size:15px;font-weight:900;letter-spacing:.14em;padding:4px 18px 4px 12px;animation:ttGlow 1.5s infinite;text-shadow:0 0 6px #00ff88,0 1px 2px #000;font-family:monospace}
+.tt-qa::before,.tt-infloop::before,.tt-funeoriro::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.65) 50%,transparent 65%);background-size:60% 100%;background-repeat:no-repeat;animation:ttShine 2.4s infinite;pointer-events:none}
+.tt-funeoriro::before{display:none}
+.tt-halloween{background:linear-gradient(135deg,#ff7a00,#c24d00);color:#2a1200;border:2px solid #2a1200;text-shadow:0 1px 0 #ffd9a8}
+.tt-xmas{background:linear-gradient(135deg,#0a6b2e,#c1121f);color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #0a6b2e}
+.tt-newyear{background:linear-gradient(135deg,#fff,#ffe9e9);color:#c1121f;border:2px solid #c1121f;box-shadow:inset 0 0 0 2px #ffd24a}
+.tt-tanabata{background:linear-gradient(135deg,#1b2a6b,#6a4fd6);color:#fff7c2;border:2px solid #ffe27a}
+.tt-pocky{background:linear-gradient(135deg,#4a2a1a,#7a4a2a);color:#fff;border:2px solid #ffd9c2;text-shadow:0 1px 2px #000}
+.tt-zorome{background:linear-gradient(135deg,#fff,#e6f0ff);color:#0b3d91;border:2px solid #0b3d91;font-family:monospace;letter-spacing:.06em}
+.tt-kaibun{background:linear-gradient(90deg,#d0e8ff 0 50%,#ffd6e5 50%);color:#222;border:2px solid #555}
+.tt-lucky77{background:linear-gradient(135deg,#ffd24a,#ff4d6d);color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #ff4d6d;text-shadow:0 1px 2px #0008}
+.tt-pittari{background:linear-gradient(135deg,#ff3b3b,#ff8a00);color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #ff3b3b;text-shadow:0 1px 2px #0008}

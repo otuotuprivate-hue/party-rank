@@ -133,6 +133,11 @@
       <label class="m"><input type="checkbox" id="desc"> 順位の低い順に並べる(順位発表用)</label>
     </div>
     <p class="hint" id="mvHint" hidden style="margin:4px 0">各ユーザーの下の ◀ ▶ で、列の順番を変えられます(CSV・動画用データにも、この順番で出力されます)。<button id="exReset" type="button" class="sec">名前順に戻す</button></p>
+    <details class="panel" id="tuBox" hidden style="margin:8px 0"><summary><b>全体表に反映するユーザーを選ぶ</b> <span class="m" id="tuSum"></span></summary>
+      <p class="hint" style="margin:6px 0">チェックを外したユーザーは、この区分の全体表・平均点・CSV・動画用データに入りません(一般公開後の全体表にも反映されます)。点数のデータは消えません。</p>
+      <div class="bar"><button type="button" id="tuAll" class="sec">すべて選ぶ</button><button type="button" id="tuNone" class="sec">すべて外す</button></div>
+      <div id="tuList" class="tulist"></div>
+      <div class="bar"><button type="button" id="tuSave" class="pri">この内容で反映する</button><span class="m" id="tuMsg"></span></div></details>
     <div id="matrix"></div>
     <details class="panel" id="cmBox" hidden style="margin-top:12px"><summary id="cmSum"></summary><div id="cmList" style="margin-top:8px"></div></details>
   </div>
@@ -153,26 +158,28 @@
   </div>
   <div class="panel about"><h3 class="sub">遊び方</h3>
     <ol class="steps">
-      <li><b>名前を入れてログイン</b><span>ホームで名前を入力します。はじめての名前は、そのまま新規登録になります。合言葉(任意)を決めておくと、別の端末からでも同じ名前で続きを採点できます。</span></li>
+      <li><b>名前を入れてログイン</b><span>ホームで名前を入力します。はじめての名前は、そのまま新規登録になります。<b>新規登録のつもりなのに合言葉を求められたら、その名前はすでに使われています</b>ので、別の名前にしてください。合言葉(任意)を決めておくと、別の端末からでも同じ名前で続きを採点できます。</span></li>
       <li><b>曲に点数を付ける</b><span>年・クール・種別(OP / ED など)ごとの曲リストに、0〜10点を付けます。付けた点数からあなた自身のランキングができます。</span></li>
       <li><b>☆を1曲だけ付ける</b><span>各クールで、いちばん推したい曲に☆を1つ付けられます。</span></li>
-      <li><b>予想ゲームで遊ぶ</b><span>メニューの「予想ゲーム」で、トップ3とワースト3を予想できます(集計中になるまで)。当たると称号がもらえることも。</span></li>
-      <li><b>結果発表をみんなで見る</b><span>全員の点数の平均で、曲の順位が決まります。結果はランキング動画で発表され、動画の公開後はこのサイトでも全体表が見られます。</span></li>
+      <li><b>予想ゲームで遊ぶ</b><span>メニューの「予想ゲーム」で、トップ3とワースト3を予想できます。Party Rankの間は何度でも出し直せて、集計中も出せます(集計中の提出は一度限りで、変更できません)。結果は公開後に発表されます。</span></li>
+      <li><b>称号を集める</b><span>参加のしかたや採点のくせ、サイトの使い方に応じて、全部で120個の称号がもらえます。「称号コレクション」やプロフィールで、好きな称号を名前の横にセットできます。獲得条件は、手に入れた人だけが見られます。</span></li>
+      <li><b>みんなと見比べる</b><span>「相性診断」で、点数のつけ方が近い人が分かります。公開後は、ひとことにリアクションを送れます。</span></li>
+      <li><b>結果発表をみんなで見る</b><span>全員の点数の平均で、曲の順位が決まります。結果はランキング動画で発表され、動画の公開後はこのサイトでも全体表が見られます。全体表では、各曲でいちばん高い点数が<b style="color:#0a9d4f">緑</b>、いちばん低い点数が<b style="color:#e0102a">赤</b>に光ります(同点の人はどちらも光ります)。</span></li>
     </ol>
   </div>
   <div class="panel about"><h3 class="sub">開催のモード</h3>
     <dl class="modes">
       <dt><span class="mb">通常</span></dt><dd>Party Rankの開催前です。「開催をお待ちください」と表示されます。</dd>
-      <dt><span class="mb rank">Party Rank</span></dt><dd>採点の受付中から開催中までの期間です。点数・☆・ひとこと・予想ゲームの入力と変更ができます。結果発表まで、みんなの全体表は見えません。</dd>
-      <dt><span class="mb tally">集計中</span></dt><dd>採点を締め切って、結果をまとめている期間です。この間は、点数・☆・ひとこと・予想の入力と変更ができません(自分の平均点やランキングは見られます)。全体表はまだ見えません。</dd>
-      <dt><span class="mb watch">Party Watch</span></dt><dd>ランキング動画が公開された状態です。動画のリンク・みんなの全体表・みんなのひとこと(リアクションもできます)・予想ゲームの結果が見られます。点数の変更はできません。</dd>
+      <dt><span class="mb rank">Party Rank</span></dt><dd>採点の受付中から開催中までの期間です。点数・☆・ひとこと・予想ゲームの入力と変更ができます(予想は何度でも出し直せます)。結果発表まで、みんなの全体表は見えません。</dd>
+      <dt><span class="mb tally">集計中</span></dt><dd>採点を締め切って、結果をまとめている期間です。この間は、点数・☆・ひとことの入力と変更ができません(自分の平均点やランキングは見られます)。予想ゲームは、集計中も一度だけ提出できます(提出後の変更はできません)。全体表はまだ見えません。</dd>
+      <dt><span class="mb watch">Party Watch</span></dt><dd>ランキング動画が公開された状態です。動画のリンク・みんなの全体表・みんなのひとこと(リアクションもできます)・予想ゲームの結果が見られます。点数の変更や予想の提出はできません。</dd>
     </dl>
   </div>
   <div class="panel about" id="staffBox" hidden><h3 class="sub">運営のX</h3>
     <div id="staffList" class="ppl"></div>
   </div>
   <div class="panel about"><h3 class="sub">メニューの使い方</h3>
-    <p>画面右上の「三本線」を押すとメニューが開きます。プロフィール(アイコン・自己紹介・ユーザー名)、称号コレクション、予想ゲーム、相性診断、合言葉の変更、参加者の一覧、過去のParty Rank(ランキング動画)の閲覧ができます。</p>
+    <p>画面右上の「三本線」を押すとメニューが開きます。プロフィール(アイコン・自己紹介・Xのリンク・装備する称号)、称号コレクション、予想ゲーム、相性診断、合言葉の変更、参加者の一覧、過去のParty Rank(ランキング動画)の閲覧ができます。トップ以外の画面では、左上の「‹ 戻る」で、ひとつ前の画面に戻れます。</p>
   </div>
 </section>
 

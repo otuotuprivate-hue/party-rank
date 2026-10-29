@@ -360,8 +360,26 @@
       list.appendChild(card);
     });
   }
+  var TUSEL = null, TUKEY = '';
+  function renderTU() {
+    var box = $('tuBox'); box.hidden = !(atoken && TABLE && TABLE.cand); if (box.hidden) return;
+    if (TUKEY !== TABLE.key || !TUSEL) { TUKEY = TABLE.key; TUSEL = {}; TABLE.cand.forEach(function (c) { TUSEL[c.id] = c.on; }); }
+    var n = TABLE.cand.filter(function (c) { return TUSEL[c.id]; }).length; $('tuSum').textContent = '(' + n + '/' + TABLE.cand.length + '人を反映中)';
+    var l = $('tuList'); if (l.dataset.k === TUKEY + ':' + TABLE.cand.length) return; l.dataset.k = TUKEY + ':' + TABLE.cand.length; l.textContent = '';
+    TABLE.cand.forEach(function (c) {
+      var lb = el('label', 'tuit'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!TUSEL[c.id]; cb.dataset.id = c.id;
+      cb.onchange = function () { TUSEL[c.id] = cb.checked; }; lb.appendChild(cb); lb.appendChild(document.createTextNode(' ' + c.name)); l.appendChild(lb);
+    });
+  }
+  function tuSetAll(v) { if (!TABLE || !TABLE.cand) return; TABLE.cand.forEach(function (c) { TUSEL[c.id] = v; }); $('tuList').querySelectorAll('input').forEach(function (i) { i.checked = v; }); }
+  $('tuAll').onclick = function () { tuSetAll(true); }; $('tuNone').onclick = function () { tuSetAll(false); };
+  $('tuSave').onclick = async function () {
+    if (!TABLE) return; var ids = TABLE.cand.filter(function (c) { return TUSEL[c.id]; }).map(function (c) { return c.id; }); $('tuMsg').textContent = '';
+    try { TABLE = await api('PUT', '/api/admin/table-users', { key: TABLE.key, ids: ids }, atoken); TSIG = JSON.stringify(TABLE); TUSEL = null; $('tuList').dataset.k = ''; renderMatrix(); toast('全体表に反映しました'); }
+    catch (e) { adminError(e, '反映できませんでした'); }
+  };
   function renderMatrix() {
-    $('adminSec').hidden = !TABLE; $('exBar').hidden = !atoken; $('mvHint').hidden = !atoken; if (!TABLE) return;
+    $('adminSec').hidden = !TABLE; $('exBar').hidden = !atoken; $('mvHint').hidden = !atoken; if (!TABLE) { $('tuBox').hidden = true; return; } renderTU();
     var t = TABLE, box = $('matrix'); box.textContent = ''; $('cmBox').hidden = true;
     $('mh').textContent = (atoken ? '全ユーザー一覧 ' : '全体表 ') + t.label;
     if (!t.rows.length || !t.people.length) { box.appendChild(el('div', 'empty', 'この区分の曲か、採点したユーザーがまだいません。')); return; }
@@ -402,12 +420,13 @@
       return (va - vb) * SORT.dir || a.i - b.i;
     });
     rowsS.forEach(function (x) {
-      var r = x.r, tr = el('tr', r.rank === 1 ? 'top' : '');
+      var r = x.r, tr = el('tr', r.rank === 1 ? 'top' : ''), svals = t.people.map(function (u) { return r.scores[u.id]; }).filter(function (v) { return typeof v === 'number'; }), smax = Math.max.apply(null, svals), smin = Math.min.apply(null, svals), grOn = svals.length >= 2 && smax !== smin;
       tr.appendChild(el('td', 'c1', r.rank == null ? '–' : r.rank));
       var c2 = el('td', 'c2', r.title); c2.appendChild(el('small', '', [r.artist, r.anime].filter(Boolean).join(' / '))); tr.appendChild(c2);
       t.people.forEach(function (u) {
         var v = r.scores[u.id], td = el('td', '', typeof v === 'number' ? v.toFixed(1) : '–');
         if (typeof v === 'number') td.style.background = 'color-mix(in srgb, var(--acc) ' + Math.round(v * 7) + '%, var(--card))';
+        if (grOn && v === smax) td.className = 'gmax'; else if (grOn && v === smin) td.className = 'gmin';
         if (r.starBy.indexOf(u.id) >= 0) td.appendChild(el('span', 'gold', ' ★'));
         if (r.comments && r.comments[u.id]) { var mk = el('span', 'cmk', ' ✎'); mk.title = r.comments[u.id]; td.appendChild(mk); }
         tr.appendChild(td);
@@ -526,10 +545,13 @@
       g.fillStyle = r.rank === 1 ? '#f5b800' : '#6b6a8a'; g.font = '400 18px ' + DF; g.textAlign = 'center'; g.fillText(r.rank == null ? '–' : String(r.rank), x0 + C1 / 2, y + RH / 2 + 1);
       g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#1c1b3a'; g.fillText(fitText(g, r.title, C2 - 12, 14, 800, 10), x0 + C1 + 8, y + 19);
       var sub = [r.artist, r.anime].filter(Boolean).join(' / '); if (sub) { g.fillStyle = '#6b6a8a'; g.fillText(fitText(g, sub, C2 - 12, 11, 500, 9), x0 + C1 + 8, y + 35); }
+      var iv = t.people.map(function (u) { return r.scores[u.id]; }).filter(function (v) { return typeof v === 'number'; }), imx = Math.max.apply(null, iv), imn = Math.min.apply(null, iv), igr = iv.length >= 2 && imx !== imn;
       t.people.forEach(function (u, j) {
         var v = r.scores[u.id], cx = x0 + C1 + C2 + j * per;
         if (typeof v === 'number') { var pc = v * 0.07; g.fillStyle = 'rgb(' + Math.round(255 - 31 * pc) + ',' + Math.round(255 - 207 * pc) + ',' + Math.round(255 - 144 * pc) + ')'; g.fillRect(cx + 2, y + 3, per - 4, RH - 6); }
-        g.fillStyle = '#1c1b3a'; g.font = '700 14px ' + FF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(typeof v === 'number' ? v.toFixed(1) : '–', cx + per / 2 - (r.starBy.indexOf(u.id) >= 0 ? 5 : 0), y + RH / 2 + 1);
+        var gc = igr && v === imx ? '#0a9d4f' : igr && v === imn ? '#e0102a' : null;
+        g.fillStyle = gc || '#1c1b3a'; g.font = (gc ? '800 15px ' : '700 14px ') + FF; g.textAlign = 'center'; g.textBaseline = 'middle'; if (gc) { g.shadowColor = gc; g.shadowBlur = 6; }
+        g.fillText(typeof v === 'number' ? v.toFixed(1) : '–', cx + per / 2 - (r.starBy.indexOf(u.id) >= 0 ? 5 : 0), y + RH / 2 + 1); g.shadowBlur = 0; g.shadowColor = 'transparent';
         if (r.starBy.indexOf(u.id) >= 0) { g.fillStyle = '#f5b800'; g.fillText('★', cx + per - 11, y + RH / 2 + 1); }
       });
       g.fillStyle = '#1c1b3a'; g.font = '800 15px ' + FF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(f2(r.avg), x0 + tw - CA / 2, y + RH / 2 + 1);
@@ -565,11 +587,12 @@
     e.preventDefault(); $('jmsg').textContent = '';
     try {
       var r = await api('POST', '/api/join', { name: $('jn').value, pass: $('jp').value });
-      ptoken = r.token; store('pr-token', ptoken); $('jp').value = ''; $('jn').value = ''; await loadMe(); renderAll(); loadPart(); toast(r.name + 'さんとしてログインしました');
+      ptoken = r.token; store('pr-token', ptoken); $('jp').value = ''; $('jn').value = ''; try { var lo = Number(sessionStorage.getItem('pr-lo') || 0); if (lo && Date.now() - lo <= 60000) sendEvent('relog'); sessionStorage.removeItem('pr-lo'); } catch (e2) {} await loadMe(); renderAll(); loadPart(); toast(r.name + 'さんとしてログインしました');
     } catch (err) { $('jmsg').textContent = err.message; }
   };
   $('leave').onclick = async function () {
     if (ME && !ME.hasPass && !(await confirmBox('ログアウトしますか?', '合言葉が未設定です。ログアウトすると、同じ名前でログインし直せなくなり、これまでの点数も見られなくなります。\n先に、メニューの「パスワード(合言葉)の再設定」で合言葉を決めておくことをおすすめします。', 'ログアウトする'))) return;
+    try { sessionStorage.setItem('pr-lo', String(Date.now())); } catch (e2) {}
     forget(); $('joinPanel').hidden = false; $('jn').focus(); toast('ログアウトしました');
   };
 
@@ -1005,7 +1028,7 @@
 
 
   /* ---- 称号 ---- */
-  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '💀', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', power: '⚜️', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇', pr: '📣', missionary: '⛪', reporter: '📰', indecisive: '🔀', resident: '🏠', f5: '🔄', roster: '📖', loginbonus: '🎁', weekly: '📅', regular: '🪑', veteran: '🎖️', iconmaker: '🖼️', renamer: '🏷️', reviser: '✏️', linked: '🔗', dresser: '👗', hunter: '🏹', tking: '👑', explorer: '🧭', historian: '📜', manual: '📚', compatfan: '💘', neighbor: '🏘️', follower: '🐦', photog: '📸', master: '🏯', watcher: '🎬', kind: '🕊️', ice: '🧊', dompisha: '🎯', heretic: '😈', half: '➗', round: '⭕', tasty: '🍰', mvp: '🏅', lastlove: '🥀', podium: '🏆', prophet: '🔮', oneway: '➡️', variety: '🎨', nostar: '🍃', avgbody: '⚖️', regular5: '🏁', iron: '🦾', attend: '🎓', combo: '💎', traveler: '🧳', bughunter: '🐛', debugger: '🛠️', boundary: '📐' };
+  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '💀', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', power: '⚜️',funeoriro: '🚢', lost: '🧭', maxname: '🔠', burst: '⚡', dawn: '🌃', resizer: '↔️', devtools: '🔍', offline: '📡', relog: '🔌', infloop: '♾️', qa: '🛡️', halloween: '🎃', xmas: '🎄', newyear: '🎍', tanabata: '🎋', pocky: '🍫', zorome: '🕚', kaibun: '🔁', lucky77: '7️⃣', pittari: '💯', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇', pr: '📣', missionary: '⛪', reporter: '📰', indecisive: '🔀', resident: '🏠', f5: '🔄', roster: '📖', loginbonus: '🎁', weekly: '📅', regular: '🪑', veteran: '🎖️', iconmaker: '🖼️', renamer: '🏷️', reviser: '✏️', linked: '🔗', dresser: '👗', hunter: '🏹', tking: '👑', explorer: '🧭', historian: '📜', manual: '📚', compatfan: '💘', neighbor: '🏘️', follower: '🐦', photog: '📸', master: '🏯', watcher: '🎬', kind: '🕊️', ice: '🧊', dompisha: '🎯', heretic: '😈', half: '➗', round: '⭕', tasty: '🍰', mvp: '🏅', lastlove: '🥀', podium: '🏆', prophet: '🔮', oneway: '➡️', variety: '🎨', nostar: '🍃', avgbody: '⚖️', regular5: '🏁', iron: '🦾', attend: '🎓', combo: '💎', traveler: '🧳', bughunter: '🐛', debugger: '🛠️', boundary: '📐' };
   function titleChip(id, name) { var c = el('span', 'ttl tt-' + id); c.appendChild(el('i', 'tti', TITLE_ICON[id] || '🏅')); c.appendChild(el('span', 'ttn', name)); return c; }
   var TT = null;
   async function checkTitles(quiet) {
@@ -1279,6 +1302,7 @@
     if (r !== curRoute()) { try { history.replaceState(null, '', '#/' + (r || '')); } catch (e) { location.hash = '#/' + (r || ''); } }
     Object.keys(VIEWS).forEach(function (k) { $(VIEWS[k]).hidden = k !== r; });
     renderMenu(r); $('backBtn').hidden = !r;
+    if (!soft) { var rawh = (location.hash || '').replace(/^#\/?/, '').split('/')[0]; if (rawh && !Object.prototype.hasOwnProperty.call(VIEWS, rawh)) sendEvent('lost'); }
     if (soft) return;
     window.scrollTo(0, 0); trackVisit(r);
     if (r === 'profile') renderProfile();
@@ -1303,6 +1327,12 @@
   }
   var NAVN = 0;
   window.addEventListener('hashchange', function () { NAVN++; route(false); });
+  var RSZ = 0, RSZT = 0;
+  window.addEventListener('resize', function () { clearTimeout(RSZT); RSZT = setTimeout(function () { var n = Date.now(); if (n - RSZ > 1500) { RSZ = n; sendEvent('resize'); } }, 500); });
+  document.addEventListener('keydown', function (e) { var k = (e.key || '').toLowerCase(); if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) || (e.metaKey && e.altKey && (k === 'i' || k === 'j'))) sendEvent('devtools'); });
+  var WASOFF = false;
+  window.addEventListener('offline', function () { WASOFF = true; });
+  window.addEventListener('online', function () { if (WASOFF) { WASOFF = false; sendEvent('offline'); } });
   $('backBtn').onclick = function () { if (NAVN > 0) { NAVN = Math.max(0, NAVN - 2); history.back(); } else go(''); };
   var SIG = '';
   var SIGP = '', DEFER = false;
