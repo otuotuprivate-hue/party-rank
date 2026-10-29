@@ -16,7 +16,7 @@ const KINDS = ['OP', 'ED', '挿入歌', 'キャラソン'];
 const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.com', 'embed.music.apple.com'];
 
 /* ---------- データ保存(JSONファイル) ---------- */
-let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [], torder: {}, adminLinked: false, stamps: {}, pred: {}, reacts: {}, titles: {}, counters: {} };
+let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [], torder: {}, adminLinked: false, stamps: {}, pred: {}, reacts: {}, titles: {}, counters: {}, changes: {} };
 let VER = 0;
 function save() {
   VER++;
@@ -78,6 +78,9 @@ function normX(v) {
   return 'https://x.com/' + h;
 }
 const iconAt = (u) => (u && u.icon ? u.icon.at : 0);
+const ctr = (pid) => (db.counters[pid] = db.counters[pid] || {});
+const bump = (pid, k, n = 1) => { const c = ctr(pid); c[k] = (c[k] || 0) + n; };
+const jstDay = (t) => new Date(t + 9 * 3600000).toISOString().slice(0, 10);
 const isAdminPerson = (pid) => db.admins.some((a) => a.pid === pid);
 function rankCount(pid) {
   const sk = {}; db.songs.forEach((s) => { sk[s.id] = s.key; });
@@ -292,6 +295,60 @@ const TITLE_DEFS = [
   { id: 'contrary', name: '天邪鬼', desc: '1つのランキングで全曲を採点し、各曲の全体平均との差が、平均して2.0点以上あった' },
   { id: 'founder', name: '古参', desc: 'サイトに登録した順で、10番目までに入っていた' },
   { id: 'champion', name: '推しが優勝', desc: '自分が1曲だけ最高点をつけた曲が、そのまま全体1位になった' },
+  // ---- 依頼の7個 ----
+  { id: 'pr', name: '広報担当', desc: 'このサイトへの招待(共有やコピー)を行った' },
+  { id: 'missionary', name: '宣教師', desc: 'このサイトへの招待(共有やコピー)を5回行った' },
+  { id: 'reporter', name: '記者', desc: 'お知らせのリンクを10回以上開いた' },
+  { id: 'indecisive', name: '優柔不断', desc: '1つの曲の点数を、5回以上変更した' },
+  { id: 'resident', name: 'サイトの住人', desc: 'サイトの滞在時間が、合計10時間を超えた' },
+  { id: 'f5', name: '最前管理', desc: 'ページの再読み込み(F5)を、10秒以内に5回連打した' },
+  { id: 'roster', name: '名簿の愛読者', desc: '参加者一覧のページを、20回以上開いた' },
+  // ---- サイト愛 ----
+  { id: 'loginbonus', name: 'ログインボーナス', desc: '3日連続でサイトに来た' },
+  { id: 'weekly', name: '週間皆勤', desc: '7日連続でサイトに来た' },
+  { id: 'regular', name: '常連', desc: 'サイトに来た日が、通算15日以上になった' },
+  { id: 'veteran', name: '超常連', desc: 'サイトに来た日が、通算30日以上になった' },
+  { id: 'iconmaker', name: 'アイコン職人', desc: 'アイコンを3回以上設定した' },
+  { id: 'renamer', name: '改名マニア', desc: 'ユーザー名を3回以上変更した' },
+  { id: 'reviser', name: '推敲の鬼', desc: 'プロフィールの自己紹介を、5回以上書き換えた' },
+  { id: 'linked', name: 'つながる人', desc: 'プロフィールにXのリンクを設定した' },
+  { id: 'dresser', name: '着せ替え名人', desc: '称号の装備を、5回以上変更した' },
+  { id: 'hunter', name: '称号ハンター', desc: '称号を10個獲得した' },
+  { id: 'tking', name: '称号の王様', desc: '称号を50個獲得した' },
+  { id: 'explorer', name: 'メニュー探検家', desc: 'メニューの主なページ(Party Rankとは・お知らせ・友だちを招待・過去のParty Rank・参加者一覧・プロフィール・称号コレクション・予想ゲーム・相性診断)を、すべて開いた' },
+  { id: 'historian', name: '歴史家', desc: '「過去のParty Rank」を10回以上開いた' },
+  { id: 'manual', name: '説明書の虫', desc: '「Party Rankとは」を3回以上開いた' },
+  { id: 'compatfan', name: '相性マニア', desc: '「相性診断」を10回以上開いた' },
+  { id: 'neighbor', name: 'ご近所づきあい', desc: '10人以上の、ほかのユーザーのプロフィールを見た' },
+  { id: 'follower', name: 'フォロワー', desc: 'ほかのユーザーや運営のXリンクを、5回以上開いた' },
+  { id: 'photog', name: 'フォトグラファー', desc: 'ランキング画像を20回以上保存した' },
+  { id: 'master', name: 'サイトの主', desc: 'サイトの滞在時間が、合計100時間を超えた' },
+  { id: 'watcher', name: '本編視聴者', desc: '公開されたランキング動画のリンクを、3回以上開いた' },
+  // ---- ランキング ----
+  { id: 'kind', name: '優しい世界', desc: '1つのランキングで全曲を採点し、すべての曲に5.0点以上をつけた' },
+  { id: 'ice', name: '氷河期', desc: '1つのランキングで全曲を採点し、すべての曲に5.0点以下をつけた' },
+  { id: 'dompisha', name: 'ドンピシャ', desc: '1つのランキングで、自分の点数と曲の全体平均の差が0.1点以内だった曲が、5曲以上あった' },
+  { id: 'heretic', name: '異端児', desc: '1つのランキングで、自分の点数と曲の全体平均の差が3.0点以上だった曲が、3曲以上あった' },
+  { id: 'half', name: '半点職人', desc: '1つのランキングで、x.5点(0.5点刻み)を15曲以上につけた' },
+  { id: 'round', name: 'キリ番主義', desc: '10曲以上のランキングで全曲を採点し、すべて整数の点数にした' },
+  { id: 'tasty', name: '全部おいしい', desc: '1つのランキングで全曲を採点し、すべての曲に7.0点以上をつけた' },
+  { id: 'mvp', name: '1位の立役者', desc: '全体1位になった曲に、10.0点をつけた' },
+  { id: 'lastlove', name: '最下位にも愛を', desc: '全体最下位になった曲に、8.0点以上をつけた' },
+  { id: 'podium', name: '表彰台コンプ', desc: '全体トップ3の3曲すべてに、8.0点以上をつけた' },
+  { id: 'prophet', name: '予言者', desc: '6曲以上採点し、自分のトップ3が、全体のトップ3とまったく同じ3曲だった' },
+  { id: 'oneway', name: 'ワンパターン', desc: '10曲以上のランキングで全曲を採点し、半分以上の曲に同じ点数をつけた' },
+  { id: 'variety', name: '点数のバラエティ', desc: '1つのランキングで、15種類以上の違う点数を使った' },
+  { id: 'nostar', name: '無欲', desc: '全曲を採点したランキングで、そのクールの☆を使わなかった' },
+  { id: 'avgbody', name: '平均点の化身', desc: '全曲を採点し、自分の平均点が全体平均と0.05点以内だった' },
+  { id: 'regular5', name: '完走常連', desc: '5つ以上のランキングで、全曲を採点した' },
+  { id: 'iron', name: '鉄人', desc: '10以上のランキングで、全曲を採点した' },
+  { id: 'attend', name: '皆勤賞', desc: '公開・集計済みのランキング(3つ以上)すべてで、全曲を採点した' },
+  { id: 'combo', name: 'フルコンボ', desc: '1つのランキングで、全曲の採点・全曲のひとこと・☆・予想ゲームを、すべて行った' },
+  { id: 'traveler', name: '300曲の旅人', desc: '採点した曲が、通算300曲を超えた' },
+  // ---- デバッグ ----
+  { id: 'bughunter', name: 'バグハンター', desc: '通信の不具合に遭遇しながらも、点数などの保存をやり遂げた' },
+  { id: 'debugger', name: 'デバッガー', desc: '集計中(または公開済み)の入力を、サーバーに送ろうとした(拒否されました)' },
+  { id: 'boundary', name: '境界値テスター', desc: 'ひとことをちょうど100文字、自己紹介をちょうど200文字書いた' },
 ];
 const TITLE_BY_ID = Object.fromEntries(TITLE_DEFS.map((t) => [t.id, t]));
 const RANK_TIER = (n) => (n >= 31 ? 5 : n >= 21 ? 4 : n >= 11 ? 3 : n >= 6 ? 2 : n >= 1 ? 1 : 0);
@@ -349,7 +406,7 @@ function compatOf(a, b) {
   Object.keys(a).forEach((sid) => { if (typeof b[sid] === 'number') { n++; sum += Math.abs(a[sid] - b[sid]); } });
   return n ? { n, pct: Math.max(0, Math.round((100 - (sum / n) * 10) * 10) / 10) } : { n: 0, pct: 0 };
 }
-function keyTitles(k, out) {
+function keyTitles(k, out, doneCount) {
   const T = tableOf(k), rows = T.rows, N = rows.length;
   if (!N || !T.people.length) return;
   const add = (pid, id) => { if (!out.has(pid)) out.set(pid, new Set()); out.get(pid).add(id); };
@@ -368,6 +425,31 @@ function keyTitles(k, out) {
     if (have.filter((v) => v === 7 || v === 7.5).length >= 30) add(pid, 'lucky7');
     if (have.filter((v) => v === 0).length >= 5) add(pid, 'zero');
     if (have.filter((v) => v === 10).length >= 3) add(pid, 'ten');
+    if (done) { doneCount[pid] = (doneCount[pid] || 0) + 1; }
+    if (done && Math.min(...have) >= 5) add(pid, 'kind');
+    if (done && Math.max(...have) <= 5) add(pid, 'ice');
+    if (rows.filter((r) => typeof r.scores[pid] === 'number' && Math.abs(r.scores[pid] - r.avg) <= 0.1).length >= 5) add(pid, 'dompisha');
+    if (rows.filter((r) => typeof r.scores[pid] === 'number' && Math.abs(r.scores[pid] - r.avg) >= 3).length >= 3) add(pid, 'heretic');
+    if (have.filter((v) => v % 1 !== 0).length >= 15) add(pid, 'half');
+    if (done && N >= 10 && have.every((v) => v % 1 === 0)) add(pid, 'round');
+    if (done && Math.min(...have) >= 7) add(pid, 'tasty');
+    if (done && N >= 10) { const fr = {}; have.forEach((v) => { fr[v] = (fr[v] || 0) + 1; }); if (Math.max(...Object.values(fr)) >= N / 2) add(pid, 'oneway'); }
+    if (new Set(have).size >= 15) add(pid, 'variety');
+    if (done && !rows.some((r) => r.starBy.includes(pid))) add(pid, 'nostar');
+    if (done && overall != null && Math.abs(avg - overall) <= 0.05) add(pid, 'avgbody');
+    if (done && rows.every((r) => r.comments[pid]) && rows.some((r) => r.starBy.includes(pid)) && (db.pred[k] || {})[pid]) add(pid, 'combo');
+    if (ranked.length >= 1 && ranked[0].rank === 1 && ranked.filter((r) => r.rank === 1).some((r) => r.scores[pid] === 10)) add(pid, 'mvp');
+    if (nR >= 5) {
+      const lastAvg = q3(asc[0].avg);
+      if (asc.filter((r) => q3(r.avg) === lastAvg).some((r) => r.scores[pid] >= 8)) add(pid, 'lastlove');
+      const t3 = ranked.slice(0, 3);
+      if (t3.every((r) => typeof r.scores[pid] === 'number' && r.scores[pid] >= 8)) add(pid, 'podium');
+    }
+    if (have.length >= 6 && nR >= 6 && q3(ranked[2].avg) > q3(ranked[3].avg)) {
+      const ord = rows.map((r) => ({ id: r.id, v: r.scores[pid] })).filter((x) => typeof x.v === 'number').sort((a, b) => b.v - a.v);
+      const tset = new Set(ranked.slice(0, 3).map((r) => r.id));
+      if (ord[2].v > ord[3].v && ord.slice(0, 3).every((x) => tset.has(x.id))) add(pid, 'prophet');
+    }
     if (done && avg <= 4) add(pid, 'harsh');
     if (done && N >= 10 && Math.max(...have) - Math.min(...have) <= 2) add(pid, 'steady');
     if (have.includes(0) && have.includes(10)) add(pid, 'extreme');
@@ -422,7 +504,8 @@ let emVer = -1, emMemo = null;
 function computeEarned() {
   if (emVer === VER && emMemo) return emMemo;
   const out = new Map(), fk = allKeys().filter(frozen);
-  fk.forEach((k) => keyTitles(k, out));
+  const doneCount = {};
+  fk.forEach((k) => keyTitles(k, out, doneCount));
   // なろう系(凍結済みランキング全体で数える)
   const isk = /異世界|転生/;
   db.people.forEach((u) => {
@@ -447,6 +530,38 @@ function computeEarned() {
     if ((rxOut[u.id] || 0) >= 30) set.add('ambassador');
     if (Object.keys(db.stamps[u.id] || {}).filter((sid) => { const h = new Date(db.stamps[u.id][sid] + 9 * 3600000).getUTCHours(); return h < 5; }).length >= 10) set.add('night');
     if (db.people.indexOf(u) < 10) set.add('founder');
+    { // 行動の記録による称号
+      const cc = c, dc = doneCount[u.id] || 0, days = Object.keys(cc.days || {}).sort(), v = cc.visits || {};
+      if ((cc.invite || 0) >= 1) set.add('pr'); if ((cc.invite || 0) >= 5) set.add('missionary');
+      if ((cc.news || 0) >= 10) set.add('reporter');
+      if (Object.values(db.changes[u.id] || {}).some((n) => n >= 5)) set.add('indecisive');
+      if ((cc.stay || 0) > 36000) set.add('resident'); if ((cc.stay || 0) > 360000) set.add('master');
+      if ((cc.f5 || 0) >= 1) set.add('f5');
+      if ((v.people || 0) >= 20) set.add('roster');
+      let run = 0, best = 0, prev = null;
+      days.forEach((d) => { const t = Date.parse(d + 'T00:00:00Z'); run = prev != null && t - prev === 86400000 ? run + 1 : 1; prev = t; if (run > best) best = run; });
+      if (best >= 3) set.add('loginbonus'); if (best >= 7) set.add('weekly');
+      if (days.length >= 15) set.add('regular'); if (days.length >= 30) set.add('veteran');
+      if ((cc.iconset || 0) >= 3) set.add('iconmaker');
+      if ((cc.rename || 0) >= 3) set.add('renamer');
+      if ((cc.bioedit || 0) >= 5) set.add('reviser');
+      if (u.x) set.add('linked');
+      if ((cc.equip || 0) >= 5) set.add('dresser');
+      if (['about', 'notices', 'invite', 'pasts', 'people', 'profile', 'titles', 'predict', 'compat'].every((r) => (v[r] || 0) >= 1)) set.add('explorer');
+      if ((v.pasts || 0) >= 10) set.add('historian');
+      if ((v.about || 0) >= 3) set.add('manual');
+      if ((v.compat || 0) >= 10) set.add('compatfan');
+      if (Object.keys(cc.profiles || {}).filter((id) => db.people.some((x) => x.id === id)).length >= 10) set.add('neighbor');
+      if ((cc.xclick || 0) >= 5) set.add('follower');
+      if ((cc.imgsave || 0) >= 20) set.add('photog');
+      if ((cc.watchclick || 0) >= 3) set.add('watcher');
+      if (dc >= 5) set.add('regular5'); if (dc >= 10) set.add('iron');
+      if (fk.length >= 3 && dc === fk.length) set.add('attend');
+      if (Object.keys(db.scores[u.id] || {}).filter((sid) => songIds.has(sid)).length >= 300) set.add('traveler');
+      if ((cc.bug || 0) >= 1) set.add('bughunter');
+      if ((cc.frozenTry || 0) >= 1) set.add('debugger');
+      if (Object.keys(db.comments[u.id] || {}).some((sid) => Array.from(db.comments[u.id][sid]).length === 100) && Array.from(u.bio || '').length === 200) set.add('boundary');
+    }
     const mine = ws.get(u.id);
     if (mine) {
       let near = 0, far = 0;
@@ -458,7 +573,7 @@ function computeEarned() {
     }
     if (set.size) out.set(u.id, set);
   });
-  out.forEach((set) => { if (set.size >= 20) set.add('collector'); });
+  out.forEach((set) => { const n = set.size; if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking'); });
   emVer = VER; emMemo = out; return out;
 }
 // 獲得した称号を保存する(一度獲得した称号は、あとから条件を外れても残る)
@@ -538,20 +653,27 @@ async function api(req, res, url) {
     if (body.id === null || body.id === '') me.equip = '';
     else if (typeof body.id === 'string' && T[body.id]) me.equip = body.id;
     else throw bad('その称号はまだ獲得していません');
+    bump(me.id, 'equip');
     save();
     return send(res, 200, { equipped: equippedOf(me) || '' });
   }
   if (p === '/api/me/event' && m === 'POST') {
     const me = person(req);
-    if (limited(req, 'ev', 60, 60000)) throw new HttpError(429, '操作が多すぎます');
-    const type = String(body.type || '');
-    if (type !== 'pastclick' && type !== 'imgsave') throw bad('種類が正しくありません');
-    const c = (db.counters[me.id] = db.counters[me.id] || {});
-    c[type] = (c[type] || 0) + 1;
-    const before = new Set(Object.keys(db.titles[me.id] || {}));
-    awardFor(me.id); save();
-    const now = db.titles[me.id] || {};
-    return send(res, 200, { ok: true, fresh: Object.keys(now).filter((id) => !before.has(id)).map((id) => TITLE_BY_ID[id].name) });
+    if (limited(req, 'ev', 300, 60000)) throw new HttpError(429, '操作が多すぎます');
+    const type = String(body.type || ''), c = ctr(me.id), now = Date.now();
+    const SIMPLE = ['pastclick', 'imgsave', 'invite', 'news', 'f5', 'bug', 'watchclick', 'xclick'];
+    if (SIMPLE.includes(type)) bump(me.id, type);
+    else if (type === 'stay') { if (!c.lastStay || now - c.lastStay >= 45000) { c.stay = (c.stay || 0) + 60; c.lastStay = now; } }
+    else if (type === 'visit') {
+      const r = String(body.r || '');
+      if (!['about', 'notices', 'invite', 'pasts', 'people', 'profile', 'titles', 'predict', 'compat'].includes(r)) throw bad('ページが正しくありません');
+      c.visits = c.visits || {}; c.visits[r] = (c.visits[r] || 0) + 1;
+    } else if (type === 'profile') {
+      const pid = String(body.id || '');
+      if (pid !== me.id && db.people.some((x) => x.id === pid)) { c.profiles = c.profiles || {}; if (Object.keys(c.profiles).length < 500) c.profiles[pid] = 1; }
+    } else throw bad('種類が正しくありません');
+    save();
+    return send(res, 200, { ok: true });
   }
   if (p === '/api/me/predict' && m === 'GET') {
     const me = person(req), key = clean(url.searchParams.get('key'), 20);
@@ -561,7 +683,7 @@ async function api(req, res, url) {
   if (p === '/api/me/predict' && m === 'PUT') {
     const me = person(req), key = clean(body.key, 20);
     if (!validKey(key)) throw bad('区分が正しくありません');
-    if (frozen(key)) throw new HttpError(403, 'このランキングは集計中(または公開済み)のため、予想を変更できません');
+    if (frozen(key)) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, 'このランキングは集計中(または公開済み)のため、予想を変更できません'); }
     const ids = new Set(db.songs.filter((x) => x.key === key).map((x) => x.id));
     const chk = (a) => Array.isArray(a) && a.length === 3 && a.every((v) => typeof v === 'string' && ids.has(v)) && new Set(a).size === 3;
     if (!chk(body.top) || !chk(body.worst)) throw bad('トップ3とワースト3を、重ならないように3曲ずつ選んでください');
@@ -633,6 +755,7 @@ async function api(req, res, url) {
     const x = normX(body.x);
     if (x === null) throw bad('Xのアカウントは、@ID か https://x.com/ID の形で入力してください(IDは英数字と_、15文字まで)');
     const bio = cleanBio(body.bio);
+    if ((me.bio || '') !== bio) bump(me.id, 'bioedit');
     if (bio) me.bio = bio; else delete me.bio;
     if (x) me.x = x; else delete me.x;
     save();
@@ -655,6 +778,7 @@ async function api(req, res, url) {
   }
   if (p === '/api/me' && m === 'GET') {
     const me = person(req);
+    { const c = ctr(me.id), d = jstDay(Date.now()); c.days = c.days || {}; if (!c.days[d]) { c.days[d] = 1; save(); } }
     return send(res, 200, { id: me.id, icon: iconAt(me), name: me.name, hasPass: !!me.hash, scores: db.scores[me.id] || {}, stars: db.stars[me.id] || {}, comments: db.comments[me.id] || {} });
   }
   if (p === '/api/me/icon' && m === 'PUT') {
@@ -667,7 +791,7 @@ async function api(req, res, url) {
     if (!kind || buf.length > 300000) throw bad('画像が正しくないか、大きすぎます(300KBまで)');
     fs.mkdirSync(ICON_DIR, { recursive: true });
     fs.writeFileSync(iconFile(me.id), buf);
-    me.icon = { ext: kind, at: Date.now() }; save();
+    me.icon = { ext: kind, at: Date.now() }; bump(me.id, 'iconset'); save();
     return send(res, 200, { icon: me.icon.at });
   }
   if (p === '/api/me/icon' && m === 'DELETE') {
@@ -680,11 +804,14 @@ async function api(req, res, url) {
     const me = person(req);
     const song = db.songs.find((s) => s.id === body.songId);
     if (!song) throw bad('曲が見つかりません');
-    if (frozen(song.key)) throw new HttpError(403, 'このランキングは集計中(または公開済み)のため、点数を変更できません');
+    if (frozen(song.key)) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, 'このランキングは集計中(または公開済み)のため、点数を変更できません'); }
     const sc = (db.scores[me.id] = db.scores[me.id] || {});
     const stp = (db.stamps[me.id] = db.stamps[me.id] || {});
     if (body.score === null) { delete sc[song.id]; delete stp[song.id]; }
-    else if (isScore(body.score)) { sc[song.id] = body.score; if (!stp[song.id]) stp[song.id] = Date.now(); }
+    else if (isScore(body.score)) {
+      if (typeof sc[song.id] === 'number' && sc[song.id] !== body.score) { const ch = (db.changes[me.id] = db.changes[me.id] || {}); ch[song.id] = (ch[song.id] || 0) + 1; }
+      sc[song.id] = body.score; if (!stp[song.id]) stp[song.id] = Date.now();
+    }
     else throw bad('点数は0〜10の0.5点刻みで指定してください');
     save();
     return send(res, 200, { ok: true });
@@ -696,13 +823,13 @@ async function api(req, res, url) {
       const c = clean(body.cour, 12);
       if (!/^\d{4}-(1|4|7|10)$/.test(c)) throw bad('クールが正しくありません');
       const cur = db.songs.find((s) => s.id === st[c]);
-      if (cur && frozen(cur.key)) throw new HttpError(403, '集計中(または公開済み)のため、☆を変更できません');
+      if (cur && frozen(cur.key)) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, '集計中(または公開済み)のため、☆を変更できません'); }
       delete st[c];
     } else {
       const song = db.songs.find((s) => s.id === body.songId);
       if (!song) throw bad('曲が見つかりません');
       const cur = db.songs.find((s) => s.id === st[courOf(song.key)]);
-      if (frozen(song.key) || (cur && frozen(cur.key))) throw new HttpError(403, '集計中(または公開済み)のため、☆を変更できません');
+      if (frozen(song.key) || (cur && frozen(cur.key))) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, '集計中(または公開済み)のため、☆を変更できません'); }
       st[courOf(song.key)] = song.id;
     }
     save();
@@ -712,7 +839,7 @@ async function api(req, res, url) {
     const me = person(req);
     const song = db.songs.find((s) => s.id === body.songId);
     if (!song) throw bad('曲が見つかりません');
-    if (frozen(song.key)) throw new HttpError(403, '集計中(または公開済み)のため、ひとことを変更できません');
+    if (frozen(song.key)) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, '集計中(または公開済み)のため、ひとことを変更できません'); }
     const text = clean(body.text, 100);
     const cm = (db.comments[me.id] = db.comments[me.id] || {});
     if (text) cm[song.id] = text; else delete cm[song.id];
@@ -727,7 +854,7 @@ async function api(req, res, url) {
     if (!pass || !checkPw(pass, me.salt, me.hash)) throw new HttpError(403, '合言葉が違います');
     if (!name) throw bad('名前を入力してください');
     if (db.people.some((x) => x.id !== me.id && x.name.toLowerCase() === name.toLowerCase())) throw new HttpError(409, 'その名前はすでに使われています');
-    me.name = name; save();
+    me.name = name; bump(me.id, 'rename'); save();
     return send(res, 200, { name });
   }
   if (p === '/api/me/password' && m === 'PUT') {
