@@ -562,3 +562,57 @@ a.avl{display:inline-block}
 .tt-kaibun{background:linear-gradient(90deg,#d0e8ff 0 50%,#ffd6e5 50%);color:#222;border:2px solid #555}
 .tt-lucky77{background:linear-gradient(135deg,#ffd24a,#ff4d6d);color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #ff4d6d;text-shadow:0 1px 2px #0008}
 .tt-pittari{background:linear-gradient(135deg,#ff3b3b,#ff8a00);color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #ff3b3b;text-shadow:0 1px 2px #0008}
+
+/* ===== 難易度が高い称号は光沢つき ===== */
+.ttl.lv3::after,.ttl.lv4::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.6) 50%,transparent 62%);background-size:60% 100%;background-repeat:no-repeat;animation:ttShine 3.4s infinite;pointer-events:none}
+.ttl.lv4::after{background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.85) 50%,transparent 65%);background-size:60% 100%;background-repeat:no-repeat;animation-duration:2.4s}
+:where(.ttl.lv4){--g:#ffd24a;animation:ttGlow 2.2s infinite}
+:where(.ttl.lv3){--g:#cfe0ff;box-shadow:0 0 6px rgba(255,255,255,.35)}
+.ttcat{margin-top:18px}.ttcat .hd{font-size:13px;font-weight:600;color:var(--sub)}
+.ttlv{font-size:12px;color:var(--sub);letter-spacing:.1em;margin:2px 0}
+/* ===== オンライン ===== */
+.onl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 10px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);cursor:pointer;width:fit-content;max-width:100%}
+.ond{display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;flex:none}
+.onav{display:inline-flex;gap:2px}
+.chip .ond{margin-right:2px}
+/* ===== 称号(第5弾) ===== */
+.tt-tenzero{background:linear-gradient(90deg,#fff3b0,#ffd0d0);color:#2a0a0a;border:2px solid #222;border-left:6px solid #e0a800;border-right:6px solid #8a0010;text-shadow:0 0 3px #fff}
+.tt-allten{--g:#ffd24a;background:linear-gradient(135deg,#ffdd55,#fff3b0 45%,#ffb800);color:#5a3200;border:3px double #fff;font-size:14px;letter-spacing:.08em;text-shadow:0 1px 0 #fff}
+.tt-allzero{background:radial-gradient(circle,#2b2b2b,#000);color:#aaa;border:2px solid #444;box-shadow:inset 0 0 10px #000;letter-spacing:.2em}
+.tt-ladder{background:linear-gradient(135deg,#d6f5dd 0 30%,#8fe0a3 30% 60%,#3ab769 60%);color:#06391a;border:2px solid #1f8a46}
+.tt-descent{background:linear-gradient(135deg,#3ab769 0 30%,#e8c46a 30% 60%,#e0614f 60%);color:#2a0d00;border:2px solid #8a2f22;text-shadow:0 0 3px #fff8}
+.tt-ichimai{background:linear-gradient(135deg,#2a2a40,#44446a);color:#fff;border:2px solid #ffe27a;box-shadow:0 0 0 2px #2a2a40,0 0 8px #ffe27a;text-shadow:0 1px 2px #000}
+.tt-sniper{background:linear-gradient(135deg,#1a2a1a,#2f4a2f);color:#d6ffd6;border:2px solid #7dff7d;text-shadow:0 1px 2px #000;box-shadow:inset 0 0 0 2px #0008}
+.tt-tragic{background:linear-gradient(135deg,#3a1f2e,#5c2b45);color:#ffd0e0;border:2px solid #b0527a}
+.tt-manjo{background:linear-gradient(135deg,#fff3b0,#ffb6c1,#b0e0ff);color:#3a2a4a;border:2px solid #fff;box-shadow:0 0 0 2px #ffb6c1}
+.tt-midpoint{background:linear-gradient(90deg,#cfe0ff 0 50%,#ffd6d6 50%);color:#222;border:3px double #444;font-size:14px}
+.tt-jackpot{--g:#ff3b3b;background:repeating-linear-gradient(90deg,#c1121f 0 14px,#ffd24a 14px 16px,#c1121f 16px 30px);color:#fff7c2;border:3px double #ffd24a;font-size:15px;font-weight:900;letter-spacing:.14em;padding:4px 18px 4px 12px;text-shadow:0 0 6px #ff0,0 2px 2px #000}
+.tt-nito{background:linear-gradient(135deg,#dfe8f5,#aab8cc);color:#16253a;border:2px solid #16253a}
+.tt-yonkan{--g:#ffd24a;background:conic-gradient(from 45deg,#e63946,#ffd24a,#2a9d8f,#4361ee,#e63946);color:#fff;border:3px double #fff;font-size:14px;letter-spacing:.06em;text-shadow:0 0 4px #000,0 1px 3px #000}
+.tt-shiki{--g:#ffb6c1;background:linear-gradient(90deg,#ffc2d6 0 25%,#9be39b 25% 50%,#7ad1ff 50%,#ffb36b 75%);color:#2a2a2a;border:3px double #fff;font-size:14px;text-shadow:0 0 3px #fff}
+.tt-rensen{background:linear-gradient(135deg,#ff6a00,#ff2d2d);color:#fff;border:2px solid #ffd24a;box-shadow:0 0 8px #ff6a00;text-shadow:0 1px 2px #0008}
+.tt-konami{--g:#7df9ff;background:#0b0b2a;color:#7df9ff;border:3px double #7df9ff;font-family:monospace;font-size:14px;letter-spacing:.06em;animation:ttGlow 1.8s infinite;text-shadow:0 0 6px #7df9ff}
+.tt-revkonami{background:#2a0b0b;color:#ff9a7d;border:2px solid #ff9a7d;font-family:monospace;letter-spacing:.04em;text-shadow:0 0 5px #ff5a2d}
+.tt-hadouken{background:radial-gradient(circle at 15% 50%,#fff 0 4px,#7de0ff 5px 10px,transparent 11px),linear-gradient(90deg,#0b3d91,#2d7be0);color:#fff;border:2px solid #7de0ff;text-shadow:0 1px 2px #000}
+.tt-shoryuken{background:linear-gradient(135deg,#c1121f,#ff7a18);color:#fff;border:2px solid #ffd24a;text-shadow:0 1px 2px #000}
+.tt-typeparty{background:linear-gradient(135deg,#ff9ff3,#feca57,#48dbfb);color:#222;border:2px solid #fff;box-shadow:0 0 0 2px #ff9ff3}
+.tt-typeanison{background:linear-gradient(135deg,#7a1fa2,#e0306f);color:#fff;border:2px solid #ffd6ff;text-shadow:0 1px 2px #0008}
+.tt-sudo{background:#111;color:#4eff4e;border:2px solid #4eff4e;font-family:monospace;border-radius:4px}
+.tt-gg{background:#f1f2f5;color:#333;border:2px solid #999;font-family:monospace}
+.tt-calltaiga{background:linear-gradient(135deg,#ff5d8f,#ff9a5d);color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #ff5d8f;text-shadow:0 1px 2px #0006}
+.tt-logo7{background:linear-gradient(135deg,#e8e6ff,#c9c5ff);color:#2a2570;border:2px solid #6b63e0}
+.tt-logohold{background:linear-gradient(135deg,#5b5bd6,#3b36c9);color:#fff;border:2px solid #cfcfff}
+.tt-ctrls{background:#e8f0ff;color:#16325c;border:2px solid #16325c;border-radius:4px;font-family:monospace}
+.tt-esc5{background:#fff;color:#222;border:2px dashed #222}
+.tt-tab20{background:linear-gradient(180deg,#f5f5f5,#d9d9d9);color:#222;border:2px solid #888;border-bottom-width:4px;border-radius:8px;font-family:monospace}
+.tt-allcmd{--g:#7df9ff;background:linear-gradient(135deg,#0b0b2a,#2a0b5a 50%,#0b0b2a);color:#e8fbff;border:3px double #7df9ff;font-size:15px;font-weight:900;letter-spacing:.14em;padding:4px 18px 4px 12px;font-family:monospace;text-shadow:0 0 8px #7df9ff,0 0 3px #ff4dff}
+
+.ttlockrow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:6px 0 4px}.lkchip{display:inline-flex;align-items:center;gap:4px}.lkchip .ttl{margin-top:0}.lkchip .ttlv{margin:0;font-size:11px}.ttlockrow .hint{flex-basis:100%;margin:0}
+
+.pftt{margin:8px 0}.pfttw{display:flex;flex-wrap:wrap;gap:6px}.pfttw .ttl{margin-top:0}
+.stsum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stc{border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;background:var(--bg)}.stc small{display:block;color:var(--sub);font-size:12px}.stc b{font-size:20px}
+.stbars{display:flex;align-items:flex-end;gap:2px;height:150px;margin:8px 0 4px}.stcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.stbar{width:100%;background:linear-gradient(180deg,var(--acc),var(--acc2));border-radius:3px 3px 0 0;min-height:1px}.stn{font-size:10px;color:var(--sub);height:14px}.stx{font-size:10px;color:var(--sub);height:14px}
+.stline{width:100%;max-width:440px;height:auto}.stgrid{stroke:var(--line);stroke-width:1}.stlab{fill:var(--sub);font-size:10px}.stl1{fill:none;stroke:var(--acc);stroke-width:2.5}.stl2{fill:none;stroke:var(--acc2);stroke-width:2;stroke-dasharray:4 3}.stdot{fill:var(--acc)}
+.stkeys{list-style:none;padding:0;margin:8px 0}.stkeys li{display:flex;gap:8px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.stkeys li span:first-child{flex:1}
+.stlist{padding-left:22px;margin:4px 0}.stlist li{margin:3px 0}

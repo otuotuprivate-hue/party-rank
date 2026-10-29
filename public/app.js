@@ -273,6 +273,7 @@
       var cl = el('div', 'pfcompat'); card.appendChild(cl);
       api('GET', '/api/me/compat', undefined, ptoken).then(function (r) { var f = r.list.filter(function (x) { return x.id === id; })[0]; cl.textContent = f ? 'あなたとの相性 ' + f.pct.toFixed(1) + '%(共通の曲 ' + f.n + '曲)' : ''; }).catch(function () {});
     }
+    if (u.titles && u.titles.length) { var tb = el('div', 'pftt'); tb.appendChild(el('div', 'hint', '獲得した称号(' + u.titles.length + '個)')); var tw = el('div', 'pfttw'); u.titles.forEach(function (t) { tw.appendChild(titleChip(t.id, t.name)); }); tb.appendChild(tw); card.appendChild(tb); }
     if (u.bio) card.appendChild(el('p', 'pfbio', u.bio));
     else if (mine) card.appendChild(el('p', 'hint', '自己紹介はまだありません。下で書いてみましょう。'));
     if (mine) {
@@ -670,6 +671,11 @@
     $('addPanel').scrollIntoView({ behavior: 'smooth', block: 'center' }); $('title').focus();
   }
   function cancelEdit() { editId = null; $('title').value = ''; $('artist').value = ''; $('anime').value = ''; $('fsub').textContent = '曲を追加'; $('fcancelBar').hidden = true; }
+  $('bulkGo').onclick = async function () {
+    $('bulkMsg').textContent = ''; var t = $('bulkText').value; if (!t.trim()) { $('bulkMsg').textContent = '曲の一覧を貼り付けてください'; return; }
+    try { var r = await api('POST', '/api/admin/songs-bulk', { key: key(), text: t }, atoken); $('bulkText').value = ''; await refresh(); $('bulkMsg').textContent = r.added + '曲を追加しました' + (r.skipped ? '(' + r.skipped + '行は、空行か重複のため追加しませんでした)' : ''); toast(r.added + '曲を追加しました'); }
+    catch (e) { adminError(e, ''); $('bulkMsg').textContent = e.message; }
+  };
   $('fcancel').onclick = cancelEdit;
   $('f').onsubmit = async function (e) {
     e.preventDefault(); var t = $('title').value.trim(); if (!t) return;
@@ -926,12 +932,30 @@
 
   /* ---- 参加者一覧 ---- */
   async function loadPart() { try { PART = await api('GET', '/api/participants'); renderParticipants(); } catch (e) {} }
+  var ONL = { count: 0, people: [] };
+  async function loadOnline() { try { ONL = await api('GET', '/api/online'); renderOnline(); if (PART && curRoute() === 'people') renderParticipants(); } catch (e) {} }
+  function renderOnline() {
+    var b = $('onl'); if (!b) return; b.textContent = '';
+    if (!ONL.count) { b.hidden = true; return; }
+    b.hidden = false; b.appendChild(el('span', 'ond', '')); b.appendChild(el('b', '', 'いまオンライン ' + ONL.count + '人'));
+    var av = el('span', 'onav'); ONL.people.slice(0, 8).forEach(function (u) { av.appendChild(avatar(u.id, u.ic, u.name, 's')); }); b.appendChild(av);
+    if (ONL.people.length > 8) b.appendChild(el('span', 'm', '+' + (ONL.people.length - 8)));
+    b.onclick = function () { go('people'); };
+  }
+  function pingNow() { if (ptoken && !document.hidden) api('POST', '/api/me/ping', {}, ptoken).catch(function () {}); }
+  setInterval(function () { pingNow(); if (!document.hidden) loadOnline(); }, 30000);
+  setTimeout(function () { pingNow(); loadOnline(); }, 1500);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { pingNow(); loadOnline(); } });
   function renderParticipants() {
     var all = $('partAll'), sel = $('partKey'); all.textContent = '';
     if (!PART) return;
     $('partTotal').textContent = '全体のユーザー(' + PART.people.length + '人)';
     if (!PART.people.length) all.appendChild(el('span', 'm', 'まだ参加者はいません。'));
-    PART.people.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); c.appendChild(uLink(u)); if (u.adm) c.appendChild(admTag()); all.appendChild(c); });
+    var onSet = {}; ONL.people.forEach(function (u) { onSet[u.id] = 1; });
+    var ob = $('partOn'); ob.textContent = ''; $('partOnBox').hidden = !ONL.count;
+    ONL.people.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); c.appendChild(uLink(u)); if (u.adm) c.appendChild(admTag()); ob.appendChild(c); });
+    $('partOnH').textContent = 'いまオンライン(' + ONL.count + '人)';
+    PART.people.forEach(function (u) { var c = el('span', 'chip hasav'); c.appendChild(avatar(u.id, u.ic, u.name, 's')); if (onSet[u.id] || u.on) c.appendChild(el('span', 'ond', '')); c.appendChild(uLink(u)); if (u.adm) c.appendChild(admTag()); all.appendChild(c); });
     function sk(k) { var p = k.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
     var keep = sel.value; sel.textContent = '';
     sel.appendChild(new Option('(ランキングを選んでください)', ''));
@@ -1028,8 +1052,9 @@
 
 
   /* ---- 称号 ---- */
-  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '💀', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', power: '⚜️',funeoriro: '🚢', lost: '🧭', maxname: '🔠', burst: '⚡', dawn: '🌃', resizer: '↔️', devtools: '🔍', offline: '📡', relog: '🔌', infloop: '♾️', qa: '🛡️', halloween: '🎃', xmas: '🎄', newyear: '🎍', tanabata: '🎋', pocky: '🍫', zorome: '🕚', kaibun: '🔁', lucky77: '7️⃣', pittari: '💯', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇', pr: '📣', missionary: '⛪', reporter: '📰', indecisive: '🔀', resident: '🏠', f5: '🔄', roster: '📖', loginbonus: '🎁', weekly: '📅', regular: '🪑', veteran: '🎖️', iconmaker: '🖼️', renamer: '🏷️', reviser: '✏️', linked: '🔗', dresser: '👗', hunter: '🏹', tking: '👑', explorer: '🧭', historian: '📜', manual: '📚', compatfan: '💘', neighbor: '🏘️', follower: '🐦', photog: '📸', master: '🏯', watcher: '🎬', kind: '🕊️', ice: '🧊', dompisha: '🎯', heretic: '😈', half: '➗', round: '⭕', tasty: '🍰', mvp: '🏅', lastlove: '🥀', podium: '🏆', prophet: '🔮', oneway: '➡️', variety: '🎨', nostar: '🍃', avgbody: '⚖️', regular5: '🏁', iron: '🦾', attend: '🎓', combo: '💎', traveler: '🧳', bughunter: '🐛', debugger: '🛠️', boundary: '📐' };
-  function titleChip(id, name) { var c = el('span', 'ttl tt-' + id); c.appendChild(el('i', 'tti', TITLE_ICON[id] || '🏅')); c.appendChild(el('span', 'ttn', name)); return c; }
+  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '💀', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', power: '⚜️', tenzero: '⚖️', allten: '💯', allzero: '🫥', ladder: '📈', descent: '📉', ichimai: '🎆', sniper: '🎯', tragic: '🥀', manjo: '👏', midpoint: '⏺️', jackpot: '🎰', nito: '⚔️', yonkan: '🗝️', shiki: '🌸', rensen: '🔥', konami: '🕹️', revkonami: '🔄', hadouken: '🌀', shoryuken: '🐉', typeparty: '🎉', typeanison: '🎤', sudo: '#️⃣', gg: '🤝', calltaiga: '📢', logo7: '👆', logohold: '⏳', ctrls: '💾', esc5: '🚪', tab20: '⌨️', allcmd: '👾',funeoriro: '🚢', lost: '🧭', maxname: '🔠', burst: '⚡', dawn: '🌃', resizer: '↔️', devtools: '🔍', offline: '📡', relog: '🔌', infloop: '♾️', qa: '🛡️', halloween: '🎃', xmas: '🎄', newyear: '🎍', tanabata: '🎋', pocky: '🍫', zorome: '🕚', kaibun: '🔁', lucky77: '7️⃣', pittari: '💯', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇', pr: '📣', missionary: '⛪', reporter: '📰', indecisive: '🔀', resident: '🏠', f5: '🔄', roster: '📖', loginbonus: '🎁', weekly: '📅', regular: '🪑', veteran: '🎖️', iconmaker: '🖼️', renamer: '🏷️', reviser: '✏️', linked: '🔗', dresser: '👗', hunter: '🏹', tking: '👑', explorer: '🧭', historian: '📜', manual: '📚', compatfan: '💘', neighbor: '🏘️', follower: '🐦', photog: '📸', master: '🏯', watcher: '🎬', kind: '🕊️', ice: '🧊', dompisha: '🎯', heretic: '😈', half: '➗', round: '⭕', tasty: '🍰', mvp: '🏅', lastlove: '🥀', podium: '🏆', prophet: '🔮', oneway: '➡️', variety: '🎨', nostar: '🍃', avgbody: '⚖️', regular5: '🏁', iron: '🦾', attend: '🎓', combo: '💎', traveler: '🧳', bughunter: '🐛', debugger: '🛠️', boundary: '📐' };
+  var TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["staff", "コレクション・特別"]], TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "bonjin": ["score", 1], "harsh": ["score", 1], "nostar": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "allten": ["score", 4], "allzero": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 2], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "yonkan": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 2], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "hadouken": ["cmd", 2], "shoryuken": ["cmd", 2], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 2], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "konami": ["cmd", 3], "revkonami": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4]};
+  function titleChip(id, name) { var mt = TITLE_META[id], c = el('span', 'ttl tt-' + id + (mt && mt[1] >= 3 ? ' lv' + mt[1] : '')); c.appendChild(el('i', 'tti', TITLE_ICON[id] || '🏅')); c.appendChild(el('span', 'ttn', name)); return c; }
   var TT = null;
   async function checkTitles(quiet) {
     if (!ptoken) { TT = null; return; }
@@ -1043,23 +1068,30 @@
       }
     } catch (e) { if (e.status === 401) return; }
   }
+  function lvStars(n) { return '★★★★'.slice(0, n) + '☆☆☆☆'.slice(0, 4 - n); }
   function renderTitleBox() {
     var box = $('ttlBox'); box.textContent = '';
     if (!TT) { box.appendChild(el('span', 'm', '読み込み中…')); return; }
-    box.appendChild(el('p', 'hint', '獲得 ' + TT.earned.length + ' / ' + TT.total + ' 個'));
-    var grid = el('div', 'ttgrid');
-    TT.earned.forEach(function (t) {
-      var card = el('div', 'ttcard' + (TT.equipped === t.id ? ' on' : '')); card.appendChild(titleChip(t.id, t.name));
-      card.appendChild(el('div', 'ttdesc', t.desc));
-      var b = el('button', TT.equipped === t.id ? '' : 'pri', TT.equipped === t.id ? '外す' : '装備する'); b.type = 'button';
-      b.onclick = async function () {
-        try { var r = await api('PUT', '/api/me/title', { id: TT.equipped === t.id ? null : t.id }, ptoken); TT.equipped = r.equipped; renderTitleBox(); }
-        catch (e) { toast(e.message); }
-      };
-      card.appendChild(b); grid.appendChild(card);
+    box.appendChild(el('p', 'hint', '獲得 ' + TT.earned.length + ' / ' + TT.total + ' 個 ・ ジャンルごとに、難しい(★が多い)称号から並んでいます'));
+    (TT.cats || TITLE_CATS).forEach(function (cg) {
+      var cat = cg[0], mine = TT.earned.filter(function (t) { return t.cat === cat; }).sort(function (a, b) { return b.lv - a.lv || a.at - b.at; }), lk = ((TT.lockedBy || {})[cat] || []).slice().sort(function (a, b) { return b - a; });
+      if (!mine.length && !lk.length) return;
+      var h = el('h3', 'sub ttcat', cg[1]); h.appendChild(el('span', 'hd', ' ' + mine.length + '/' + (mine.length + lk.length))); box.appendChild(h);
+      var grid = el('div', 'ttgrid');
+      mine.forEach(function (t) {
+        var card = el('div', 'ttcard' + (TT.equipped === t.id ? ' on' : '')); card.appendChild(titleChip(t.id, t.name));
+        card.appendChild(el('div', 'ttlv', '難易度 ' + lvStars(t.lv) + ' ・ 獲得者 ' + t.holders + '/' + TT.people + '人(' + (TT.people ? Math.max(1, Math.round(t.holders * 100 / TT.people)) : 0) + '%)'));
+        card.appendChild(el('div', 'ttdesc', t.desc));
+        var b = el('button', TT.equipped === t.id ? '' : 'pri', TT.equipped === t.id ? '外す' : '装備する'); b.type = 'button';
+        b.onclick = async function () {
+          try { var r = await api('PUT', '/api/me/title', { id: TT.equipped === t.id ? null : t.id }, ptoken); TT.equipped = r.equipped; renderTitleBox(); }
+          catch (e) { toast(e.message); }
+        };
+        card.appendChild(b); grid.appendChild(card);
+      });
+      box.appendChild(grid);
+      if (lk.length) { var lr = el('div', 'ttlockrow'); lk.forEach(function (lv) { var lc = el('span', 'lkchip'); lc.appendChild(el('span', 'ttl tt-lock', '？？？')); lc.appendChild(el('span', 'ttlv', lvStars(lv))); lr.appendChild(lc); }); lr.appendChild(el('div', 'hint', '未獲得 ' + lk.length + '個(条件は、獲得すると分かります)')); box.appendChild(lr); }
     });
-    for (var i = 0; i < TT.locked; i++) { var lc = el('div', 'ttcard lock'); lc.appendChild(el('span', 'ttl tt-lock', '？？？')); lc.appendChild(el('div', 'ttdesc', '条件は、獲得すると分かります')); grid.appendChild(lc); }
-    box.appendChild(grid);
   }
   var POPQ = [];
   function showTitlePop(list) {
@@ -1095,13 +1127,19 @@
     var box = $('adTtl'); box.textContent = '読み込み中…';
     try {
       var r = await api('GET', '/api/admin/titles', undefined, atoken); box.textContent = '';
-      var list = el('div', 'adtt');
-      r.titles.forEach(function (t) {
-        var row = el('div', 'r'); row.appendChild(titleChip(t.id, t.name)); row.appendChild(el('div', 'ttdesc', t.desc)); row.appendChild(el('span', 'hd', '獲得者 ' + t.holders + '/' + r.people + '人' + (t.hidden ? '(管理者のみ)' : '')));
-        if (t.who && t.who.length) { var dt = document.createElement('details'); dt.className = 'whod'; dt.appendChild(el('summary', '', '獲得した人を見る')); dt.appendChild(el('div', 'whol', t.who.join('、'))); row.appendChild(dt); }
-        list.appendChild(row);
+      box.appendChild(el('p', 'hint', '全' + r.titles.length + '個 ・ ジャンルごとに、難しい(★が多い)称号から並んでいます'));
+      (r.cats || TITLE_CATS).forEach(function (cg) {
+        var ts = r.titles.filter(function (t) { return t.cat === cg[0]; }).sort(function (a, b) { return b.lv - a.lv; }); if (!ts.length) return;
+        var h = el('h3', 'sub ttcat', cg[1]); h.appendChild(el('span', 'hd', ' ' + ts.length + '個')); box.appendChild(h);
+        var list = el('div', 'adtt');
+        ts.forEach(function (t) {
+          var row = el('div', 'r'); row.appendChild(titleChip(t.id, t.name)); row.appendChild(el('div', 'ttlv', '難易度 ' + lvStars(t.lv))); row.appendChild(el('div', 'ttdesc', t.desc));
+          row.appendChild(el('span', 'hd', '獲得者 ' + t.holders + '/' + r.people + '人' + (t.hidden ? '(管理者のみ)' : '')));
+          if (t.who && t.who.length) { var dt = document.createElement('details'); dt.className = 'whod'; dt.appendChild(el('summary', '', '獲得した人を見る')); dt.appendChild(el('div', 'whol', t.who.join('、'))); row.appendChild(dt); }
+          list.appendChild(row);
+        });
+        box.appendChild(list);
       });
-      box.appendChild(list);
       var byP = r.byPerson || [], nm = {}; r.titles.forEach(function (t) { nm[t.id] = t; });
       box.appendChild(el('h3', 'sub', 'ユーザー別の獲得状況'));
       var pl = el('div', 'adpp');
@@ -1193,6 +1231,34 @@
     }
   }
 
+  /* ---- マイ統計 ---- */
+  async function loadStats() {
+    var box = $('statsBox'); box.textContent = '読み込み中…';
+    try {
+      var d = await api('GET', '/api/me/stats', undefined, ptoken); box.textContent = '';
+      if (!d.total) { box.appendChild(el('div', 'empty', 'まだ採点した曲がありません。曲に点数をつけると、ここに統計が出ます。')); return; }
+      var sm = el('div', 'stsum'); [['採点した曲', d.total + '曲'], ['全体の平均点', d.avg.toFixed(2)], ['参加したランキング', d.keys.length + '個']].forEach(function (x) { var c = el('div', 'stc'); c.appendChild(el('small', '', x[0])); c.appendChild(el('b', '', x[1])); sm.appendChild(c); }); box.appendChild(sm);
+      box.appendChild(el('h3', 'sub', '点数の分布'));
+      var mx = 1; for (var v = 0; v <= 10; v += 0.5) mx = Math.max(mx, d.dist[v] || 0);
+      var bars = el('div', 'stbars');
+      for (var v2 = 0; v2 <= 10; v2 += 0.5) { var n = d.dist[v2] || 0, col = el('div', 'stcol'), b = el('div', 'stbar'); b.style.height = Math.round(n * 100 / mx) + '%'; b.title = v2.toFixed(1) + '点: ' + n + '曲'; col.appendChild(el('span', 'stn', n || '')); col.appendChild(b); col.appendChild(el('span', 'stx', Number.isInteger(v2) ? String(v2) : '')); bars.appendChild(col); }
+      box.appendChild(bars);
+      box.appendChild(el('h3', 'sub', 'ランキングごとの平均点'));
+      if (d.keys.length >= 2) {
+        var W = 340, H = 140, P = 22, X = function (i) { return P + (W - P * 2) * i / (d.keys.length - 1); }, Y = function (a) { return H - P - (H - P * 2) * a / 10; };
+        var ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('class', 'stline');
+        function line(pts, cls) { var pl = document.createElementNS(ns, 'polyline'); pl.setAttribute('points', pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' ')); pl.setAttribute('class', cls); svg.appendChild(pl); }
+        [0, 5, 10].forEach(function (g) { var l = document.createElementNS(ns, 'line'); l.setAttribute('x1', P); l.setAttribute('x2', W - P); l.setAttribute('y1', Y(g)); l.setAttribute('y2', Y(g)); l.setAttribute('class', 'stgrid'); svg.appendChild(l); var t = document.createElementNS(ns, 'text'); t.setAttribute('x', 2); t.setAttribute('y', Y(g) + 4); t.setAttribute('class', 'stlab'); t.textContent = g; svg.appendChild(t); });
+        var allp = d.keys.map(function (k, i) { return k.all == null ? null : [X(i), Y(k.all)]; }).filter(Boolean); if (allp.length >= 2) line(allp, 'stl2');
+        line(d.keys.map(function (k, i) { return [X(i), Y(k.avg)]; }), 'stl1');
+        d.keys.forEach(function (k, i) { var c = document.createElementNS(ns, 'circle'); c.setAttribute('cx', X(i)); c.setAttribute('cy', Y(k.avg)); c.setAttribute('r', 3.5); c.setAttribute('class', 'stdot'); svg.appendChild(c); });
+        box.appendChild(svg); box.appendChild(el('p', 'hint', '実線があなたの平均点' + (allp.length >= 2 ? '、点線が公開済みランキングの全体平均です。' : '。')));
+      }
+      var ul = el('ul', 'stkeys'); d.keys.forEach(function (k) { var li = el('li'); li.appendChild(el('span', '', k.label)); li.appendChild(el('span', 'hd', k.n + '/' + k.total + '曲')); li.appendChild(el('b', '', k.avg.toFixed(2))); if (k.all != null) li.appendChild(el('span', 'hd', '(全体 ' + k.all.toFixed(2) + ')')); ul.appendChild(li); }); box.appendChild(ul);
+      function lst(h, a) { box.appendChild(el('h3', 'sub', h)); var o = el('ol', 'stlist'); a.forEach(function (x) { var li = el('li'); li.appendChild(el('span', '', x.title)); li.appendChild(el('small', '', ' ' + x.label)); li.appendChild(el('b', '', ' ' + x.v.toFixed(1))); o.appendChild(li); }); box.appendChild(o); }
+      lst('いちばん高い点数をつけた曲', d.top); lst('いちばん低い点数をつけた曲', d.low);
+    } catch (e) { box.textContent = ''; box.appendChild(el('div', 'empty', e.message)); if (e.status === 401) forget(); }
+  }
   /* ---- 相性診断 ---- */
   var COMPAT = null;
   async function loadCompat() {
@@ -1259,20 +1325,20 @@
   window.addEventListener('resize', fitSoon);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
 
-  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', profile: 'v-profile', compat: 'v-compat', titles: 'v-titles', predict: 'v-predict', adtitles: 'v-adtitles', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
-  var ADMIN_ONLY = { adtitles: 1, adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { password: 1, compat: 1, titles: 1, predict: 1 };
+  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', profile: 'v-profile', compat: 'v-compat', stats: 'v-stats', titles: 'v-titles', predict: 'v-predict', adtitles: 'v-adtitles', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
+  var ADMIN_ONLY = { adtitles: 1, adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { stats: 1, password: 1, compat: 1, titles: 1, predict: 1 };
   function routeParam() { var p = (location.hash || '').replace(/^#\/?/, '').split('/')[1]; try { return p ? decodeURIComponent(p) : ''; } catch (e) { return ''; } }
   function curRoute() { var h = (location.hash || '').replace(/^#\/?/, '').split('/')[0]; return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
   function go(r) { var t = '#/' + (r || ''); if (location.hash === t || (!r && (location.hash === '' || location.hash === '#'))) route(false); else location.hash = t; }
   function menuItems() {
     var about = { t: 'Party Rankとは', r: 'about' }, past = { t: '過去のParty Rank', r: 'pasts' };
     var news = { t: 'お知らせ', r: 'notices' }, inv = { t: '友だちを招待', r: 'invite' };
-    if (atoken) return [about, { t: '管理者ホーム', r: '' }].concat(ME ? [{ t: 'プロフィール', r: 'profile' }, { t: '称号コレクション', r: 'titles' }, { t: '予想ゲーム', r: 'predict' }, { t: '相性診断', r: 'compat' }] : [], [news, inv, past, { sep: 1 },
+    if (atoken) return [about, { t: '管理者ホーム', r: '' }].concat(ME ? [{ t: 'プロフィール', r: 'profile' }, { t: '称号コレクション', r: 'titles' }, { t: '予想ゲーム', r: 'predict' }, { t: '相性診断', r: 'compat' }, { t: 'マイ統計', r: 'stats' }] : [], [news, inv, past, { sep: 1 },
       { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
       { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'お知らせの登録', r: 'news' },
       { t: '称号の一覧と獲得条件', r: 'adtitles' }, { t: 'Xアカウントの登録', r: 'adminx' }, { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }, { sep: 1 }, { t: '一般ユーザーに戻る', act: 'back' }]);
     var a = [about, { t: 'ホーム', r: '' }, news, inv];
-    if (ME) a.push({ t: 'プロフィール', r: 'profile' }, { t: '称号コレクション', r: 'titles' }, { t: '予想ゲーム', r: 'predict' }, { t: '相性診断', r: 'compat' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
+    if (ME) a.push({ t: 'プロフィール', r: 'profile' }, { t: '称号コレクション', r: 'titles' }, { t: '予想ゲーム', r: 'predict' }, { t: '相性診断', r: 'compat' }, { t: 'マイ統計', r: 'stats' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
     a.push({ t: '参加者一覧', r: 'people' }, past, { sep: 1 }, { t: '管理者画面への入室', r: 'admin-login' });
     return a;
   }
@@ -1310,6 +1376,7 @@
     else if (r === 'predict') { fillPredKeys(); renderPred(); }
     else if (r === 'adtitles') loadAdminTitles();
     else if (r === 'compat') loadCompat();
+    else if (r === 'stats') loadStats();
     else if (r === 'password') { $('pmsg').textContent = ''; renderUserPages(); }
     else if (r === 'people') loadPart();
     else if (r === 'admins') loadAdmins();
@@ -1330,6 +1397,28 @@
   var RSZ = 0, RSZT = 0;
   window.addEventListener('resize', function () { clearTimeout(RSZT); RSZT = setTimeout(function () { var n = Date.now(); if (n - RSZ > 1500) { RSZ = n; sendEvent('resize'); } }, 500); });
   document.addEventListener('keydown', function (e) { var k = (e.key || '').toLowerCase(); if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) || (e.metaKey && e.altKey && (k === 'i' || k === 'j'))) sendEvent('devtools'); });
+  var CMDS_SENT = {};
+  function cmd(id) { if (CMDS_SENT[id] || !ptoken) return; CMDS_SENT[id] = 1; sendEvent('cmd', { c: id }); toast('コマンド入力を検知しました'); }
+  var KB = [], ESCN = 0, ESCT = 0, TABS = [];
+  var SEQ = { konami: ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'b', 'a'], revkonami: ['down', 'down', 'up', 'up', 'right', 'left', 'right', 'left', 'a', 'b'], hadouken: ['down', 'right', 'p'], shoryuken: ['right', 'down', 'right', 'p'], typeparty: 'party'.split(''), typeanison: 'anison'.split(''), sudo: 'sudo'.split(''), gg: ['g', 'g'], calltaiga: 'taiga'.split('') };
+  var AR = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+  document.addEventListener('keydown', function (e) {
+    var k = e.key || '', lk = k.toLowerCase(), now = Date.now();
+    if ((e.ctrlKey || e.metaKey) && lk === 's') cmd('ctrls');
+    if (k === 'Escape') { if (now - ESCT > 1500) ESCN = 0; ESCT = now; ESCN++; if (ESCN >= 5) cmd('esc5'); } else ESCN = 0;
+    if (k === 'Tab') { TABS.push(now); TABS = TABS.filter(function (t) { return now - t <= 10000; }); if (TABS.length >= 20) cmd('tab20'); }
+    var tg = e.target, tn = tg && tg.tagName; if (tn === 'INPUT' || tn === 'TEXTAREA' || tn === 'SELECT' || (tg && tg.isContentEditable)) { KB = []; return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tok = AR[k] || (lk.length === 1 ? lk : ''); if (!tok) return; KB.push(tok); if (KB.length > 14) KB.shift();
+    Object.keys(SEQ).forEach(function (id) { var q = SEQ[id], n = q.length; if (KB.length >= n && KB.slice(KB.length - n).join(',') === q.join(',')) cmd(id); });
+  });
+  var LG = [], LGH = 0;
+  (function () {
+    var br = document.querySelector('a.brand'); if (!br) return;
+    br.addEventListener('click', function () { var n = Date.now(); LG.push(n); LG = LG.filter(function (t, i, a) { return true; }); while (LG.length > 7) LG.shift(); if (LG.length === 7 && LG.every(function (t, i) { return !i || t - LG[i - 1] <= 1200; })) cmd('logo7'); });
+    var down = function () { clearTimeout(LGH); LGH = setTimeout(function () { cmd('logohold'); }, 3000); }, up = function () { clearTimeout(LGH); };
+    br.addEventListener('mousedown', down); br.addEventListener('touchstart', down, { passive: true }); ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(function (ev) { br.addEventListener(ev, up); });
+  })();
   var WASOFF = false;
   window.addEventListener('offline', function () { WASOFF = true; });
   window.addEventListener('online', function () { if (WASOFF) { WASOFF = false; sendEvent('offline'); } });
