@@ -206,7 +206,13 @@ function buildTable(key) {
     const sg = db.songs.find((s) => s.id === sid);
     starTitles[p.id] = sg ? sg.title : '';
   });
-  return { key, label: labelOf(key), cour, people: people.map((p) => ({ id: p.id, name: p.name, ic: iconAt(p) })), rows, userAvg, overallAvg: mean(all), starTitles };
+  const userGreen = {}, userRed = {}; people.forEach((p) => { userGreen[p.id] = 0; userRed[p.id] = 0; });
+  rows.forEach((r) => {
+    const vs = Object.values(r.scores); if (vs.length < 2) return;
+    const mx = Math.max(...vs), mn = Math.min(...vs); if (mx === mn) return;
+    people.forEach((p) => { if (r.scores[p.id] === mx) userGreen[p.id]++; else if (r.scores[p.id] === mn) userRed[p.id]++; });
+  });
+  return { key, label: labelOf(key), cour, userGreen, userRed, people: people.map((p) => ({ id: p.id, name: p.name, ic: iconAt(p) })), rows, userAvg, overallAvg: mean(all), starTitles };
 }
 const csvCell = (v) => { v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
 const toCsv = (rows) => '﻿' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
@@ -218,6 +224,8 @@ function tableCsv(t, footer, desc) {
   rows.push(...data);
   if (footer) {
     rows.push(['', 'ユーザーの平均', '', '', r2(t.overallAvg) == null ? '' : r2(t.overallAvg), '', ''].concat(t.people.map((p) => (r2(t.userAvg[p.id]) == null ? '' : r2(t.userAvg[p.id])))));
+    rows.push(['', 'Greenの数', '', '', '', '', ''].concat(t.people.map((p) => t.userGreen[p.id] || 0)));
+    rows.push(['', 'Redの数', '', '', '', '', ''].concat(t.people.map((p) => t.userRed[p.id] || 0)));
     rows.push(['', t.label.replace(/(OP|ED|挿入歌|キャラソン)$/, '') + 'の☆', '', '', '', '', ''].concat(t.people.map((p) => t.starTitles[p.id])));
   }
   return toCsv(rows);
@@ -397,15 +405,15 @@ const TITLE_DEFS = [
   { id: 'yonkan', name: '四種の神器', desc: '同じクールの、OP・ED・挿入歌・キャラソンの4区分すべてで、全曲を採点した' },
   { id: 'shiki', name: '四季折々', desc: '同じ年の、冬・春・夏・秋の4クールすべてで、全曲を採点した(区分は問いません)' },
   { id: 'rensen', name: '連戦連勝', desc: '同じ区分(OPなど)で、3クール連続して全曲を採点した' },
-  { id: 'konami', name: 'コナミコマンド', desc: 'キーボードで ↑↑↓↓←→←→BA と入力した' },
-  { id: 'revkonami', name: '逆コナミ', desc: 'キーボードで ↓↓↑↑→←→←AB と入力した' },
-  { id: 'hadouken', name: '波動拳', desc: 'キーボードで ↓ → P と入力した' },
-  { id: 'shoryuken', name: '昇龍拳', desc: 'キーボードで → ↓ → P と入力した' },
+  { id: 'ping', name: '疎通確認', desc: 'キーボードで「ping」と入力した(入力欄の外で)' },
+  { id: 'traceroute', name: '経路を辿る者', desc: 'キーボードで「traceroute」と入力した(入力欄の外で)' },
+  { id: 'whoami', name: '我、何者?', desc: 'キーボードで「whoami」と入力した(入力欄の外で)' },
+  { id: 'rmrf', name: '禁断のコマンド', desc: 'キーボードで「rm -rf /」と入力した(入力欄の外で。実際には何も消えません)' },
   { id: 'typeparty', name: 'パーティー開始', desc: 'キーボードで「party」と入力した(入力欄の外で)' },
   { id: 'typeanison', name: 'アニソン好き', desc: 'キーボードで「anison」と入力した(入力欄の外で)' },
   { id: 'sudo', name: 'スーパーユーザー', desc: 'キーボードで「sudo」と入力した(入力欄の外で)' },
   { id: 'gg', name: 'グッドゲーム', desc: 'キーボードで「gg」と入力した(入力欄の外で)' },
-  { id: 'calltaiga', name: '運営を呼んだ', desc: 'キーボードで「taiga」と入力した(入力欄の外で)' },
+  { id: 'calltaiga', name: '運営を呼んだ', desc: 'キーボードで「taetae」と入力した(入力欄の外で)' },
   { id: 'logo7', name: 'ロゴ連打', desc: '画面左上のロゴを、7回すばやく連続でタップした' },
   { id: 'logohold', name: 'ロゴ長押し', desc: '画面左上のロゴを、3秒以上長押しした' },
   { id: 'ctrls', name: '保存魔', desc: 'Ctrl+S(Macは⌘+S)を押した' },
@@ -414,7 +422,7 @@ const TITLE_DEFS = [
   { id: 'allcmd', name: 'コマンドマスター', desc: '他のコマンド系の称号14個を、すべて獲得した' },
 ];
 const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["staff", "コレクション・特別"]];
-const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "bonjin": ["score", 1], "harsh": ["score", 1], "nostar": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "allten": ["score", 4], "allzero": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 2], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "yonkan": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 2], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "hadouken": ["cmd", 2], "shoryuken": ["cmd", 2], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 2], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "konami": ["cmd", 3], "revkonami": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4]};
+const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "bonjin": ["score", 1], "harsh": ["score", 1], "nostar": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "allten": ["score", 4], "allzero": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 2], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "yonkan": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 2], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 2], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 2], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 2], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4]};
 const TITLE_BY_ID = Object.fromEntries(TITLE_DEFS.map((t) => [t.id, t]));
 const RANK_TIER = (n) => (n >= 31 ? 5 : n >= 21 ? 4 : n >= 11 ? 3 : n >= 6 ? 2 : n >= 1 ? 1 : 0);
 const EMOJIS = ['👍', '❤️', '😂', '🔥', '😢'];
@@ -662,7 +670,7 @@ function computeEarned() {
         if (Object.values(byYear).some((x) => [1, 4, 7, 10].every((mo) => x.has(mo)))) set.add('shiki');
         if (Object.values(byKind).some((x) => Array.from(x).some((v) => x.has(v + 3) && x.has(v + 6)))) set.add('rensen');
       }
-      const CMDS = ['konami', 'revkonami', 'hadouken', 'shoryuken', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'];
+      const CMDS = ['ping', 'traceroute', 'whoami', 'rmrf', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'];
       CMDS.forEach((id) => { if ((cc.cmd || {})[id]) set.add(id); });
       if (CMDS.every((id) => set.has(id))) set.add('allcmd');
       if ((cc.bug || 0) >= 1) set.add('bughunter');
@@ -806,7 +814,7 @@ async function api(req, res, url) {
       if (pid !== me.id && db.people.some((x) => x.id === pid)) { c.profiles = c.profiles || {}; if (Object.keys(c.profiles).length < 500) c.profiles[pid] = 1; }
     } else if (type === 'cmd') {
       const cid = String(body.c || '');
-      if (!['konami', 'revkonami', 'hadouken', 'shoryuken', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'].includes(cid)) throw bad('コマンドが正しくありません');
+      if (!['ping', 'traceroute', 'whoami', 'rmrf', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'].includes(cid)) throw bad('コマンドが正しくありません');
       c.cmd = c.cmd || {}; c.cmd[cid] = 1;
     } else throw bad('種類が正しくありません');
     save();
