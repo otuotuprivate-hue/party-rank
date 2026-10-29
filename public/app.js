@@ -182,7 +182,7 @@
         st.dirty = false; var ok = false;
         for (var i = 0; i < delays.length; i++) {
           if (delays[i]) await sleep(delays[i]);
-          try { await send(); ok = true; break; }
+          try { await send(); ok = true; if (i >= 2) sendEvent('bug'); break; }
           catch (e) { if (e.status && e.status < 500 && e.status !== 429) { failed = e; break; } }
         }
         if (!ok && !failed) failed = new Error('通信できませんでした');
@@ -268,7 +268,7 @@
     if (u.at) nm.appendChild(el('div', 'pfsince', 'サイト登録日 ' + fdate(u.at)));
     top.appendChild(nm); card.appendChild(top);
     var st = el('div', 'pfstat'); st.appendChild(el('b', '', u.count)); st.appendChild(document.createTextNode(' ランキングに参加')); card.appendChild(st);
-    if (u.x) { var xa = el('a', 'xl', xHandle(u.x)); xa.href = u.x; xa.target = '_blank'; xa.rel = 'noopener noreferrer'; card.appendChild(xa); }
+    if (u.x) { var xa = el('a', 'xl', xHandle(u.x)); xxa.href = u.x; xa.target = '_blank'; xa.rel = 'noopener noreferrer'; xa.onclick = function () { sendEvent('xclick'); }; card.appendChild(xa); }
     if (ME && !mine) {
       var cl = el('div', 'pfcompat'); card.appendChild(cl);
       api('GET', '/api/me/compat', undefined, ptoken).then(function (r) { var f = r.list.filter(function (x) { return x.id === id; })[0]; cl.textContent = f ? 'あなたとの相性 ' + f.pct.toFixed(1) + '%(共通の曲 ' + f.n + '曲)' : ''; }).catch(function () {});
@@ -673,8 +673,9 @@
   $('invMsg').oninput = updateShare;
   $('invUrl').onfocus = function () { this.select(); };
   $('shC').onclick = function () { copyText(invUrl(), 'リンクをコピーしました'); };
-  $('shD').onclick = function () { var t = invText(); copyText((t ? t + '\n' : '') + invUrl(), 'コピーしました。Discordに貼り付けてください'); };
-  $('shN').onclick = function () { navigator.share({ title: 'Party Rank', text: invText(), url: invUrl() }).catch(function () {}); };
+  $('shX').onclick = function () { sendEvent('invite'); }; $('shL').onclick = function () { sendEvent('invite'); };
+  $('shD').onclick = function () { sendEvent('invite'); var t = invText(); copyText((t ? t + '\n' : '') + invUrl(), 'コピーしました。Discordに貼り付けてください'); };
+  $('shN').onclick = function () { sendEvent('invite'); navigator.share({ title: 'Party Rank', text: invText(), url: invUrl() }).catch(function () {}); };
 
   /* ---- 管理者のX ---- */
   var MYX = '';
@@ -695,7 +696,7 @@
   async function loadStaff() {
     try {
       var r = await api('GET', '/api/staff'), box = $('staffList'); box.textContent = ''; $('staffBox').hidden = !r.staff.length;
-      r.staff.forEach(function (x) { var a = el('a', 'xacc', xHandle(x.x)); a.href = x.x; a.target = '_blank'; a.rel = 'noopener noreferrer'; box.appendChild(a); });
+      r.staff.forEach(function (x) { var a = el('a', 'xacc', xHandle(x.x)); a.href = x.x; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.onclick = function () { sendEvent('xclick'); }; box.appendChild(a); });
     } catch (e) { $('staffBox').hidden = true; }
   }
 
@@ -919,11 +920,12 @@
   function newsItem(n, open) {
     var d = document.createElement('details'); d.className = 'nitem'; d.id = 'news-' + n.id; if (open) d.open = true;
     var sm = document.createElement('summary'), col = el('div', 'ncol'); col.appendChild(newsMeta(n)); col.appendChild(el('div', 'nt', n.title || 'お知らせ'));
-    sm.appendChild(col); d.appendChild(sm); d.appendChild(el('div', 'nbody', n.text)); return d;
+    sm.appendChild(col); d.appendChild(sm); d.appendChild(el('div', 'nbody', n.text));
+    d.addEventListener('toggle', function () { if (d.open && d.dataset.ev !== '1') { d.dataset.ev = '1'; sendEvent('news'); } }); return d;
   }
   function newsLink(n) {
     var b = el('button', 'nlink'); b.type = 'button'; var col = el('div', 'ncol'); col.appendChild(newsMeta(n)); col.appendChild(el('div', 'nt', n.title || 'お知らせ'));
-    b.appendChild(col); b.onclick = function () { NEWS_OPEN = n.id; go('notices'); }; return b;
+    b.appendChild(col); b.onclick = function () { sendEvent('news'); NEWS_OPEN = n.id; go('notices'); }; return b;
   }
   function renderNews() {
     var box = $('newsList'), all = $('nAll'), adm = $('nAdm'); box.textContent = ''; all.textContent = ''; adm.textContent = '';
@@ -988,7 +990,7 @@
 
 
   /* ---- 称号 ---- */
-  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '🚨', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇' };
+  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '💀', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥', ten: '🎉', harsh: '🌶️', steady: '📏', extreme: '☯️', marathon: '🏃', oshi: '💖', eye: '👁️', cmmaster: '✍️', popular: '🎊', ambassador: '🤝', detective: '🕵️', mine: '💣', early: '🌅', night: '🌙', soulmate: '💞', loner: '🐺', contrary: '🌓', founder: '🏛️', champion: '🥇', pr: '📣', missionary: '⛪', reporter: '📰', indecisive: '🔀', resident: '🏠', f5: '🔄', roster: '📖', loginbonus: '🎁', weekly: '📅', regular: '🪑', veteran: '🎖️', iconmaker: '🖼️', renamer: '🏷️', reviser: '✏️', linked: '🔗', dresser: '👗', hunter: '🏹', tking: '👑', explorer: '🧭', historian: '📜', manual: '📚', compatfan: '💘', neighbor: '🏘️', follower: '🐦', photog: '📸', master: '🏯', watcher: '🎬', kind: '🕊️', ice: '🧊', dompisha: '🎯', heretic: '😈', half: '➗', round: '⭕', tasty: '🍰', mvp: '🏅', lastlove: '🥀', podium: '🏆', prophet: '🔮', oneway: '➡️', variety: '🎨', nostar: '🍃', avgbody: '⚖️', regular5: '🏁', iron: '🦾', attend: '🎓', combo: '💎', traveler: '🧳', bughunter: '🐛', debugger: '🛠️', boundary: '📐' };
   function titleChip(id, name) { var c = el('span', 'ttl tt-' + id); c.appendChild(el('i', 'tti', TITLE_ICON[id] || '🏅')); c.appendChild(el('span', 'ttn', name)); return c; }
   var TT = null;
   async function checkTitles(quiet) {
@@ -1031,7 +1033,25 @@
   }
   $('ttlPopOk').onclick = function () { $('ttlPop').hidden = true; if (POPQ.length) showTitlePop([]); };
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('ttlPop').hidden) $('ttlPopOk').click(); });
-  function sendEvent(type) { if (!ptoken) return; api('POST', '/api/me/event', { type: type }, ptoken).then(function (r) { if (r.fresh && r.fresh.length) checkTitles(); }).catch(function () {}); }
+  var EVT_T = 0;
+  function sendEvent(type, extra) {
+    if (!ptoken) return; var body = { type: type }; if (extra) for (var k in extra) body[k] = extra[k];
+    api('POST', '/api/me/event', body, ptoken).then(function () { clearTimeout(EVT_T); EVT_T = setTimeout(function () { checkTitles(); }, 1500); }).catch(function () {});
+  }
+  var LASTVIS = { r: '', t: 0 };
+  function trackVisit(r) {
+    if (!ptoken || !r) return; var now = Date.now(); if (LASTVIS.r === r && now - LASTVIS.t < 2000) return; LASTVIS = { r: r, t: now };
+    if (['about', 'notices', 'invite', 'pasts', 'people', 'profile', 'titles', 'predict', 'compat'].indexOf(r) >= 0) sendEvent('visit', { r: r });
+    if (r === 'profile') { var pid = routeParam(); if (pid && ME && pid !== ME.id) sendEvent('profile', { id: pid }); }
+  }
+  setInterval(function () { if (!document.hidden && ptoken) sendEvent('stay'); }, 60000);
+  (function () {
+    try {
+      var a = JSON.parse(sessionStorage.getItem('pr-loads') || '[]'), n = Date.now(); a = a.filter(function (t) { return n - t < 10000; }); a.push(n);
+      sessionStorage.setItem('pr-loads', JSON.stringify(a));
+      if (a.length >= 5) { sessionStorage.setItem('pr-loads', '[]'); var iv = setInterval(function () { if (ptoken) { clearInterval(iv); sendEvent('f5'); } }, 800); setTimeout(function () { clearInterval(iv); }, 15000); }
+    } catch (e) {}
+  })();
 
   async function loadAdminTitles() {
     var box = $('adTtl'); box.textContent = '読み込み中…';
@@ -1231,7 +1251,7 @@
     Object.keys(VIEWS).forEach(function (k) { $(VIEWS[k]).hidden = k !== r; });
     renderMenu(r);
     if (soft) return;
-    window.scrollTo(0, 0);
+    window.scrollTo(0, 0); trackVisit(r);
     if (r === 'profile') renderProfile();
     else if (r === 'titles') { renderTitleBox(); checkTitles().then(function () { if (curRoute() === 'titles') renderTitleBox(); }); }
     else if (r === 'predict') { fillPredKeys(); renderPred(); }
