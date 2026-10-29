@@ -103,7 +103,7 @@
     <details class="panel adm"><summary>提出期限</summary>
     <div class="adb">
     <form id="df" class="inl">
-      <label>提出期限(表示のみ。期限後も採点はできます)<input id="dtime" type="datetime-local"></label>
+      <label>提出期限(表示のみ。締め切るときは「集計モード」にします)<input id="dtime" type="datetime-local"></label>
       <button class="pri">期限を保存</button><button type="button" id="dclear">期限を外す</button>
     </form></div>
     </details>
@@ -113,12 +113,13 @@
     <div class="bar">
       <button type="button" id="mEntry">通常モードに戻す</button>
       <button type="button" id="mRank" class="pri">Party Rank を開始</button>
+      <button type="button" id="mTally">集計モードにする(点数の入力を締め切る)</button>
     </div>
     <form id="mf" class="inl">
       <label style="flex:1;min-width:240px">ランキング動画のリンク(https://…)<input id="mvideo" type="url" maxlength="500" placeholder="https://www.youtube.com/watch?v=…" required></label>
       <button class="pri" id="mwatch">リンクを公開して Party Watch にする</button>
     </form>
-    <p class="hint" style="margin:6px 0 0">通常モード(初期状態)では「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間も、一般ユーザーにこのランキングの全体表は見えません。動画リンクを公開すると Party Watch になり、動画リンク・全体表・みんなのひとこと が一般ユーザーにも見えるようになります。</p></div>
+    <p class="hint" style="margin:6px 0 0">モードは「通常 → Party Rank → 集計 → Party Watch」の順です。通常モードでは「Party Rankの開催をお待ちください」と表示されます。Party Rank(採点受付中〜開催中)の間は、全体表は見えません。<b>集計モード</b>と Party Watch の間は、点数・☆・ひとこと・予想ゲームの入力と変更ができなくなります(直したいときは Party Rank モードに戻してください)。動画リンクを公開すると Party Watch になり、動画リンク・全体表・みんなのひとこと・予想ゲームの結果が一般ユーザーにも見えるようになります。</p></div>
     </details>
   </div>
 
@@ -136,7 +137,10 @@
   </div>
 
   <h2 id="rh"></h2>
+  <div class="rsum" id="rsum" hidden></div>
   <div id="rank"></div>
+  <h2 id="ph">トップ3 &amp; ワースト3 予想ゲーム</h2>
+  <div id="predBox" class="panel"></div>
   <h2 id="lh"></h2>
   <p class="plink" id="plink"></p>
   <div class="xlinks" id="xlinks" hidden></div>
@@ -241,6 +245,9 @@
   <h2>プロフィール</h2>
   <div class="panel pfcard" id="pfCard"></div>
   <div id="pfEdit" hidden>
+    <h3 class="sub">称号コレクション</h3>
+    <p class="hint">獲得した称号は、ここから1つ選んで名前の下に表示できます。まだ獲得していない称号は「？？？」と表示され、条件は獲得するまで分かりません。</p>
+    <div class="panel" id="ttlBox"></div>
     <h3 class="sub">プロフィールを編集</h3>
     <p class="hint">自己紹介とXのリンクは、このサイトに参加している誰でも見られます。</p>
     <form class="panel" id="pfForm">
@@ -273,6 +280,13 @@
     </div>
     <div class="bar"><button type="button" id="pfPw">パスワード(合言葉)の再設定</button></div>
   </div>
+</section>
+
+<section class="view" id="v-compat" hidden>
+  <h2>相性診断</h2>
+  <p class="hint">公開済み(Party Watch)のランキングで、同じ曲につけた点数の近さから、あなたと相性のいいユーザーを探します。点数の差が平均1点なら90%、2点なら80%です(共通の曲が5曲以上の人が対象)。</p>
+  <div class="panel" id="compatBox"></div>
+  <div class="bar"><button type="button" id="compatBack">戻る</button></div>
 </section>
 
 <section class="view" id="v-password" hidden>
@@ -371,6 +385,7 @@
     <p class="hint" style="margin:8px 0 0;text-align:center">スマホでは、画像を長押しして保存することもできます。</p></div>
 </div>
 <div class="savestate" id="saveState" role="status" hidden></div>
+<div class="bootmsg" id="bootMsg" role="status" hidden>サーバーを起動しています。1分ほどお待ちください…</div>
 <div class="toast" id="toast" role="status"></div>
 <script src="/phrase.js"></script>
 <script src="/app.js"></script>

@@ -76,11 +76,17 @@
     if (s.anime) b.appendChild(el('div', 'ln an', s.anime));
     return b;
   }
+  function isFrozen(k) { var md = modeOf(k); return md === 'tally' || md === 'watch'; }
   function renderRank() {
     var k = key(), box = $('rank'); box.textContent = '';
     $('rh').textContent = (ME ? ME.name + 'さんの ' : '') + label(k) + ' ランキング';
+    var rs = $('rsum'); rs.hidden = true;
     if (!ME) { box.appendChild(el('div', 'empty', 'ログインすると、あなたのランキングがここに出ます。')); return; }
     var L = rankedMine(k);
+    if (L.length) {
+      var tot = L.reduce(function (a, x) { return a + x.v; }, 0) / L.length;
+      rs.hidden = false; rs.textContent = ''; rs.appendChild(el('span', 'rsl', 'あなたの平均点')); rs.appendChild(el('b', '', tot.toFixed(2))); rs.appendChild(el('span', 'rsn', '点(採点 ' + L.length + ' / ' + songsOf(k).length + '曲)'));
+    }
     if (!L.length) { box.appendChild(el('div', 'empty', '採点した曲がまだありません。下の曲一覧で点数を選ぶと、ここに順位が出ます。')); return; }
     var ol = el('ol');
     L.forEach(function (x) {
@@ -94,14 +100,15 @@
     var k = key(), box = $('list'), L = songsOf(k); box.textContent = '';
     $('lh').textContent = '曲一覧 ' + label(k); renderPlink();
     if (!L.length) { box.appendChild(el('div', 'empty', atoken ? 'この区分の曲はまだありません。上のフォームから曲を追加してください。' : 'この区分の曲はまだありません。管理者が曲を追加するまでお待ちください。')); return; }
+    var FZ = isFrozen(k);
     L.forEach(function (s, idx) {
       var row = el('div', 'row'), starred = ST[courOf(s.key)] === s.id;
       row.appendChild(info(s, false));
       var rc = el('div', 'rc');
       var stb = el('button', 'star' + (starred ? ' on' : ''), starred ? '★' : '☆');
       stb.title = label(courOf(s.key) + '-') + 'の☆(1曲だけ)'; stb.setAttribute('aria-label', s.title + 'に☆を付ける'); stb.setAttribute('aria-pressed', starred ? 'true' : 'false');
-      stb.disabled = !ME; stb.onclick = function () { toggleStar(s); }; rc.appendChild(stb);
-      var sel = el('select'); sel.setAttribute('aria-label', s.title + 'の点数'); sel.disabled = !ME;
+      stb.disabled = !ME || FZ; stb.onclick = function () { toggleStar(s); }; rc.appendChild(stb);
+      var sel = el('select'); sel.setAttribute('aria-label', s.title + 'の点数'); sel.disabled = !ME || FZ;
       sel.appendChild(new Option('未採点', ''));
       for (var p = 10; p >= 0; p -= 0.5) sel.appendChild(new Option(p.toFixed(1) + '点', p));
       sel.value = typeof SC[s.id] === 'number' ? SC[s.id] : '';
@@ -121,7 +128,7 @@
       row.appendChild(rc);
       if (ME) {
         var cm = el('input', 'cm'); cm.maxLength = 100; cm.placeholder = 'ひとこと(100字まで)';
-        cm.value = CM[s.id] || ''; cm.setAttribute('aria-label', s.title + 'へのひとこと');
+        cm.value = CM[s.id] || ''; cm.setAttribute('aria-label', s.title + 'へのひとこと'); cm.disabled = FZ;
         var cmT; cm.oninput = function () { clearTimeout(cmT); cmT = setTimeout(function () { setComment(s.id, cm.value); }, 900); };
         cm.onchange = function () { clearTimeout(cmT); setComment(s.id, cm.value); }; row.appendChild(cm);
       }
@@ -160,7 +167,7 @@
     var n = Object.keys(PEND).length, b = $('saveState'); b.hidden = !n;
     if (n) b.textContent = '保存しています…(通信できないときは、自動でやり直します。このページは閉じないでください)';
   }
-  function isBusy() { var a = document.activeElement; return !!(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.closest && a.closest('#list, #rank, #adminSec')); }
+  function isBusy() { var a = document.activeElement; return !!(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.closest && a.closest('#list, #rank, #adminSec, #predBox')); }
   async function resync() {
     if (!ptoken || Object.keys(PEND).length) return;
     await loadMe(); renderRank(); if (!isBusy()) renderList();
@@ -257,16 +264,20 @@
     if (PFID !== id) return;
     var top = el('div', 'pftop'); top.appendChild(avatar(u.id, u.ic, u.name, 'xl'));
     var nm = el('div', 'pfname'), line = el('div', 'pfn'); line.appendChild(el('span', 'pfnm', u.name)); if (u.adm) line.appendChild(admTag()); nm.appendChild(line);
-    if (u.title) nm.appendChild(el('div', 'ttl ' + titleClass(u.count), u.title));
+    if (u.title && u.tid) { var tw = el('div', 'ttw'); tw.appendChild(titleChip(u.tid, u.title)); nm.appendChild(tw); }
     if (u.at) nm.appendChild(el('div', 'pfsince', 'サイト登録日 ' + fdate(u.at)));
     top.appendChild(nm); card.appendChild(top);
     var st = el('div', 'pfstat'); st.appendChild(el('b', '', u.count)); st.appendChild(document.createTextNode(' ランキングに参加')); card.appendChild(st);
     if (u.x) { var xa = el('a', 'xl', xHandle(u.x)); xa.href = u.x; xa.target = '_blank'; xa.rel = 'noopener noreferrer'; card.appendChild(xa); }
+    if (ME && !mine) {
+      var cl = el('div', 'pfcompat'); card.appendChild(cl);
+      api('GET', '/api/me/compat', undefined, ptoken).then(function (r) { var f = r.list.filter(function (x) { return x.id === id; })[0]; cl.textContent = f ? 'あなたとの相性 ' + f.pct.toFixed(1) + '%(共通の曲 ' + f.n + '曲)' : ''; }).catch(function () {});
+    }
     if (u.bio) card.appendChild(el('p', 'pfbio', u.bio));
     else if (mine) card.appendChild(el('p', 'hint', '自己紹介はまだありません。下で書いてみましょう。'));
     if (mine) {
       $('pfBio').value = u.bio || ''; $('pfX').value = u.x ? xHandle(u.x) : ''; $('pfCnt').textContent = (u.bio || '').length + '/200'; $('pfMsg').textContent = '';
-      ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev('');
+      ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev(''); renderTitleBox();
       $('rn').value = ME.name; $('rpw').value = ''; $('rmsg').textContent = ''; renderUserPages();
     }
   }
@@ -282,7 +293,7 @@
   var TSIG = '';
   function modeOf(k) { return (MODES[k] && MODES[k].mode) || 'entry'; }
   async function loadTable() {
-    var k = key();
+    var k = key(); loadReacts();
     if (!atoken) {
       // 一般ユーザー: Party Watchのときだけ全体表を取得する
       if (modeOf(k) !== 'watch') { if (TABLE) { TABLE = null; TSIG = ''; } renderMatrix(); return; }
@@ -328,6 +339,7 @@
         var it = el('div', 'cmitem'), body = el('div', 'cmbody'), who = el('div', 'cmwho');
         who.appendChild(uLink(u)); var v = g.r.scores[u.id]; if (typeof v === 'number') who.appendChild(el('span', 'cmsc', v.toFixed(1) + '点')); if (g.r.starBy.indexOf(u.id) >= 0) who.appendChild(el('span', 'gold', '★'));
         body.appendChild(who); body.appendChild(el('div', 'cmtxt', g.r.comments[u.id]));
+        if (REACTS && modeOf(t.key) === 'watch') body.appendChild(reactBar(t, g.r, u));
         it.appendChild(avatar(u.id, u.ic, u.name, 's')); it.appendChild(body); card.appendChild(it);
       });
       list.appendChild(card);
@@ -447,7 +459,7 @@
     g.fillStyle = '#6b6a8a'; g.font = '500 12px ' + FF; g.textAlign = 'right'; g.fillText('Party Rank点数評価ツール ・ ' + fdate(Date.now()), W - 28, y); g.textAlign = 'left';
   }
   function showImage(canvas, name) {
-    var url = canvas.toDataURL('image/png'); $('imgPrev').src = url; $('imgSave').onclick = function () { var a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('保存しました'); };
+    var url = canvas.toDataURL('image/png'); $('imgPrev').src = url; $('imgSave').onclick = function () { var a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('保存しました'); sendEvent('imgsave'); };
     var m = $('imgModal'); m.hidden = false; $('imgClose').focus();
     function close() { m.hidden = true; document.removeEventListener('keydown', kd); }
     function kd(e) { if (e.key === 'Escape') close(); }
@@ -774,7 +786,7 @@
     if (!list.length) { box.appendChild(el('div', 'empty', PASTS.length ? '条件に合う動画はありません。' : 'まだ登録された動画はありません。')); return; }
     list.forEach(function (x) {
       var r = el('div', 'pastrow'), d = el('div', 'pt1'); d.appendChild(el('div', 't', x.title)); d.appendChild(el('div', 'm', label(x.key))); r.appendChild(d);
-      var a = el('a', 'vid', '▶ 動画を見る'); a.href = x.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; r.appendChild(a);
+      var a = el('a', 'vid', '▶ 動画を見る'); a.href = x.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.onclick = function () { sendEvent('pastclick'); }; r.appendChild(a);
       var pl = PL[x.key]; if (pl && /^https:\/\//.test(pl)) { var b = el('a', 'pl', 'プレイリスト'); b.href = pl; b.target = '_blank'; b.rel = 'noopener noreferrer'; r.appendChild(b); }
       box.appendChild(r);
     });
@@ -805,7 +817,8 @@
   var MODE_INFO = {
     entry: { name: '通常', cls: '', text: 'Party Rankの開催をお待ちください🥹' },
     rank: { name: 'Party Rank', cls: 'rank', text: '開催中です(採点受付中)。結果発表まで、全体表は公開されません。' },
-    watch: { name: 'Party Watch', cls: 'watch', text: 'ランキングが公開されました。下に全体表が表示されます。' }
+    tally: { name: '集計中', cls: 'tally', text: '採点を締め切りました。集計中です(点数・☆・ひとこと・予想は変更できません)。結果発表をお待ちください。' },
+    watch: { name: 'Party Watch', cls: 'watch', text: 'ランキングが公開されました。下に全体表が表示されます(点数の変更はできません)。' }
   };
   function renderMode() {
     var k = key(), md = modeOf(k), info = MODE_INFO[md], url = MODES[k] && MODES[k].video, box = $('modeBox'); box.textContent = '';
@@ -816,7 +829,7 @@
     }
     if (atoken) {
       $('modeNow').textContent = label(k) + ' の現在のモード: ' + info.name + (md === 'watch' && url ? '(動画リンクを公開中)' : '');
-      $('mEntry').disabled = md === 'entry'; $('mRank').disabled = md === 'rank';
+      $('mEntry').disabled = md === 'entry'; $('mRank').disabled = md === 'rank'; $('mTally').disabled = md === 'tally';
       $('mvideo').value = md === 'watch' ? url : ($('mvideo').value || '');
       $('mwatch').textContent = md === 'watch' ? '動画リンクを更新する' : 'リンクを公開して Party Watch にする';
     }
@@ -828,6 +841,10 @@
   $('mRank').onclick = async function () {
     if (!(await confirmBox('Party Rank を開始しますか?', label(key()) + ' を Party Rank モードにします。一般ユーザーには全体表は表示されません。', '開始する'))) return;
     setMode('rank', '', 'Party Rank モードにしました');
+  };
+  $('mTally').onclick = async function () {
+    if (!(await confirmBox('集計モードにしますか?', label(key()) + ' の点数・☆・ひとこと・予想の入力を締め切ります(全員が変更できなくなります)。\n称号の判定も、ここから始まります。', '締め切る'))) return;
+    setMode('tally', '', '集計モードにしました。点数の入力を締め切りました');
   };
   $('mEntry').onclick = async function () {
     if (!(await confirmBox('通常モードに戻しますか?', label(key()) + ' を通常モードに戻します。公開中の動画リンクと全体表は一般ユーザーから見えなくなります。', '戻す'))) return;
@@ -964,8 +981,158 @@
     $('lead').textContent = admin ? '管理者画面です。曲の追加・全ユーザーの採点の確認・動画用データの書き出しができます。'
       : '名前を入力してログインし、曲一覧から点数(0〜10)を付けると、あなたのランキングができます。各クールで1曲だけ☆を付けられます。';
     if (admin) { $('purl').value = PL[key()] || ''; $('apName').textContent = adminName; }
-    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderMode(); renderXlinks(); renderParticipants(); renderUserPages();
+    tabs(); renderRank(); renderList(); renderMatrix(); renderNews(); renderYears(); renderDeadline(); renderMode(); renderXlinks(); renderParticipants(); renderUserPages(); renderPred();
     route(true);
+  }
+
+
+  /* ---- 称号 ---- */
+  var TITLE_ICON = { rank1: '🌱', rank2: '🎧', rank3: '⭐', rank4: '👑', rank5: '✨', sweet: '🍬', bonjin: '😐', lucky7: '🍀', gyaku: '🙃', yari: '🔱', stairs: '🪜', star1: '🌟', cmleader: '💬', gyakushin: '⚡', manba: '🎫', kadai: '🎈', sliding: '⏱️', silent: '🤫', intruder: '🚨', viewer: '📺', resonance: '🎵', camera: '📷', constellation: '🌌', zero: '🕳️', collector: '🏆', gunshi: '♟️', honor: '📝', love: '💗', isekai: '🌀', creator: '☀️', destroyer: '💥' };
+  function titleChip(id, name) { var c = el('span', 'ttl tt-' + id); c.appendChild(el('i', 'tti', TITLE_ICON[id] || '🏅')); c.appendChild(el('span', 'ttn', name)); return c; }
+  var TT = null;
+  async function checkTitles(quiet) {
+    if (!ptoken) { TT = null; return; }
+    try {
+      var r = await api('GET', '/api/me/titles', undefined, ptoken); TT = r;
+      var fresh = r.earned.filter(function (t) { return t.fresh; });
+      if (fresh.length) {
+        toast('称号を獲得しました: ' + fresh.map(function (t) { return t.name; }).join('、'));
+        api('POST', '/api/me/titles/seen', {}, ptoken).catch(function () {});
+        if (curRoute() === 'profile') renderTitleBox();
+      }
+    } catch (e) { if (e.status === 401) return; }
+  }
+  function renderTitleBox() {
+    var box = $('ttlBox'); box.textContent = '';
+    if (!TT) { box.appendChild(el('span', 'm', '読み込み中…')); return; }
+    box.appendChild(el('p', 'hint', '獲得 ' + TT.earned.length + ' / ' + TT.total + ' 個'));
+    var grid = el('div', 'ttgrid');
+    TT.earned.forEach(function (t) {
+      var card = el('div', 'ttcard' + (TT.equipped === t.id ? ' on' : '')); card.appendChild(titleChip(t.id, t.name));
+      card.appendChild(el('div', 'ttdesc', t.desc));
+      var b = el('button', TT.equipped === t.id ? '' : 'pri', TT.equipped === t.id ? '外す' : '装備する'); b.type = 'button';
+      b.onclick = async function () {
+        try { var r = await api('PUT', '/api/me/title', { id: TT.equipped === t.id ? null : t.id }, ptoken); TT.equipped = r.equipped; renderTitleBox(); renderProfile(); }
+        catch (e) { toast(e.message); }
+      };
+      card.appendChild(b); grid.appendChild(card);
+    });
+    for (var i = 0; i < TT.locked; i++) { var lc = el('div', 'ttcard lock'); lc.appendChild(el('span', 'ttl tt-lock', '？？？')); lc.appendChild(el('div', 'ttdesc', '条件は、獲得すると分かります')); grid.appendChild(lc); }
+    box.appendChild(grid);
+  }
+  function sendEvent(type) { if (!ptoken) return; api('POST', '/api/me/event', { type: type }, ptoken).then(function (r) { if (r.fresh && r.fresh.length) { toast('称号を獲得しました: ' + r.fresh.join('、')); checkTitles(); } }).catch(function () {}); }
+
+  /* ---- 予想ゲーム ---- */
+  var PREDS = {}, PDRAFT = {}, PRESULT = {};
+  async function loadPred(k) {
+    if (!ME || !ptoken) return;
+    try { PREDS[k] = await api('GET', '/api/me/predict?key=' + encodeURIComponent(k), undefined, ptoken); if (k === key()) renderPred(); } catch (e) { /* */ }
+  }
+  async function loadPredResult(k) {
+    try { PRESULT[k] = await api('GET', '/api/predict-result?key=' + encodeURIComponent(k)); if (k === key()) renderPred(); } catch (e) { /* */ }
+  }
+  function songTitle(id) { var s = SONGS.filter(function (x) { return x.id === id; })[0]; return s ? s.title : '(削除された曲)'; }
+  function renderPred() {
+    var k = key(), box = $('predBox'), md = modeOf(k), L = songsOf(k), md0 = md; box.textContent = '';
+    $('ph').hidden = false;
+    box.appendChild(el('p', 'hint', '結果発表の前に、このランキングの「トップ3」と「ワースト3」を予想しましょう。順位までぴったり当てると3点、トップ3(ワースト3)に入っていれば1点(最大18点)。結果と全員の得点は、Party Watch になると見られます。'));
+    if (!ME) { box.appendChild(el('div', 'empty', 'ログインすると予想できます。')); return; }
+    if (L.length < 6) { box.appendChild(el('div', 'empty', '曲が6曲以上になると、予想できます。')); return; }
+    if (!PREDS[k]) { loadPred(k); box.appendChild(el('span', 'm', '読み込み中…')); return; }
+    var pd = PREDS[k].pred, frozen = md === 'tally' || md === 'watch';
+    var d = PDRAFT[k] || (PDRAFT[k] = { top: (pd && pd.top.slice()) || ['', '', ''], worst: (pd && pd.worst.slice()) || ['', '', ''] });
+    var grp = el('div', 'predgrid');
+    [['top', 'トップ', ['1位', '2位', '3位']], ['worst', 'ワースト', ['最下位', 'ワースト2', 'ワースト3']]].forEach(function (g) {
+      var col = el('div', 'predcol'); col.appendChild(el('h4', '', g[1] + '3'));
+      for (var i = 0; i < 3; i++) (function (i) {
+        var lab = el('label', 'blk', g[2][i]), sel = el('select'); sel.appendChild(new Option('(選んでください)', ''));
+        L.forEach(function (s) { sel.appendChild(new Option(s.title, s.id)); });
+        sel.value = d[g[0]][i]; sel.disabled = frozen;
+        sel.onchange = function () { d[g[0]][i] = sel.value; };
+        lab.appendChild(sel); col.appendChild(lab);
+      })(i);
+      grp.appendChild(col);
+    });
+    box.appendChild(grp);
+    if (!frozen) {
+      var bar = el('div', 'bar'), sv = el('button', 'pri', pd ? '予想を更新する' : '予想を送信する'), msg = el('span', 'm', pd ? '送信済みです。締め切りまで変更できます。' : '');
+      sv.type = 'button';
+      sv.onclick = async function () {
+        var all = d.top.concat(d.worst);
+        if (all.some(function (v) { return !v; })) { msg.textContent = '6つすべて選んでください'; return; }
+        if (new Set(all).size !== 6) { msg.textContent = '同じ曲は重ねて選べません'; return; }
+        try { await api('PUT', '/api/me/predict', { key: k, top: d.top, worst: d.worst }, ptoken); PREDS[k].pred = { top: d.top.slice(), worst: d.worst.slice() }; toast('予想を送信しました'); renderPred(); }
+        catch (e) { msg.textContent = e.message; if (e.status === 401) forget(); }
+      };
+      bar.appendChild(sv); bar.appendChild(msg); box.appendChild(bar);
+    } else if (md === 'tally') box.appendChild(el('p', 'hint', pd ? '集計中のため、予想は変更できません。結果発表をお楽しみに!' : '集計中のため、予想の受付は終了しました。'));
+    if (md === 'watch') {
+      var r = PRESULT[k];
+      if (!r) { loadPredResult(k); box.appendChild(el('span', 'm', '結果を読み込み中…')); return; }
+      var res = el('div', 'predres'); res.appendChild(el('h4', '', '結果発表'));
+      var line = function (lab, arr) { var p = el('p', 'predln'); p.appendChild(el('b', '', lab + ' ')); p.appendChild(document.createTextNode(arr.map(function (x, i) { return (i + 1) + '. ' + x.title + '(' + x.avg.toFixed(2) + ')'; }).join(' / '))); return p; };
+      res.appendChild(line('トップ3', r.top)); res.appendChild(line('ワースト3', r.worst));
+      if (!r.board.length) res.appendChild(el('p', 'hint', '予想した人はいませんでした。'));
+      else {
+        var ol = el('ol', 'predboard');
+        r.board.forEach(function (b, i) {
+          var li = el('li'); li.appendChild(el('span', 'prk', (i + 1) + '位')); li.appendChild(avatar(b.id, b.ic, b.name, 's')); li.appendChild(uLink(b)); if (b.adm) li.appendChild(admTag());
+          li.appendChild(el('span', 'prpt', b.pts + '点')); if (b.trifecta) li.appendChild(el('span', 'prbadge', '三連単的中!'));
+          var sub = el('div', 'prpick', 'トップ3: ' + b.top.map(songTitle).join(' / ') + '\nワースト3: ' + b.worst.map(songTitle).join(' / ')); li.appendChild(sub);
+          ol.appendChild(li);
+        });
+        res.appendChild(ol);
+      }
+      box.appendChild(res);
+    }
+  }
+
+  /* ---- 相性診断 ---- */
+  var COMPAT = null;
+  async function loadCompat() {
+    var box = $('compatBox'); box.textContent = '計算中…';
+    try {
+      COMPAT = await api('GET', '/api/me/compat', undefined, ptoken); box.textContent = '';
+      if (!COMPAT.watchKeys) { box.appendChild(el('div', 'empty', 'まだ公開されたランキング(Party Watch)がありません。公開されると、相性を調べられます。')); return; }
+      if (!COMPAT.mySongs) { box.appendChild(el('div', 'empty', '公開されたランキングに、あなたの採点がありません。')); return; }
+      if (!COMPAT.list.length) { box.appendChild(el('div', 'empty', '共通の曲が5曲以上ある人が、まだいません。')); return; }
+      var ol = el('ol', 'cplist');
+      COMPAT.list.forEach(function (u, i) {
+        var li = el('li'); li.appendChild(el('span', 'cprk', i + 1)); li.appendChild(avatar(u.id, u.ic, u.name, 's'));
+        var mid = el('div', 'cpmid'), nm = el('div', 'cpnm'); nm.appendChild(uLink(u)); if (u.adm) nm.appendChild(admTag()); mid.appendChild(nm);
+        var bar = el('div', 'cpbar'), fill = el('i'); fill.style.width = u.pct + '%'; bar.appendChild(fill); mid.appendChild(bar); mid.appendChild(el('small', '', '共通の曲 ' + u.n + '曲')); li.appendChild(mid);
+        li.appendChild(el('span', 'cppct', u.pct.toFixed(1) + '%')); ol.appendChild(li);
+      });
+      box.appendChild(ol);
+    } catch (e) { box.textContent = e.message; }
+  }
+  $('compatBack').onclick = function () { go(''); };
+
+  /* ---- ひとことへのリアクション ---- */
+  var REACTS = null, RSIG = '';
+  async function loadReacts() {
+    var k = key();
+    if (modeOf(k) !== 'watch') { REACTS = null; RSIG = ''; return; }
+    try {
+      var r = await api('GET', '/api/reacts?key=' + encodeURIComponent(k), undefined, ptoken || undefined), sig = JSON.stringify(r);
+      if (k !== key() || sig === RSIG) return; RSIG = sig; REACTS = r; if (TABLE && TABLE.key === k) renderComments(TABLE);
+    } catch (e) { /* */ }
+  }
+  function reactBar(t, r, u) {
+    var ck = r.id + ':' + u.id, bar = el('div', 'rxbar'), cnt = (REACTS.counts || {})[ck] || {}, mine = (REACTS.mine || {})[ck] || [];
+    (REACTS.emojis || []).forEach(function (e) {
+      var b = el('button', 'rx' + (mine.indexOf(e) >= 0 ? ' on' : '')); b.type = 'button'; b.appendChild(el('span', '', e)); if (cnt[e]) b.appendChild(el('b', '', cnt[e]));
+      b.disabled = !ME; b.title = ME ? 'リアクションする' : 'ログインするとリアクションできます'; b.setAttribute('aria-pressed', mine.indexOf(e) >= 0 ? 'true' : 'false');
+      b.onclick = async function () {
+        var on = mine.indexOf(e) >= 0, c2 = REACTS.counts[ck] = REACTS.counts[ck] || {};
+        if (on) { REACTS.mine[ck] = mine.filter(function (x) { return x !== e; }); c2[e] = (c2[e] || 1) - 1; if (!c2[e]) delete c2[e]; } else { (REACTS.mine[ck] = REACTS.mine[ck] || []).push(e); c2[e] = (c2[e] || 0) + 1; }
+        renderComments(t);
+        try { await api('POST', '/api/me/react', { songId: r.id, owner: u.id, emoji: e }, ptoken); } catch (er) { toast(er.message); if (er.status === 401) forget(); }
+        RSIG = ''; loadReacts();
+      };
+      bar.appendChild(b);
+    });
+    return bar;
   }
 
   /* ---- メニューとページの切り替え ---- */
@@ -986,20 +1153,20 @@
   window.addEventListener('resize', fitSoon);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
 
-  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', profile: 'v-profile', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
-  var ADMIN_ONLY = { adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { password: 1 };
+  var VIEWS = { '': 'v-home', invite: 'v-invite', adminx: 'v-adminx', notices: 'v-notices', profile: 'v-profile', compat: 'v-compat', about: 'v-about', pasts: 'v-pasts', pastadmin: 'v-pastadmin', years: 'v-years', password: 'v-password', people: 'v-people', 'admin-login': 'v-adminlogin', admins: 'v-admins', users: 'v-users', adminpw: 'v-adminpw', news: 'v-news' };
+  var ADMIN_ONLY = { adminx: 1, pastadmin: 1, years: 1, admins: 1, users: 1, adminpw: 1, news: 1 }, NEED_ME = { password: 1, compat: 1 };
   function routeParam() { var p = (location.hash || '').replace(/^#\/?/, '').split('/')[1]; try { return p ? decodeURIComponent(p) : ''; } catch (e) { return ''; } }
   function curRoute() { var h = (location.hash || '').replace(/^#\/?/, '').split('/')[0]; return Object.prototype.hasOwnProperty.call(VIEWS, h) ? h : ''; }
   function go(r) { var t = '#/' + (r || ''); if (location.hash === t || (!r && (location.hash === '' || location.hash === '#'))) route(false); else location.hash = t; }
   function menuItems() {
     var about = { t: 'Party Rankとは', r: 'about' }, past = { t: '過去のParty Rank', r: 'pasts' };
     var news = { t: 'お知らせ', r: 'notices' }, inv = { t: '友だちを招待', r: 'invite' };
-    if (atoken) return [about, { t: '管理者ホーム', r: '' }].concat(ME ? [{ t: 'プロフィール', r: 'profile' }] : [], [news, inv, past, { sep: 1 },
+    if (atoken) return [about, { t: '管理者ホーム', r: '' }].concat(ME ? [{ t: 'プロフィール', r: 'profile' }, { t: '相性診断', r: 'compat' }] : [], [news, inv, past, { sep: 1 },
       { t: '管理者一覧', r: 'admins' }, { t: '一般ユーザーのパスワードリセット', r: 'users' },
       { t: '管理者パスワードの変更', r: 'adminpw' }, { t: 'お知らせの登録', r: 'news' },
       { t: 'Xアカウントの登録', r: 'adminx' }, { t: '年代の追加', r: 'years' }, { t: '過去のParty Rankの登録', r: 'pastadmin' }]);
     var a = [about, { t: 'ホーム', r: '' }, news, inv];
-    if (ME) a.push({ t: 'プロフィール', r: 'profile' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
+    if (ME) a.push({ t: 'プロフィール', r: 'profile' }, { t: '相性診断', r: 'compat' }, { t: 'パスワード(合言葉)の再設定', r: 'password' });
     a.push({ t: '参加者一覧', r: 'people' }, past, { sep: 1 }, { t: '管理者画面への入室', r: 'admin-login' });
     return a;
   }
@@ -1031,7 +1198,8 @@
     renderMenu(r);
     if (soft) return;
     window.scrollTo(0, 0);
-    if (r === 'profile') renderProfile();
+    if (r === 'profile') { renderProfile(); checkTitles().then(function () { if (curRoute() === 'profile') renderTitleBox(); }); }
+    else if (r === 'compat') loadCompat();
     else if (r === 'password') { $('pmsg').textContent = ''; renderUserPages(); }
     else if (r === 'people') loadPart();
     else if (r === 'admins') loadAdmins();
@@ -1075,11 +1243,21 @@
   }
   yr.onchange = $('cour').onchange = $('kind').onchange = function () { saveLast(); renderAll(); loadTable(); };
 
+  // 無料プランなどでサーバーが眠っていたときは、起きるまで待つ
+  async function waitServer() {
+    for (var i = 0; i < 24; i++) {
+      try { var r = await fetch('/healthz', { cache: 'no-store' }); if (r.ok) { $('bootMsg').hidden = true; return; } } catch (e) { /* */ }
+      $('bootMsg').hidden = false; await sleep(5000);
+    }
+    $('bootMsg').hidden = true;
+  }
   (async function init() {
+    await waitServer();
     await loadMe();
     if (atoken) { try { await enterAdmin(); } catch (e) {} }
     await refresh();
     route(false);
-    setInterval(function () { if (!document.hidden) refresh(true); }, 20000);
+    checkTitles();
+    setInterval(function () { if (!document.hidden) { refresh(true); if (ptoken) checkTitles(); } }, 20000);
   })();
 })();

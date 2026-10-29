@@ -319,3 +319,83 @@ a.avl{display:inline-block}
 .cmbody{flex:1;min-width:0}.cmwho{font-size:13px;font-weight:800;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .cmsc{font-weight:600;color:var(--sub);font-size:12px}
 .cmtxt{margin-top:3px;background:color-mix(in srgb,var(--acc) 8%,var(--card));border-radius:4px 14px 14px 14px;padding:8px 12px;font-size:14px;overflow-wrap:anywhere;white-space:pre-wrap}
+
+/* ================= 称号(名前に合わせた色・柄・枠線) ================= */
+.ttl{display:inline-flex;align-items:center;gap:6px;margin-top:4px;font-size:13px;font-weight:800;line-height:1.5;border-radius:999px;padding:3px 14px 3px 9px;color:#fff;background:#8a90a8;border:2px solid #8a90a8;white-space:nowrap;max-width:100%;box-shadow:none;text-shadow:none;position:relative;overflow:hidden}
+.ttl .tti{font-style:normal;font-size:1.1em;line-height:1}
+.ttl .ttn{overflow:hidden;text-overflow:ellipsis}
+.ttw{margin-top:2px}
+/* ランク(参加数) */
+.tt-rank1{background:#e6f4e2;color:#2f6b2a;border:2px dashed #7fbf72}
+.tt-rank2{background:linear-gradient(#4a90e2,#2e6cc0);color:#fff;border:2px solid #1f4f99}
+.tt-rank3{background:linear-gradient(135deg,#7b3fd0,#a368f0);color:#fff;border:3px double #e6d4ff}
+.tt-rank4{background:linear-gradient(135deg,#ffe27a,#f2a900 55%,#c47f00);color:#4a2f00;border:3px ridge #fff0a8;box-shadow:0 0 0 1px #c47f00}
+.tt-rank5{background:linear-gradient(90deg,#ff5f8a,#ffb347,#fff46b,#6bdc8a,#58a9ff,#b07bff,#ff5f8a);background-size:300% 100%;color:#222;border:2px solid #fff;box-shadow:0 0 10px 2px rgba(255,215,120,.9);animation:ttrb 5s linear infinite;text-shadow:0 0 4px #fff}
+@keyframes ttrb{to{background-position:300% 0}}
+/* 評価のつけ方 */
+.tt-sweet{background:repeating-linear-gradient(45deg,#ff8fb8 0 8px,#fff 8px 16px);color:#9c1f55;border:2px solid #ff5f9e;text-shadow:0 0 3px #fff,0 0 3px #fff}
+.tt-bonjin{background:#e4e6ea;color:#5b616e;border:1px solid #b9bec8;font-weight:600}
+.tt-lucky7{background:radial-gradient(circle,#1fa35a,#0b6b36);color:#ffe27a;border:3px dotted #ffd54a}
+.tt-gyaku{background:linear-gradient(135deg,#1a1033,#5b2a86);color:#ffd9f2;border:2px dashed #ff77c8;transform:scaleY(1)}
+.tt-gyaku .tti{display:inline-block;transform:rotate(180deg)}
+.tt-stairs{background:linear-gradient(90deg,#cfe3ff 0 20%,#a7ceff 20% 40%,#79b3ff 40% 60%,#4a95f2 60% 80%,#2575d9 80%);color:#06285a;border:2px solid #2575d9;text-shadow:0 0 3px #fff}
+.tt-star1{background:radial-gradient(circle at 20% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 60%,#fff 0 1px,transparent 2px),radial-gradient(circle at 85% 25%,#ffe27a 0 1.5px,transparent 2.5px),linear-gradient(#0b1b4d,#1b3a8a);color:#ffe27a;border:2px solid #ffd54a;box-shadow:0 0 8px rgba(255,213,74,.8)}
+.tt-zero{background:#000;color:#fff;border:2px solid #fff;outline:1px solid #000}
+.tt-kadai{background:linear-gradient(180deg,#ffb36b,#ff7a3d);color:#fff;border:2px dotted #fff3;border-color:#ffe0c2}
+.tt-silent{background:#f1f2f5;color:#8a8f9b;border:1px solid #dfe1e7;font-weight:500;font-style:italic;opacity:.9}
+.tt-creator{background:radial-gradient(circle,#fffbe0 0,#ffe27a 55%,#ffc233);color:#7a4a00;border:2px solid #fff;box-shadow:0 0 12px 3px rgba(255,214,90,.9)}
+.tt-destroyer{background:repeating-linear-gradient(120deg,#2a0505 0 10px,#4a0a0a 10px 12px),#2a0505;color:#ff9b8a;border:3px ridge #b3141c;box-shadow:0 0 8px rgba(179,20,28,.8)}
+.tt-gyakushin{background:linear-gradient(135deg,#0d0d0d 40%,#7a0b12);color:#ffd9d9;border:2px solid #ff3b47;box-shadow:0 0 8px rgba(255,59,71,.8)}
+.tt-gunshi{background:conic-gradient(#1c2b4a 25%,#2c4272 0 50%,#1c2b4a 0 75%,#2c4272 0) 0 0/12px 12px;color:#f3e6b0;border:2px solid #c9a94a}
+.tt-resonance{background:repeating-radial-gradient(circle at 20% 50%,#0f8a8a 0 5px,#16a8a8 5px 10px);color:#fff;border:3px double #bff3f3}
+/* ふるまい */
+.tt-cmleader{background:linear-gradient(#59c27a,#2f9a55);color:#fff;border:2px solid #1d7a3e;border-radius:18px 18px 18px 4px}
+.tt-love{background:linear-gradient(135deg,#ff7aa8,#ff3d7f);color:#fff;border:2px solid #ffc2d6;box-shadow:0 0 8px rgba(255,61,127,.6)}
+.tt-honor{background:repeating-linear-gradient(#fff 0 12px,#c9dcf7 12px 13px);color:#13306b;border:2px solid #13306b;border-left:6px double #d23}
+.tt-sliding{background:repeating-linear-gradient(-45deg,#ffd400 0 9px,#222 9px 18px);color:#fff;border:2px solid #222;text-shadow:0 0 3px #000,0 0 3px #000,0 0 3px #000}
+.tt-yari{background:linear-gradient(110deg,#aab4c3,#e9eef5 45%,#8f9bb0);color:#25303f;border:2px solid #c0232d;border-right:6px solid #c0232d;border-radius:4px 22px 22px 4px}
+.tt-manba{background:linear-gradient(135deg,#176b3c,#2fa05f);color:#ffe27a;border:3px dashed #ffe27a;border-radius:6px}
+.tt-constellation{background:radial-gradient(circle at 15% 35%,#fff 0 1px,transparent 2px),radial-gradient(circle at 45% 70%,#fff 0 1px,transparent 2px),radial-gradient(circle at 75% 30%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 92% 65%,#cfd8ff 0 1px,transparent 2px),linear-gradient(135deg,#120c3a,#3a1d7a);color:#e8e4ff;border:2px dotted #b9a8ff}
+.tt-intruder{background:repeating-linear-gradient(-45deg,#111 0 8px,#ffd400 8px 16px);color:#fff;border:2px dashed #ff2d2d;text-shadow:0 0 3px #000,0 0 3px #000}
+.tt-viewer{background:linear-gradient(#ff4646,#c40d0d);color:#fff;border:2px solid #fff;border-radius:10px;box-shadow:0 0 0 2px #c40d0d}
+.tt-camera{background:#111;color:#fff;border:3px dashed #fff;border-radius:6px;box-shadow:0 0 0 2px #111}
+.tt-collector{background:linear-gradient(135deg,#fff3b0,#e9b53c 40%,#fff6cc 55%,#d9a21f);color:#5a3a00;border:3px ridge #f6d86b;box-shadow:0 0 10px rgba(233,181,60,.8)}
+.tt-isekai{background:radial-gradient(circle at 50% 50%,#e9fff6 0 4px,transparent 5px),conic-gradient(from 0deg,#3ddad7,#7a5cff,#3ddad7);color:#fff;border:3px groove #a7f3ff;text-shadow:0 0 4px #1b0f66,0 0 4px #1b0f66}
+.tt-lock{background:repeating-linear-gradient(45deg,#e8eaf0 0 6px,#f4f5f8 6px 12px);color:#a1a6b4;border:2px dashed #c9cdd8;font-weight:700}
+@media(prefers-reduced-motion:reduce){.tt-rank5{animation:none}}
+/* コレクション */
+.ttgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.ttcard{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:var(--card)}
+.ttcard.on{border-color:var(--acc);box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 35%,transparent)}
+.ttcard.lock{opacity:.75}
+.ttdesc{font-size:12.5px;color:var(--sub);line-height:1.5;overflow-wrap:anywhere}
+.ttcard button{padding:4px 12px;font-size:13px}
+.pfcompat{margin-top:8px;font-weight:700;color:var(--acc2)}
+/* 集計中・平均点・予想・相性・リアクション・起動中 */
+.mode.tally .mb{background:#e08a1e}
+.rsum{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin:-4px 0 10px}
+.rsum .rsl{font-size:13px;color:var(--sub);font-weight:700}.rsum b{font-family:"Dela Gothic One",sans-serif;font-size:28px}.rsum .rsn{font-size:13px;color:var(--sub)}
+.predgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
+.predcol h4,.predres h4{margin:0 0 6px;font-size:15px}
+.predcol select{width:100%}
+@media(max-width:620px){.predgrid{grid-template-columns:1fr}}
+.predln{margin:4px 0;font-size:14px;overflow-wrap:anywhere}
+.predboard{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.predboard li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;grid-template-columns:none;border-radius:12px}
+.predboard .prk{font-family:"Dela Gothic One",sans-serif;color:var(--gold);min-width:2.4em}
+.predboard .prpt{font-weight:800;margin-left:auto}
+.predboard .prbadge{background:linear-gradient(90deg,#f2a900,#ff5f8a);color:#fff;font-size:11px;font-weight:800;border-radius:999px;padding:1px 9px}
+.predboard .prpick{flex-basis:100%;font-size:12px;color:var(--sub);white-space:pre-line;overflow-wrap:anywhere}
+.cplist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cplist li{display:flex;align-items:center;gap:10px;grid-template-columns:none;padding:10px 12px;border-radius:12px}
+.cplist .cprk{font-family:"Dela Gothic One",sans-serif;color:var(--sub);min-width:1.6em;text-align:center}
+.cpmid{flex:1;min-width:0}.cpnm{font-weight:800;overflow-wrap:anywhere}
+.cpbar{height:8px;border-radius:4px;background:color-mix(in srgb,var(--acc) 15%,var(--card));overflow:hidden;margin:4px 0}
+.cpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc))}
+.cpmid small{color:var(--sub);font-size:12px}
+.cppct{font-family:"Dela Gothic One",sans-serif;font-size:20px;white-space:nowrap}
+.rxbar{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.rx{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:14px;line-height:1.6;cursor:pointer}
+.rx b{font-size:12px}.rx.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--card))}
+.rx:disabled{opacity:.6;cursor:default}
+.bootmsg{position:fixed;left:50%;transform:translateX(-50%);top:70px;z-index:80;background:#1c1a3a;color:#fff;padding:10px 18px;border-radius:14px;font-weight:700;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:92vw;text-align:center}
