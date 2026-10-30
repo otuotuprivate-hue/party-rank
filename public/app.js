@@ -56,7 +56,7 @@
     yr.value = keep || now.getFullYear();
   }
   buildYears(0); $('cour').value = [1, 4, 7, 10][Math.floor(now.getMonth() / 3)];
-  var LAST = null; try { LAST = JSON.parse(localStorage.getItem('pr-last') || 'null'); } catch (e) {}
+  var LAST = null; try { LAST = JSON.parse(localStorage.getItem('pr-last') || 'null'); if (!LAST || typeof LAST !== 'object') LAST = null; } catch (e) {}
   if (LAST && /^\d{4}$/.test(String(LAST.y)) && NAMES[LAST.c] && KINDS.indexOf(LAST.k) >= 0) { buildYears(Number(LAST.y)); $('cour').value = LAST.c; $('kind').value = LAST.k; }
   function saveLast() { try { localStorage.setItem('pr-last', JSON.stringify({ y: yr.value, c: $('cour').value, k: $('kind').value })); } catch (e) {} }
   function key() { return yr.value + '-' + $('cour').value + '-' + $('kind').value; }
@@ -1523,9 +1523,9 @@
   })();
   var TABID = Math.random().toString(36).slice(2);
   function tabBeat() { try { var o = JSON.parse(localStorage.getItem('pr-tabs') || '{}'), n = Date.now(), k, c = 0, r = {}; o[TABID] = n; for (k in o) { if (n - o[k] < 12000) { r[k] = o[k]; c++; } } localStorage.setItem('pr-tabs', JSON.stringify(r)); if (c >= 3) onceAct('multi3'); if (c >= 5) onceAct('multi5'); } catch (x) {} }
-  try { PRLAST = Number(localStorage.getItem('pr-last') || 0); } catch (x) {}
+  try { PRLAST = Number(localStorage.getItem('pr-seen') || 0); } catch (x) {}
   function envChecks() {
-    try { localStorage.setItem('pr-last', String(Date.now())); } catch (x) {}
+    try { localStorage.setItem('pr-seen', String(Date.now())); } catch (x) {}
     if (!ptoken) return; var w = window.innerWidth, d = new Date(), h = d.getHours(), mi = d.getMinutes();
     if (w >= 1900) onceAct('wide'); if (w <= 340) onceAct('narrow'); if (!/^ja/i.test(navigator.language || 'ja')) onceAct('foreign');
     if (h === 12) onceAct('noon'); if (h === 0 && mi < 10) onceAct('midnight'); if (h === 5 && mi < 10) onceAct('sunrise');
