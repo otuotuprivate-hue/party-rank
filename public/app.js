@@ -1428,7 +1428,8 @@
   var NAVN = 0;
   window.addEventListener('hashchange', function () { NAVN++; route(false); });
   var RSZ = 0, RSZT = 0;
-  window.addEventListener('resize', function () { clearTimeout(RSZT); RSZT = setTimeout(function () { var n = Date.now(); if (n - RSZ > 1500) { RSZ = n; sendEvent('resize'); } }, 500); });
+  var RSW = window.innerWidth;
+  window.addEventListener('resize', function () { clearTimeout(RSZT); RSZT = setTimeout(function () { var n = Date.now(), w = window.innerWidth; if (w === RSW) return; RSW = w; if (n - RSZ > 1500) { RSZ = n; sendEvent('resize'); } }, 500); });
   document.addEventListener('keydown', function (e) { var k = (e.key || '').toLowerCase(); if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) || (e.metaKey && e.altKey && (k === 'i' || k === 'j'))) sendEvent('devtools'); });
   var CMDS_SENT = {};
   function cmd(id) { if (CMDS_SENT[id] || !ptoken) return; CMDS_SENT[id] = 1; sendEvent('cmd', { c: id }); toast('コマンド入力を検知しました'); }

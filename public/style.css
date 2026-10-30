@@ -642,3 +642,5 @@ a.avl{display:inline-block}
 .shwit{display:flex;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .shwit .ttl{margin-top:0}
 .shwit input{width:18px;height:18px;flex:none}
+
+.onl[hidden]{display:none}
