@@ -334,7 +334,6 @@ a.avl{display:inline-block}
 @keyframes ttrb{to{background-position:300% 0}}
 /* 評価のつけ方 */
 .tt-sweet{background:repeating-linear-gradient(45deg,#ff8fb8 0 8px,#fff 8px 16px);color:#9c1f55;border:2px solid #ff5f9e;text-shadow:0 0 3px #fff,0 0 3px #fff}
-.tt-bonjin{background:#e4e6ea;color:#5b616e;border:1px solid #b9bec8;font-weight:600}
 .tt-lucky7{background:radial-gradient(circle,#1fa35a,#0b6b36);color:#ffe27a;border:3px dotted #ffd54a}
 .tt-gyaku{background:linear-gradient(135deg,#1a1033,#5b2a86);color:#ffd9f2;border:2px dashed #ff77c8;transform:scaleY(1)}
 .tt-gyaku .tti{display:inline-block;transform:rotate(180deg)}
@@ -429,7 +428,8 @@ a.avl{display:inline-block}
 .tt-detective{background:repeating-linear-gradient(45deg,#6b4a2a 0 6px,#8a6a45 6px 12px);color:#f7e7c6;border:2px solid #3b2812;border-radius:6px}
 .tt-mine{background:radial-gradient(circle at 50% 50%,#ffd400 0 3px,transparent 4px),linear-gradient(135deg,#2b2b2b,#555);color:#ffd400;border:3px dashed #ffd400}
 .tt-early{background:linear-gradient(90deg,#ffd9a0,#ffe9b8 50%,#bfe3ff);color:#7a4a00;border:2px solid #ffb347}
-.tt-night{background:radial-gradient(circle,#fff4c2 0 3px,transparent 4px) no-repeat right 6px top 5px/10px 10px,linear-gradient(135deg,#0a0f2c,#233a82);color:#cfd8ff;border:2px solid #5b6fc0;padding-right:30px}
+.tt-night{background:linear-gradient(135deg,#0a0f2c,#233a82);color:#cfd8ff;border:2px solid #5b6fc0;padding-right:24px}
+.tt-night::after{content:"";position:absolute;right:8px;top:5px;width:6px;height:6px;border-radius:50%;background:#fff4c2;box-shadow:0 0 5px #fff4c2}
 .tt-soulmate{background:linear-gradient(135deg,#ff9ec4,#ff5f8a 50%,#c64bff);color:#fff;border:3px double #fff;box-shadow:0 0 10px rgba(198,75,255,.7)}
 .tt-loner{background:linear-gradient(#cfd5de,#aab2c0);color:#2a3140;border:1px solid #7b8497;font-style:italic;letter-spacing:.12em;border-radius:2px 18px 2px 18px}
 .tt-contrary{background:linear-gradient(135deg,#8a3df0 0 50%,#3df08a 50%);color:#fff;border:2px dashed #fff;text-shadow:0 0 3px #000a}
@@ -501,7 +501,6 @@ a.avl{display:inline-block}
 .tt-prophet{--g:#c9a7ff;background:radial-gradient(circle at 20% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 80% 60%,#fff 0 1px,transparent 2px),linear-gradient(135deg,#1a0b3d,#4b2a9c 55%,#1a0b3d);color:#f1e6ff;border:3px double #c9a7ff;font-size:14px;letter-spacing:.08em;animation:ttGlow 2.2s infinite;text-shadow:0 0 6px #b388ff,0 1px 2px #000}
 .tt-oneway{background:repeating-linear-gradient(90deg,#eee 0 10px,#ddd 10px 20px);color:#333;border:2px solid #888}
 .tt-variety{background:linear-gradient(90deg,#ff6b6b,#feca57,#48dbfb,#1dd1a1,#a29bfe);color:#222;border:2px solid #fff;box-shadow:0 0 0 2px #222;text-shadow:0 0 3px #fff}
-.tt-nostar{background:#f4f7f0;color:#4d6b3a;border:2px solid #b7cba6;font-style:italic}
 .tt-avgbody{background:linear-gradient(180deg,#f5f5f5,#cfcfcf);color:#222;border:2px solid #555;box-shadow:inset 0 0 0 2px #fff}
 .tt-regular5{background:repeating-linear-gradient(45deg,#fff 0 6px,#222 6px 12px);color:#fff;border:2px solid #222;text-shadow:0 0 3px #000,0 0 3px #000,0 0 3px #000}
 .tt-iron{--g:#9fb3c8;background:linear-gradient(135deg,#5c6b7a,#c5d0db 45%,#5c6b7a);color:#101820;border:3px double #e8eef5;font-size:14px;letter-spacing:.1em;animation:ttGlow 2.4s infinite;text-shadow:0 1px 0 #fff8}
@@ -577,8 +576,7 @@ a.avl{display:inline-block}
 .chip .ond{margin-right:2px}
 /* ===== 称号(第5弾) ===== */
 .tt-tenzero{background:linear-gradient(90deg,#fff3b0,#ffd0d0);color:#2a0a0a;border:2px solid #222;border-left:6px solid #e0a800;border-right:6px solid #8a0010;text-shadow:0 0 3px #fff}
-.tt-allten{--g:#ffd24a;background:linear-gradient(135deg,#ffdd55,#fff3b0 45%,#ffb800);color:#5a3200;border:3px double #fff;font-size:14px;letter-spacing:.08em;text-shadow:0 1px 0 #fff}
-.tt-allzero{background:radial-gradient(circle,#2b2b2b,#000);color:#aaa;border:2px solid #444;box-shadow:inset 0 0 10px #000;letter-spacing:.2em}
+.tt-reisen{background:radial-gradient(circle,#2b2b2b,#000);color:#aaa;border:2px solid #444;box-shadow:inset 0 0 10px #000;letter-spacing:.2em}
 .tt-ladder{background:linear-gradient(135deg,#d6f5dd 0 30%,#8fe0a3 30% 60%,#3ab769 60%);color:#06391a;border:2px solid #1f8a46}
 .tt-descent{background:linear-gradient(135deg,#3ab769 0 30%,#e8c46a 30% 60%,#e0614f 60%);color:#2a0d00;border:2px solid #8a2f22;text-shadow:0 0 3px #fff8}
 .tt-ichimai{background:linear-gradient(135deg,#2a2a40,#44446a);color:#fff;border:2px solid #ffe27a;box-shadow:0 0 0 2px #2a2a40,0 0 8px #ffe27a;text-shadow:0 1px 2px #000}
@@ -588,7 +586,7 @@ a.avl{display:inline-block}
 .tt-midpoint{background:linear-gradient(90deg,#cfe0ff 0 50%,#ffd6d6 50%);color:#222;border:3px double #444;font-size:14px}
 .tt-jackpot{--g:#ff3b3b;background:repeating-linear-gradient(90deg,#c1121f 0 14px,#ffd24a 14px 16px,#c1121f 16px 30px);color:#fff7c2;border:3px double #ffd24a;font-size:15px;font-weight:900;letter-spacing:.14em;padding:4px 18px 4px 12px;text-shadow:0 0 6px #ff0,0 2px 2px #000}
 .tt-nito{background:linear-gradient(135deg,#dfe8f5,#aab8cc);color:#16253a;border:2px solid #16253a}
-.tt-yonkan{--g:#ffd24a;background:conic-gradient(from 45deg,#e63946,#ffd24a,#2a9d8f,#4361ee,#e63946);color:#fff;border:3px double #fff;font-size:14px;letter-spacing:.06em;text-shadow:0 0 4px #000,0 1px 3px #000}
+.tt-goren{--g:#ffd24a;background:conic-gradient(from 45deg,#e63946,#ffd24a,#2a9d8f,#4361ee,#e63946);color:#fff;border:3px double #fff;font-size:14px;letter-spacing:.06em;text-shadow:0 0 4px #000,0 1px 3px #000}
 .tt-shiki{--g:#ffb6c1;background:linear-gradient(90deg,#ffc2d6 0 25%,#9be39b 25% 50%,#7ad1ff 50%,#ffb36b 75%);color:#2a2a2a;border:3px double #fff;font-size:14px;text-shadow:0 0 3px #fff}
 .tt-rensen{background:linear-gradient(135deg,#ff6a00,#ff2d2d);color:#fff;border:2px solid #ffd24a;box-shadow:0 0 8px #ff6a00;text-shadow:0 1px 2px #0008}
 .tt-ping{background:#0b1a2a;color:#7dffb0;border:2px solid #7dffb0;font-family:monospace;border-radius:4px;text-shadow:0 0 4px #00ff88}
@@ -644,3 +642,45 @@ a.avl{display:inline-block}
 .shwit input{width:18px;height:18px;flex:none}
 
 .onl[hidden]{display:none}
+
+/* ===== 第6弾 ===== */
+@keyframes ttHue{to{filter:hue-rotate(360deg)}}
+@keyframes ttPulse{0%,100%{box-shadow:0 0 6px var(--g),0 0 0 2px var(--g)}50%{box-shadow:0 0 18px var(--g),0 0 30px var(--g),0 0 0 2px #fff}}
+/* 派手に作り直し: 狙撃手 / スーパーユーザー / 地雷探知機 / 悲劇の推し */
+.tt-sniper{--g:#7dff7d;background:repeating-linear-gradient(0deg,rgba(125,255,125,.12) 0 2px,transparent 2px 5px),linear-gradient(135deg,#0b1f0b,#1f4a1f 50%,#0b1f0b);color:#d6ffd6;border:3px double #7dff7d;font-size:14px;letter-spacing:.1em;text-shadow:0 0 6px #00ff55,0 1px 2px #000;animation:ttPulse 1.6s infinite}
+.tt-sudo{--g:#4eff4e;background:repeating-linear-gradient(0deg,rgba(78,255,78,.1) 0 2px,transparent 2px 4px),linear-gradient(135deg,#000,#052505 50%,#000);color:#4eff4e;border:3px double #4eff4e;font-family:monospace;font-size:14px;font-weight:900;letter-spacing:.08em;text-shadow:0 0 8px #4eff4e,0 0 2px #fff;animation:ttPulse 1.4s infinite;border-radius:6px}
+.tt-sudo::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(78,255,78,.55) 50%,transparent 65%);background-size:60% 100%;background-repeat:no-repeat;animation:ttShine 2s infinite;pointer-events:none}
+.tt-mine{--g:#ff5a1f;background:repeating-linear-gradient(-45deg,#1a1a1a 0 8px,#ffcc00 8px 16px);color:#fff;border:3px solid #ff2a2a;font-size:14px;font-weight:900;letter-spacing:.06em;text-shadow:0 0 4px #000,0 0 4px #000,0 0 4px #000,0 1px 6px #ff5a1f;animation:ttPulse 1.3s infinite}
+.tt-mine::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.7) 50%,transparent 65%);background-size:60% 100%;background-repeat:no-repeat;animation:ttShine 2.2s infinite;pointer-events:none}
+.tt-tragic{--g:#ff4d94;background:radial-gradient(circle at 10% 20%,rgba(255,255,255,.7) 0 1px,transparent 2px),radial-gradient(circle at 90% 70%,rgba(255,255,255,.7) 0 1px,transparent 2px),linear-gradient(135deg,#1a0010,#6a0f3a 50%,#1a0010);color:#ffd0e6;border:3px double #ff4d94;font-size:15px;font-weight:900;letter-spacing:.14em;padding:4px 18px 4px 12px;animation:ttPulse 2s infinite;text-shadow:0 0 8px #ff4d94,0 1px 2px #000}
+/* 差し替え・追加 */
+.tt-reisen{background:linear-gradient(135deg,#bfe9ff,#e8f8ff 50%,#8fd3ff);color:#06395c;border:2px solid #fff;box-shadow:0 0 0 2px #5bb8ee,inset 0 0 8px #fff;text-shadow:0 0 3px #fff}
+.tt-goren{--g:#ffd24a;background:linear-gradient(135deg,#7a1fa2,#e0306f 40%,#ffb000 70%,#7a1fa2);color:#fff;border:3px double #ffe58a;font-size:15px;font-weight:900;letter-spacing:.12em;padding:4px 18px 4px 12px;animation:ttGlow 1.6s infinite;text-shadow:0 0 5px #000,0 1px 3px #000}
+.tt-bake{--g:#ff9ec3;background:linear-gradient(135deg,#ffe3f0,#ffb6d6 50%,#c9a7ff);color:#4a1a3a;border:3px double #fff;font-size:14px;animation:ttGlow 2.2s infinite;text-shadow:0 0 3px #fff}
+.tt-tansho{background:linear-gradient(135deg,#ffd24a,#ff9a00);color:#4a2a00;border:2px solid #fff;box-shadow:0 0 0 2px #ff9a00;text-shadow:0 1px 0 #fff8}
+.tt-akumei{background:linear-gradient(135deg,#1a0a2a,#4a1a6a);color:#ffb6ff;border:2px solid #b04aff;text-shadow:0 0 5px #b04aff}
+.tt-apple{background:linear-gradient(135deg,#ff5e62,#ff2d55);color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #ff2d55;text-shadow:0 1px 2px #0006}
+.tt-meteor{background:linear-gradient(135deg,#0b0b2a,#2a1a6a);color:#e8e4ff;border:2px solid #b9a8ff;text-shadow:0 0 5px #b9a8ff}
+.tt-selfanalysis{background:#eef6ff;color:#16325c;border:2px solid #4a7bd0;font-family:monospace}
+.tt-secguard{background:linear-gradient(135deg,#2a3a4a,#46607a);color:#fff;border:2px solid #cfe0f0;box-shadow:inset 0 0 0 2px #0004}
+.tt-comma{background:#fff;color:#1d6b3a;border:2px solid #1d6b3a;font-family:monospace}
+.tt-zerozero{background:#f1f2f5;color:#555;border:2px dotted #888;font-style:italic}
+.tt-idle{background:linear-gradient(135deg,#dfe6ff,#c9d4ff);color:#2a3a7a;border:2px solid #8a9ad0;font-style:italic}
+.tt-shobu{--g:#ff3b3b;background:linear-gradient(135deg,#1a1a1a,#3a0a0a 50%,#1a1a1a);color:#ffd24a;border:3px double #ffd24a;font-size:14px;letter-spacing:.08em;animation:ttGlow 1.8s infinite;text-shadow:0 0 5px #ff3b3b,0 1px 2px #000}
+.tt-rotate{background:#eef2f7;color:#2c3e50;border:2px solid #7f8c9a}
+.tt-themechg{background:linear-gradient(90deg,#f4f4f8 0 50%,#23233a 50%);color:#6a52c8;border:2px solid #555;font-weight:900;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #000,0 0 3px #000}
+.tt-zoom{background:#fff;color:#222;border:2px solid #222;border-radius:999px;font-weight:900}
+.tt-allsel{background:#cfe0ff;color:#0b2a6b;border:2px dashed #2a6bd0}
+.tt-reloader{background:linear-gradient(135deg,#d6f5dd,#8fe0a3);color:#06391a;border:2px solid #1f8a46}
+
+/* 煽り系・デバッグ追加 */
+.tt-hanki{--g:#ff3b6b;background:linear-gradient(135deg,#2a0a1a,#7a1040 50%,#2a0a1a);color:#ffd0e0;border:3px double #ff3b6b;font-size:14px;letter-spacing:.1em;animation:ttPulse 1.7s infinite;text-shadow:0 0 6px #ff3b6b,0 1px 2px #000}
+.tt-lonely{--g:#6ad0ff;background:linear-gradient(135deg,#0a1a2a,#164a6a 50%,#0a1a2a);color:#d6f2ff;border:3px double #6ad0ff;font-size:14px;letter-spacing:.08em;animation:ttPulse 2s infinite;text-shadow:0 0 6px #6ad0ff,0 1px 2px #000}
+.tt-flatter{--g:#ffc34a;background:linear-gradient(135deg,#fff1c2,#ffd36a 50%,#fff1c2);color:#5a3a00;border:3px double #ff9a00;font-size:14px;animation:ttPulse 1.9s infinite;text-shadow:0 1px 0 #fff}
+.tt-savior{background:linear-gradient(135deg,#fff6d6,#ffe08a);color:#5a3a00;border:2px solid #e0a020;box-shadow:0 0 0 2px #fff,0 0 8px #ffd24a}
+.tt-bias{background:#fff3f0;color:#a02a10;border:2px solid #e0603a;font-weight:900;transform:skew(-4deg)}
+.tt-mash{background:linear-gradient(135deg,#ffe0d0,#ffb08a);color:#5a1a00;border:2px solid #e06030;font-weight:900}
+.tt-rclick{background:#f1f1f1;color:#222;border:2px solid #888;font-family:monospace}
+.tt-print{background:#fff;color:#333;border:2px solid #333;box-shadow:3px 3px 0 #bbb}
+.tt-viewsrc{background:#1e1e1e;color:#9cdcfe;border:2px solid #569cd6;font-family:monospace}
+.tt-tabhop{background:linear-gradient(135deg,#ffe3ef,#ffc2da);color:#7a1a48;border:2px solid #e0508a}
