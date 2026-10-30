@@ -452,7 +452,7 @@ const TITLE_DEFS = [
   { id: 'allcmd', name: 'コマンドマスター', desc: '他のコマンド系の称号14個を、すべて獲得した' },
 ];
 const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["tease", "煽り"], ["op", "サイト操作"], ["long", "長期・時間帯"], ["staff", "コレクション・特別"]];
-const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "harsh": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "reisen": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 4], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "goren": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 1], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 5], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 3], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 3], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4], "bake": ["result", 3], "tansho": ["result", 2], "akumei": ["result", 2], "apple": ["site", 1], "meteor": ["site", 3], "selfanalysis": ["site", 1], "secguard": ["site", 1], "comma": ["site", 2], "zerozero": ["result", 2], "idle": ["site", 2], "shobu": ["result", 3], "rotate": ["debug", 1], "themechg": ["debug", 2], "zoom": ["debug", 1], "allsel": ["debug", 1], "reloader": ["debug", 2], "lonely": ["tease", 3], "flatter": ["tease", 3], "savior": ["tease", 2], "bias": ["tease", 2], "mash": ["debug", 2], "rclick": ["debug", 1], "print": ["debug", 2], "viewsrc": ["debug", 2], "tabhop": ["debug", 2], "hanki": ["tease", 3]};
+const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 5], "sweet": ["score", 1], "harsh": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "reisen": ["score", 4], "midpoint": ["score", 5], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 4], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 5], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 5], "combo": ["join", 4], "traveler": ["join", 4], "goren": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 1], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 5], "qa": ["debug", 5], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 5], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 5], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 3], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 3], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4], "bake": ["result", 3], "tansho": ["result", 2], "akumei": ["result", 2], "apple": ["site", 1], "meteor": ["site", 3], "selfanalysis": ["site", 1], "secguard": ["site", 1], "comma": ["site", 2], "zerozero": ["result", 2], "idle": ["site", 2], "shobu": ["result", 3], "rotate": ["debug", 1], "themechg": ["debug", 2], "zoom": ["debug", 1], "allsel": ["debug", 1], "reloader": ["debug", 2], "lonely": ["tease", 3], "flatter": ["tease", 3], "savior": ["tease", 2], "bias": ["tease", 2], "mash": ["debug", 2], "rclick": ["debug", 1], "print": ["debug", 2], "viewsrc": ["debug", 2], "tabhop": ["debug", 2], "hanki": ["tease", 3]};
 // ---- 追加称号(隠しコマンド・サイト操作・長期/時間帯) ----
 const EXTRA = (() => {
   // 追加称号(隠しコマンド・サイト操作・長期/時間帯)。rule の種類は server.js の判定部分と app.js の生成部分で使う。
@@ -604,7 +604,31 @@ const EXTRA = (() => {
   D('slow', '回線の試練', '🐢', 2, '通信に、6秒以上かかった', { act: 'slownet', n: 1 });
   D('prtsc', 'スクショ職人', '📷', 3, 'PrintScreenキーを、累計10回押した', { act: 'prtsc', n: 10 });
   D('flick', 'フリックの王', '🌪️', 3, '画面を高速でスクロールすることを、累計100回した', { act: 'flick', n: 100 });
-  D('scmaster', 'ショートカットマスター', '🎛️', 4, 'ページ内検索・ブックマーク・強制リロード・Alt+矢印・印刷・ソース表示・全選択・拡大縮小を、すべて使った', { need: { act: ['find', 'bookmark', 'hardreload', 'altleft'], ctr: ['print', 'viewsrc', 'allsel', 'zoom'] } });
+  D('scmaster', 'ショートカットマスター', '🎛️', 5, 'ページ内検索・ブックマーク・強制リロード・Alt+矢印・印刷・ソース表示・全選択・拡大縮小を、すべて使った', { need: { act: ['find', 'bookmark', 'hardreload', 'altleft'], ctr: ['print', 'viewsrc', 'allsel', 'zoom'] } });
+  // ---- サイト愛・各ジャンルの★5・称号獲得数 ----
+  const SI = (id, name, icon, lv, desc, rule) => T('s_' + id, name, icon, 'site', lv, desc, rule);
+  SI('apple2', 'りんご農園', '🍎', 3, 'Apple Musicのプレイリストのリンクを、累計10回押した', { ctr: 'applelink', n: 10 });
+  SI('csv', 'CSV職人', '🗂️', 3, 'ランキングやデータをCSVで、累計5回保存した', { ctr: 'csv', n: 5 });
+  SI('stats', 'マイ統計マニア', '📈', 2, 'マイ統計を、累計10回開いた', { ctr: 'stats', n: 10 });
+  SI('people', '人間観察', '🔭', 3, '他のユーザーのプロフィールを、30人分見た', { stat: 'profiles', n: 30 });
+  SI('news', '新聞の配達員', '📰', 4, 'お知らせを、累計50回開いた', { ctr: 'news', n: 50 });
+  SI('pasts', 'アーカイブの主', '🗄️', 4, '過去のParty Rankの画面を、累計50回開いた', { visit: 'pasts', n: 50 });
+  SI('about', '説明書の暗記', '📚', 3, 'Party Rankとは の画面を、累計20回開いた', { visit: 'about', n: 20 });
+  SI('compat', '相性占い師', '🔮', 4, '相性診断の画面を、累計50回開いた', { visit: 'compat', n: 50 });
+  SI('icon', 'アイコン収集家', '🖼️', 3, 'アイコンを、累計10回設定した', { ctr: 'iconset', n: 10 });
+  SI('bio', '筆まめ', '🖋️', 4, '自己紹介を、累計30回書き換えた', { ctr: 'bioedit', n: 30 });
+  SI('rename', '改名の達人', '🎭', 4, 'ユーザー名を、累計10回変更した', { ctr: 'rename', n: 10 });
+  SI('invite', '宣教師長', '📣', 4, '招待や共有を、累計20回行った', { ctr: 'invite', n: 20 });
+  SI('all', 'サイト愛の化身', '💞', 5, 'サイト愛ジャンルの称号を、25個獲得した', { masterCat: 'site', n: 25 });
+  T('m_cm300', '語り部の頂', '🗣️', 'comm', 5, 'すべてのランキングを合わせて、300曲以上にひとことを書いた', { stat: 'comments', n: 300 });
+  T('t_tease', 'ひねくれ者の王', '🃏', 'tease', 5, '煽りジャンルの称号5個を、すべて獲得した', { masterCat: 'tease', n: 5 });
+  const TC = (n, id, name, icon, lv) => T('t_' + id, name, icon, 'staff', lv, '称号を' + n + '個獲得した', { cnt: n });
+  TC(75, 'c75', '称号の貴族', '🎩', 4);
+  TC(100, 'c100', '称号の大富豪', '💰', 5);
+  TC(150, 'c150', '称号の覇者', '🏆', 5);
+  TC(200, 'c200', '称号の大帝', '👑', 5);
+  TC(250, 'c250', '称号の宇宙', '🌌', 5);
+  T('t_all', 'コンプリート', '💯', 'staff', 5, 'すべての称号(管理者専用を除く)を、獲得した', { cnt: -1 });
   return X;
 
 })();
@@ -866,7 +890,7 @@ function computeEarned() {
         const act = cc.act || {}, cmdD = cc.cmd || {};
         const nScore = Object.keys(db.scores[u.id] || {}).filter((sid) => songIds.has(sid)).length;
         const nCm = Object.keys(db.comments[u.id] || {}).filter((sid) => songIds.has(sid)).length;
-        const stat = { days: days.length, streak: best, stayh: (cc.stay || 0) / 3600, scores: nScore, comments: nCm };
+        const stat = { days: days.length, streak: best, stayh: (cc.stay || 0) / 3600, scores: nScore, comments: nCm, profiles: Object.keys(cc.profiles || {}).filter((id) => db.people.some((x) => x.id === id)).length };
         EXTRA.forEach((x) => {
           const r = x.rule;
           if (r.cmd) { if (cmdD[x.id]) set.add(x.id); }
@@ -882,6 +906,7 @@ function computeEarned() {
         if (has(typed)) set.add('c_shell');
         if (has(EXTRA.filter((x) => x.cat === 'cmd' && x.id !== 'c_root').map((x) => x.id))) set.add('c_root');
         if (has(EXTRA.filter((x) => x.cat === 'op' && x.id !== 'o_all').map((x) => x.id))) set.add('o_all');
+        EXTRA.forEach((x) => { if (x.rule.masterCat && Object.keys(TITLE_META).filter((id) => TITLE_META[id][0] === x.rule.masterCat && id !== x.id && set.has(id)).length >= x.rule.n) set.add(x.id); });
       }
       const CMDS = ['ping', 'traceroute', 'whoami', 'rmrf', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'];
       if ((cc.applelink || 0) >= 1) set.add('apple'); if ((cc.starswap || 0) >= 5) set.add('meteor'); if ((cc.stats || 0) >= 1) set.add('selfanalysis');
@@ -907,7 +932,9 @@ function computeEarned() {
   const QA = ['bughunter', 'debugger', 'boundary', 'lost', 'maxname', 'burst', 'dawn', 'resizer', 'devtools', 'offline', 'relog', 'infloop', 'rotate', 'themechg', 'zoom', 'allsel', 'reloader', 'mash', 'rclick', 'print', 'viewsrc', 'tabhop'];
   out.forEach((set) => { if (QA.every((id) => set.has(id))) set.add('qa'); });
   db.people.forEach((u) => { if (isAdminPerson(u.id)) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('power'); } });
-  out.forEach((set) => { const n = set.size - (set.has('power') ? 1 : 0); if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking'); });
+  out.forEach((set) => { const n = set.size - (set.has('power') ? 1 : 0); if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking');
+    EXTRA.forEach((x) => { if (x.rule.cnt > 0 && n >= x.rule.cnt) set.add(x.id); });
+    const allIds = TITLE_DEFS.filter((d) => !d.hidden && d.id !== 't_all').map((d) => d.id); if (allIds.every((id) => set.has(id))) set.add('t_all'); });
   emVer = VER; emMemo = out; return out;
 }
 // 獲得した称号を保存する(一度獲得した称号は、あとから条件を外れても残る)
@@ -999,7 +1026,7 @@ async function api(req, res, url) {
       Object.keys(db.scores[u.id] || {}).forEach((sid) => { if (songKey[sid]) cnt[songKey[sid]] = (cnt[songKey[sid]] || 0) + 1; });
       Object.keys(cnt).forEach((k) => { (by[k] = by[k] || []).push({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), scored: cnt[k] }); });
     });
-    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), on: !!isOn(u.id) })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
+    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), on: !!isOn(u.id), tn: Object.keys(db.titles[u.id] || {}).filter((t) => TITLE_BY_ID[t] && !TITLE_BY_ID[t].hidden).length })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
   }
   const optPerson = () => { const t = bearer(req); return (t && db.people.find((x) => x.token === t)) || null; };
   if (p === '/api/me/titles' && m === 'GET') {
@@ -1138,7 +1165,7 @@ async function api(req, res, url) {
     const u = db.people.find((x) => x.id === prm[1]);
     if (!u) throw new HttpError(404, 'ユーザーが見つかりません');
     const n = rankCount(u.id), tid = equippedOf(u);
-    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).filter((t) => !TITLE_BY_ID[t].hidden || isAdminPerson(u.id)).length, titles: shownTitles(u).map((t) => ({ id: t, name: TITLE_BY_ID[t].name })), adm: isAdminPerson(u.id) });
+    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).filter((t) => TITLE_BY_ID[t] && !TITLE_BY_ID[t].hidden).length, titles: shownTitles(u).map((t) => ({ id: t, name: TITLE_BY_ID[t].name })), adm: isAdminPerson(u.id) });
   }
   if (p === '/api/me/profile' && m === 'PUT') {
     const me = person(req);
