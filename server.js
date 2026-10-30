@@ -275,7 +275,6 @@ const TITLE_DEFS = [
   { id: 'rank4', name: 'キングParty Ranker', desc: 'ランキング参加数が21〜30(21以上)' },
   { id: 'rank5', name: 'Party Rankの神', desc: 'ランキング参加数が31以上' },
   { id: 'sweet', name: '甘口審査員', desc: '1つのランキングで全曲を採点し、自分の平均点が7.50点以上だった' },
-  { id: 'bonjin', name: '凡人', desc: '1つのランキングのすべての曲に、5.0〜6.0点をつけた' },
   { id: 'lucky7', name: 'ラッキーセブン', desc: '1つのランキングで、7.0点と7.5点を合わせて30曲以上につけた' },
   { id: 'gyaku', name: '逆張り王子', desc: '自分が☆をつけた曲が、ランキングのワースト10に入った' },
   { id: 'yari', name: '一番槍', desc: 'Party Rankモードになってから、そのランキングの全曲を最も早く採点した' },
@@ -292,7 +291,7 @@ const TITLE_DEFS = [
   { id: 'resonance', name: '共鳴者', desc: '公開済みのランキングで、ほかのユーザーと点数のつけ方が90%以上一致した(共通の10曲以上)' },
   { id: 'camera', name: 'カメラマン', desc: 'ランキング画像(自分・全体)を合計5回以上保存した' },
   { id: 'constellation', name: '星座になれたら', desc: '1つのランキングで、1曲に3人以上が☆をつけ、その一員だった' },
-  { id: 'zero', name: 'ミスターゼロ', desc: '1つのランキングで、0.0点を5曲以上につけた' },
+  { id: 'zero', name: 'ミスターゼロ', desc: '1つのランキングで、0.0点を3曲以上につけた' },
   { id: 'collector', name: '称号コレクター', desc: '称号を合計20個獲得した' },
   { id: 'gunshi', name: '軍師', desc: '全曲を採点し、自分のランキングが全体ランキングとほぼ完全に一致した(順位相関0.95以上・10曲以上)' },
   { id: 'honor', name: '優等生', desc: 'プロフィールの自己紹介文を100文字以上書いた' },
@@ -363,7 +362,6 @@ const TITLE_DEFS = [
   { id: 'prophet', name: '予言者', desc: '6曲以上採点し、自分のトップ3が、全体のトップ3とまったく同じ3曲だった' },
   { id: 'oneway', name: 'ワンパターン', desc: '10曲以上のランキングで全曲を採点し、半分以上の曲に同じ点数をつけた' },
   { id: 'variety', name: '点数のバラエティ', desc: '1つのランキングで、15種類以上の違う点数を使った' },
-  { id: 'nostar', name: '無欲', desc: '全曲を採点したランキングで、そのクールの☆を使わなかった' },
   { id: 'avgbody', name: '平均点の化身', desc: '全曲を採点し、自分の平均点が全体平均と0.05点以内だった' },
   { id: 'regular5', name: '完走常連', desc: '5つ以上のランキングで、全曲を採点した' },
   { id: 'iron', name: '鉄人', desc: '10以上のランキングで、全曲を採点した' },
@@ -385,7 +383,7 @@ const TITLE_DEFS = [
   { id: 'offline', name: '圏外の住人', desc: '通信が切れた状態から、復帰した' },
   { id: 'relog', name: '再起動したら直った', desc: 'ログアウトして、1分以内にログインし直した' },
   { id: 'infloop', name: '無限ループ', desc: '1つの曲の点数を、20回以上変更した' },
-  { id: 'qa', name: '品質保証', desc: 'デバッグ系の称号(バグハンター・デバッガー・境界値テスター・404の旅人・限界ネーム・ストレステスト・午前3時のデバッグ・ウィンドウ伸縮マニア・検証者・圏外の住人・再起動したら直った・無限ループ)を、すべて獲得した' },
+  { id: 'qa', name: '品質保証', desc: 'デバッグ系の称号(バグハンター・デバッガー・境界値テスター・404の旅人・限界ネーム・ストレステスト・午前3時のデバッグ・ウィンドウ伸縮マニア・検証者・圏外の住人・再起動したら直った・無限ループ・画面くるくる・配色チェンジ・拡大鏡・全選択・リロード職人・連打の達人・右クリッカー・紙派・ソース閲覧者・浮気性)を、すべて獲得した' },
   { id: 'halloween', name: 'トリックオアトリート', desc: '10月31日(日本時間)にサイトに来た' },
   { id: 'xmas', name: 'メリークリスマス', desc: '12月25日(日本時間)にサイトに来た' },
   { id: 'newyear', name: 'あけましておめでとう', desc: '1月1日(日本時間)にサイトに来た' },
@@ -395,20 +393,46 @@ const TITLE_DEFS = [
   { id: 'kaibun', name: '回文職人', desc: '3文字以上の回文(上から読んでも下から読んでも同じ)のひとことを書いた' },
   { id: 'lucky77', name: 'スリーセブン', desc: 'ちょうど77文字のひとことを書いた' },
   { id: 'pittari', name: 'ぴったり賞', desc: '10曲以上のランキングで全曲を採点し、点数の合計がちょうど100の倍数だった' },
+  // ---- 第6弾 ----
+  { id: 'bake', name: '化けそうなココロ', desc: '自分が☆をつけた曲が、3人以上が採点して平均8.286点を超えた' },
+  { id: 'tansho', name: '単勝', desc: '予想ゲームで、トップ1(全体1位)を当てた(公開後に判定)' },
+  { id: 'akumei', name: '悪名は無名に勝る', desc: '予想ゲームで、ワースト1(全体最下位)を当てた(公開後に判定)' },
+  { id: 'apple', name: 'りんごの遣い手', desc: 'Apple Musicのプレイリストのリンクを、クリックした' },
+  { id: 'meteor', name: '流星', desc: '☆を、5回以上つけ替えた' },
+  { id: 'selfanalysis', name: '自己分析', desc: '「マイ統計」を見た' },
+  { id: 'secguard', name: 'セキュリティガード', desc: '合言葉(パスワード)を、設定または再設定した' },
+  { id: 'comma', name: 'カンマセパレーター', desc: 'ランキングや自分の点数を、CSVで保存した' },
+  { id: 'zerozero', name: '全外し', desc: '予想ゲームで、0点を獲得した(公開後に判定)' },
+  { id: 'idle', name: '寝た?', desc: 'サイトを開いたまま、1時間なにも操作せずに放置した' },
+  { id: 'shobu', name: '勝負師', desc: '集計中に、予想ゲームを提出した' },
+  { id: 'rotate', name: '画面くるくる', desc: 'スマホなどの画面を、縦横に回転させた' },
+  { id: 'themechg', name: '配色チェンジ', desc: 'ダークモードとライトモードが切り替わった(端末の設定の変更)' },
+  { id: 'zoom', name: '拡大鏡', desc: '画面を拡大・縮小した(ピンチやCtrl+プラス・マイナス)' },
+  { id: 'allsel', name: '全選択', desc: 'Ctrl+A(Macは⌘+A)で、全選択をした' },
+  { id: 'reloader', name: 'リロード職人', desc: 'ページの再読み込みを、累計20回行った' },
+  { id: 'hanki', name: '反逆の一票', desc: '全曲を採点した6曲以上のランキングで、全体1位の曲に、自分の最低点(5.0点以下)をつけた' },
+  { id: 'lonely', name: '孤高の辛口', desc: '全曲を採点した10曲以上のランキングで、すべての曲を、全体の平均より低い点にした(3人以上が採点した曲)' },
+  { id: 'flatter', name: 'ご機嫌取り', desc: '全曲を採点した10曲以上のランキングで、すべての曲を、全体の平均より高い点にした(3人以上が採点した曲)' },
+  { id: 'savior', name: '底辺の救世主', desc: '6曲以上のランキングで、全体最下位の曲に、9.0点以上をつけた' },
+  { id: 'bias', name: '独断と偏見', desc: '1つのランキングで、全体の平均と5点以上離れた点を、3曲以上につけた(3人以上が採点した曲)' },
+  { id: 'mash', name: '連打の達人', desc: '1秒以内に、画面を10回以上クリックした' },
+  { id: 'rclick', name: '右クリッカー', desc: 'サイトの上で、右クリック(長押しメニュー)を開いた' },
+  { id: 'print', name: '紙派', desc: '印刷の画面を開いた(Ctrl+Pなど)' },
+  { id: 'viewsrc', name: 'ソース閲覧者', desc: 'ページのソースを表示しようとした(Ctrl+U)' },
+  { id: 'tabhop', name: '浮気性', desc: '1回の訪問で、ほかのタブやアプリに10回以上切り替えた' },
   // ---- 第5弾 ----
   { id: 'tenzero', name: '天国と地獄', desc: '1つのランキングで、0点と10点を、それぞれ5曲以上につけた' },
-  { id: 'allten', name: '全部満点', desc: '5曲以上のランキングで、全曲に10点をつけた' },
-  { id: 'allzero', name: '虚無', desc: '5曲以上のランキングで、全曲に0点をつけた' },
-  { id: 'ladder', name: '右肩上がり', desc: '8曲以上のランキングで全曲を採点し、曲リストの上から順に点数が下がらず、最初と最後で5点以上の差があった' },
-  { id: 'descent', name: '右肩下がり', desc: '8曲以上のランキングで全曲を採点し、曲リストの上から順に点数が上がらず、最初と最後で5点以上の差があった' },
+  { id: 'reisen', name: '冷戦', desc: '1つのランキングで、0点か0.5点を、合わせて10曲以上につけた' },
+  { id: 'ladder', name: '右肩上がり', desc: '5曲以上のランキングで全曲を採点し、曲リストの上から順に点数が下がらず、最初より最後が2点以上高かった(順に上がっていった)' },
+  { id: 'descent', name: '右肩下がり', desc: '5曲以上のランキングで全曲を採点し、曲リストの上から順に点数が上がらず、最初より最後が2点以上低かった(順に下がっていった)' },
   { id: 'ichimai', name: '推しの一点豪華', desc: '10曲以上のランキングで全曲を採点し、10点が1曲だけ、ほかの曲はすべて6.0点以下だった' },
   { id: 'sniper', name: '狙撃手', desc: '全曲を採点し、自分が最高点をつけた曲(1曲だけ)が全体1位、最低点をつけた曲(1曲だけ)が全体最下位だった' },
-  { id: 'tragic', name: '悲劇の推し', desc: '全曲を採点し、自分が最高点をつけた曲(1曲だけ)が、全体の最下位だった' },
+  { id: 'tragic', name: '悲劇の推し', desc: '10曲以上のランキングで全曲を採点し、自分が9.0点以上をつけた曲(最高点で1曲だけ)が、全体の最下位だった' },
   { id: 'manjo', name: '満場一致', desc: '3人以上が採点した曲のうち、採点した全員が8.0点以上をつけた曲に、自分も8.0点以上をつけたものが3曲以上あった' },
   { id: 'midpoint', name: 'ちょうど真ん中', desc: '5曲以上のランキングで全曲を採点し、自分の平均点がちょうど5.00点だった' },
   { id: 'jackpot', name: 'ジャックポット', desc: '10曲以上のランキングで全曲を採点し、点数の合計がちょうど777点だった' },
   { id: 'nito', name: '二刀流', desc: '同じクールの、2種類以上の区分(OP・EDなど)で、全曲を採点した' },
-  { id: 'yonkan', name: '四種の神器', desc: '同じクールの、OP・ED・挿入歌・キャラソンの4区分すべてで、全曲を採点した' },
+  { id: 'goren', name: '五連覇', desc: '同じ区分(OPなど)で、5クール連続して全曲を採点した' },
   { id: 'shiki', name: '四季折々', desc: '同じ年の、冬・春・夏・秋の4クールすべてで、全曲を採点した(区分は問いません)' },
   { id: 'rensen', name: '連戦連勝', desc: '同じ区分(OPなど)で、3クール連続して全曲を採点した' },
   { id: 'ping', name: '疎通確認', desc: 'キーボードで「ping」と入力した(入力欄の外で)' },
@@ -427,8 +451,8 @@ const TITLE_DEFS = [
   { id: 'tab20', name: 'タブ職人', desc: 'Tabキーを、10秒以内に20回押した' },
   { id: 'allcmd', name: 'コマンドマスター', desc: '他のコマンド系の称号14個を、すべて獲得した' },
 ];
-const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["staff", "コレクション・特別"]];
-const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "bonjin": ["score", 1], "harsh": ["score", 1], "nostar": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "allten": ["score", 4], "allzero": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 2], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "yonkan": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 2], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 2], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 2], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 2], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4]};
+const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["tease", "煽り"], ["staff", "コレクション・特別"]];
+const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "harsh": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "reisen": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 4], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "goren": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 2], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 2], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 2], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 2], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4], "bake": ["result", 3], "tansho": ["result", 2], "akumei": ["result", 2], "apple": ["site", 1], "meteor": ["site", 2], "selfanalysis": ["site", 1], "secguard": ["site", 1], "comma": ["site", 2], "zerozero": ["result", 2], "idle": ["site", 2], "shobu": ["result", 3], "rotate": ["debug", 1], "themechg": ["debug", 2], "zoom": ["debug", 1], "allsel": ["debug", 1], "reloader": ["debug", 2], "lonely": ["tease", 3], "flatter": ["tease", 3], "savior": ["tease", 2], "bias": ["tease", 2], "mash": ["debug", 2], "rclick": ["debug", 1], "print": ["debug", 2], "viewsrc": ["debug", 2], "tabhop": ["debug", 2], "hanki": ["tease", 3]};
 const TITLE_BY_ID = Object.fromEntries(TITLE_DEFS.map((t) => [t.id, t]));
 const RANK_TIER = (n) => (n >= 31 ? 5 : n >= 21 ? 4 : n >= 11 ? 3 : n >= 6 ? 2 : n >= 1 ? 1 : 0);
 const EMOJIS = ['👍', '❤️', '😂', '🔥', '😢'];
@@ -463,7 +487,7 @@ function predScore(k, pred) {
     return { pts, exact };
   };
   const t = calc(pred.top, rd), w = calc(pred.worst, ra);
-  return { pts: t.pts + w.pts, trifecta: t.exact === 3, worstTrifecta: w.exact === 3 };
+  return { pts: t.pts + w.pts, trifecta: t.exact === 3, worstTrifecta: w.exact === 3, top1: rd[(pred.top || [])[0]] === 1, worst1: ra[(pred.worst || [])[0]] === 1 };
 }
 function predBoard(k) {
   const out = [];
@@ -501,29 +525,27 @@ function keyTitles(k, out, doneCount, doneKeys) {
     if (!have.length) return;
     const done = have.length === N, avg = mean(have);
     if (done && avg >= 7.5) add(pid, 'sweet');
-    if (done && have.every((v) => v >= 5 && v <= 6)) add(pid, 'bonjin');
     if (have.filter((v) => v === 7 || v === 7.5).length >= 30) add(pid, 'lucky7');
-    if (have.filter((v) => v === 0).length >= 5) add(pid, 'zero');
+    if (have.filter((v) => v === 0).length >= 3) add(pid, 'zero');
     if (have.filter((v) => v === 10).length >= 3) add(pid, 'ten');
     if (done) { doneCount[pid] = (doneCount[pid] || 0) + 1; fin.push({ pid, avg }); (doneKeys[pid] = doneKeys[pid] || []).push(k); }
     if (done && N >= 10 && Math.round(have.reduce((a, b) => a + b, 0) * 10) % 1000 === 0) add(pid, 'pittari');
     if (done && N >= 10 && Math.round(have.reduce((a, b) => a + b, 0) * 10) === 7770) add(pid, 'jackpot');
     if (have.filter((v) => v === 0).length >= 5 && have.filter((v) => v === 10).length >= 5) add(pid, 'tenzero');
-    if (done && N >= 5 && have.every((v) => v === 10)) add(pid, 'allten');
-    if (done && N >= 5 && have.every((v) => v === 0)) add(pid, 'allzero');
+    if (have.filter((v) => v <= 0.5).length >= 10) add(pid, 'reisen');
     if (done && N >= 5 && Math.abs(avg - 5) < 1e-9) add(pid, 'midpoint');
     if (done && N >= 10 && have.filter((v) => v === 10).length === 1 && have.filter((v) => v !== 10).every((v) => v <= 6)) add(pid, 'ichimai');
-    if (done && N >= 8) {
+    if (done && N >= 5) {
       const scs = ordIds.map((sid) => (db.scores[pid] || {})[sid]);
       if (scs.length === N && scs.every((v) => typeof v === 'number')) {
-        if (scs.every((v, i) => !i || v >= scs[i - 1]) && scs[N - 1] - scs[0] >= 5) add(pid, 'ladder');
-        if (scs.every((v, i) => !i || v <= scs[i - 1]) && scs[0] - scs[N - 1] >= 5) add(pid, 'descent');
+        if (scs.every((v, i) => !i || v >= scs[i - 1]) && scs[N - 1] - scs[0] >= 2) add(pid, 'ladder');
+        if (scs.every((v, i) => !i || v <= scs[i - 1]) && scs[0] - scs[N - 1] >= 2) add(pid, 'descent');
       }
     }
     if (done && nR >= 6) {
       const mxv = Math.max(...have), mnv = Math.min(...have), hi = rows.filter((r) => r.scores[pid] === mxv), lo = rows.filter((r) => r.scores[pid] === mnv), lastRank = ranked[nR - 1].rank;
       if (mxv !== mnv && hi.length === 1 && lastRank !== 1) {
-        if (hi[0].rank === lastRank) add(pid, 'tragic');
+        if (hi[0].rank === lastRank && N >= 10 && mxv >= 9) add(pid, 'tragic');
         if (lo.length === 1 && hi[0].rank === 1 && lo[0].rank === lastRank) add(pid, 'sniper');
       }
     }
@@ -537,7 +559,12 @@ function keyTitles(k, out, doneCount, doneKeys) {
     if (done && Math.min(...have) >= 7) add(pid, 'tasty');
     if (done && N >= 10) { const fr = {}; have.forEach((v) => { fr[v] = (fr[v] || 0) + 1; }); if (Math.max(...Object.values(fr)) >= N / 2) add(pid, 'oneway'); }
     if (new Set(have).size >= 15) add(pid, 'variety');
-    if (done && !rows.some((r) => r.starBy.includes(pid))) add(pid, 'nostar');
+    if (rows.some((r) => r.starBy.includes(pid) && r.count >= 3 && r.avg > 8.286)) add(pid, 'bake');
+    if (done && N >= 6 && nR >= 2 && q3(ranked[0].avg) > q3(ranked[1].avg) && ranked[0].scores[pid] <= Math.min(...have) && ranked[0].scores[pid] <= 5) add(pid, 'hanki');
+    if (done && N >= 10 && rows.every((r) => r.avg != null && r.count >= 3 && r.scores[pid] < r.avg)) add(pid, 'lonely');
+    if (done && N >= 10 && rows.every((r) => r.avg != null && r.count >= 3 && r.scores[pid] > r.avg)) add(pid, 'flatter');
+    if (N >= 6 && nR >= 2 && q3(asc[0].avg) < q3(asc[1].avg) && typeof asc[0].scores[pid] === 'number' && asc[0].scores[pid] >= 9) add(pid, 'savior');
+    if (rows.filter((r) => r.avg != null && r.count >= 3 && typeof r.scores[pid] === 'number' && Math.abs(r.scores[pid] - r.avg) >= 5).length >= 3) add(pid, 'bias');
     if (done && overall != null && Math.abs(avg - overall) <= 0.05) add(pid, 'avgbody');
     if (done && rows.every((r) => r.comments[pid]) && rows.some((r) => r.starBy.includes(pid)) && (db.pred[k] || {})[pid]) add(pid, 'combo');
     if (ranked.length >= 1 && ranked[0].rank === 1 && ranked.filter((r) => r.rank === 1).some((r) => r.scores[pid] === 10)) add(pid, 'mvp');
@@ -597,7 +624,7 @@ function keyTitles(k, out, doneCount, doneKeys) {
       if (rankAt && comp >= rankAt && (!yariBest || comp < yariBest.t)) yariBest = { pid, t: comp };
     }
     const pr = (db.pred[k] || {})[pid];
-    if (pr) { const ps = predScore(k, pr); if (ps.trifecta) add(pid, 'manba'); if (ps.worstTrifecta) add(pid, 'mine'); if (ps.pts >= 12) add(pid, 'detective'); }
+    if (pr) { const ps = predScore(k, pr); if (ps.trifecta) add(pid, 'manba'); if (ps.worstTrifecta) add(pid, 'mine'); if (ps.pts >= 12) add(pid, 'detective'); if (modeOf(k) === 'watch') { if (ps.top1) add(pid, 'tansho'); if (ps.worst1) add(pid, 'akumei'); if (ps.pts === 0) add(pid, 'zerozero'); } }
   });
   if (yariBest) add(yariBest.pid, 'yari');
   if (fin.length >= 3) { const mn = Math.min(...fin.map((x) => Math.round(x.avg * 1000))); fin.filter((x) => Math.round(x.avg * 1000) === mn).forEach((x) => add(x.pid, 'funeoriro')); }
@@ -663,7 +690,7 @@ function computeEarned() {
       if (Object.keys(db.scores[u.id] || {}).filter((sid) => songIds.has(sid)).length >= 300) set.add('traveler');
       if ((cc.lost || 0) >= 1) set.add('lost'); if ((cc.maxname || 0) >= 1) set.add('maxname'); if ((cc.burst || 0) >= 1) set.add('burst');
       if ((cc.dawn || 0) >= 1) set.add('dawn'); if ((cc.resize || 0) >= 30) set.add('resizer'); if ((cc.devtools || 0) >= 1) set.add('devtools');
-      if ((cc.offline || 0) >= 1) set.add('offline'); if ((cc.relog || 0) >= 1) set.add('relog');
+      if ((cc.offline || 0) >= 1) set.add('offline'); ['mash', 'rclick', 'print', 'viewsrc', 'tabhop'].forEach((x) => { if ((cc[x] || 0) >= 1) set.add(x); }); if ((cc.relog || 0) >= 1) set.add('relog');
       if (Object.values(db.changes[u.id] || {}).some((n) => n >= 20)) set.add('infloop');
       const dset = new Set(days.map((d) => d.slice(5)));
       if (dset.has('10-31')) set.add('halloween'); if (dset.has('12-25')) set.add('xmas'); if (dset.has('01-01')) set.add('newyear'); if (dset.has('07-07')) set.add('tanabata'); if (dset.has('11-11')) set.add('pocky');
@@ -672,11 +699,14 @@ function computeEarned() {
         const dk = doneKeys[u.id] || [], byCour = {}, byYear = {}, byKind = {};
         dk.forEach((kk) => { const pp = kk.split('-'), cour = pp[0] + '-' + pp[1], kind = pp[2]; (byCour[cour] = byCour[cour] || new Set()).add(kind); (byYear[pp[0]] = byYear[pp[0]] || new Set()).add(Number(pp[1])); (byKind[kind] = byKind[kind] || new Set()).add(Number(pp[0]) * 12 + Number(pp[1])); });
         if (Object.values(byCour).some((x) => x.size >= 2)) set.add('nito');
-        if (Object.values(byCour).some((x) => KINDS.every((kd) => x.has(kd)))) set.add('yonkan');
+        if (Object.values(byKind).some((x) => Array.from(x).some((v) => [3, 6, 9, 12].every((d) => x.has(v + d))))) set.add('goren');
         if (Object.values(byYear).some((x) => [1, 4, 7, 10].every((mo) => x.has(mo)))) set.add('shiki');
         if (Object.values(byKind).some((x) => Array.from(x).some((v) => x.has(v + 3) && x.has(v + 6)))) set.add('rensen');
       }
       const CMDS = ['ping', 'traceroute', 'whoami', 'rmrf', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'];
+      if ((cc.applelink || 0) >= 1) set.add('apple'); if ((cc.starswap || 0) >= 5) set.add('meteor'); if ((cc.stats || 0) >= 1) set.add('selfanalysis');
+      if ((cc.pwset || 0) >= 1) set.add('secguard'); if ((cc.csv || 0) >= 1) set.add('comma'); if ((cc.idle1h || 0) >= 1) set.add('idle'); if ((cc.tallypred || 0) >= 1) set.add('shobu');
+      if ((cc.rotate || 0) >= 1) set.add('rotate'); if ((cc.themechg || 0) >= 1) set.add('themechg'); if ((cc.zoom || 0) >= 1) set.add('zoom'); if ((cc.allsel || 0) >= 1) set.add('allsel'); if ((cc.reload || 0) >= 20) set.add('reloader');
       CMDS.forEach((id) => { if ((cc.cmd || {})[id]) set.add(id); });
       if (CMDS.every((id) => set.has(id))) set.add('allcmd');
       if ((cc.bug || 0) >= 1) set.add('bughunter');
@@ -694,7 +724,7 @@ function computeEarned() {
     }
     if (set.size) out.set(u.id, set);
   });
-  const QA = ['bughunter', 'debugger', 'boundary', 'lost', 'maxname', 'burst', 'dawn', 'resizer', 'devtools', 'offline', 'relog', 'infloop'];
+  const QA = ['bughunter', 'debugger', 'boundary', 'lost', 'maxname', 'burst', 'dawn', 'resizer', 'devtools', 'offline', 'relog', 'infloop', 'rotate', 'themechg', 'zoom', 'allsel', 'reloader', 'mash', 'rclick', 'print', 'viewsrc', 'tabhop'];
   out.forEach((set) => { if (QA.every((id) => set.has(id))) set.add('qa'); });
   db.people.forEach((u) => { if (isAdminPerson(u.id)) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('power'); } });
   out.forEach((set) => { const n = set.size - (set.has('power') ? 1 : 0); if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking'); });
@@ -760,7 +790,8 @@ async function api(req, res, url) {
     return send(res, 200, t);
   }
   if (p === '/api/me/stats' && m === 'GET') {
-    const me = person(req), sc = db.scores[me.id] || {}, dist = {}, per = {}, mine = [];
+    const me = person(req); bump(me.id, 'stats');
+    const sc = db.scores[me.id] || {}, dist = {}, per = {}, mine = [];
     db.songs.forEach((sg) => {
       const v = sc[sg.id]; if (typeof v !== 'number') return;
       dist[v] = (dist[v] || 0) + 1; mine.push({ title: sg.title, key: sg.key, v });
@@ -829,7 +860,7 @@ async function api(req, res, url) {
     const me = person(req);
     if (limited(req, 'ev', 300, 60000)) throw new HttpError(429, '操作が多すぎます');
     const type = String(body.type || ''), c = ctr(me.id), now = Date.now();
-    const SIMPLE = ['lost', 'resize', 'devtools', 'offline', 'relog', 'pastclick', 'imgsave', 'invite', 'news', 'f5', 'bug', 'watchclick', 'xclick'];
+    const SIMPLE = ['applelink', 'csv', 'idle1h', 'rotate', 'themechg', 'zoom', 'allsel', 'reload', 'mash', 'rclick', 'print', 'viewsrc', 'tabhop', 'lost', 'resize', 'devtools', 'offline', 'relog', 'pastclick', 'imgsave', 'invite', 'news', 'f5', 'bug', 'watchclick', 'xclick'];
     if (SIMPLE.includes(type)) bump(me.id, type);
     else if (type === 'stay') { if (!c.lastStay || now - c.lastStay >= 45000) { c.stay = (c.stay || 0) + 60; c.lastStay = now; } }
     else if (type === 'visit') {
@@ -862,6 +893,7 @@ async function api(req, res, url) {
     const chk = (a) => Array.isArray(a) && a.length === 3 && a.every((v) => typeof v === 'string' && ids.has(v)) && new Set(a).size === 3;
     if (!chk(body.top) || !chk(body.worst)) throw bad('トップ3とワースト3を、重ならないように3曲ずつ選んでください');
     if (body.top.some((v) => body.worst.includes(v))) throw bad('トップ3とワースト3で、同じ曲は選べません');
+    if (mdk === 'tally') bump(me.id, 'tallypred');
     (db.pred[key] = db.pred[key] || {})[me.id] = { top: body.top, worst: body.worst, at: Date.now() };
     save();
     return send(res, 200, { ok: true });
@@ -1005,6 +1037,7 @@ async function api(req, res, url) {
       if (!song) throw bad('曲が見つかりません');
       const cur = db.songs.find((s) => s.id === st[courOf(song.key)]);
       if (frozen(song.key) || (cur && frozen(cur.key))) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, '集計中(または公開済み)のため、☆を変更できません'); }
+      if (st[courOf(song.key)] && st[courOf(song.key)] !== song.id) bump(me.id, 'starswap');
       st[courOf(song.key)] = song.id;
     }
     save();
@@ -1042,7 +1075,7 @@ async function api(req, res, url) {
     const cur = String(body.current || ''), next = clean(body.next, 60);
     if (me.hash && (!cur || !checkPw(cur, me.salt, me.hash))) throw new HttpError(403, '現在の合言葉が違います');
     if (next.length < 4) throw bad('新しい合言葉は4文字以上にしてください');
-    me.salt = crypto.randomBytes(16).toString('hex'); me.hash = hashPw(next, me.salt); save();
+    me.salt = crypto.randomBytes(16).toString('hex'); me.hash = hashPw(next, me.salt); bump(me.id, 'pwset'); save();
     return send(res, 200, { ok: true });
   }
 
