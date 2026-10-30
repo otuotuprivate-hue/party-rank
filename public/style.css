@@ -975,3 +975,13 @@ details.ttdet[open]>summary::before{transform:rotate(90deg)}
 
 .tt-rank5,.tt-midpoint,.tt-prophet,.tt-attend,.tt-jackpot,.tt-infloop,.tt-qa,.tt-d_scmaster{--g:#ffe27a;font-size:15px;letter-spacing:.08em;animation:ttPulse 1.5s infinite,ttHue 9s linear infinite}
 .tnc{margin-left:4px;font-size:12px;font-weight:700;color:var(--sub,#667)}
+
+/* ===== 軽量化: 光るのは★4・★5だけ。光沢(流れる光)は★5だけ ===== */
+.ttl.lv1,.ttl.lv2,.ttl.lv3{animation:none!important;box-shadow:none!important}
+.ttl:not(.lv4):not(.lv5)::before,.ttl:not(.lv4):not(.lv5)::after{animation:none!important}
+.tt-sudo::before,.tt-mine::before{display:none}
+.ttl.lv3::after,.ttl.lv4::after{display:none!important}
+.ttl.lv5{animation:ttPulse 1.8s infinite!important}
+.ttl.ttp,.ttl.ttp::before,.ttl.ttp::after{animation-play-state:paused!important}
+.ttcard,.adtt .r{content-visibility:auto;contain-intrinsic-size:auto 96px}
+@media (prefers-reduced-motion:reduce){.ttl,.ttl::before,.ttl::after{animation:none!important}}
