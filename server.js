@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -149,10 +150,15 @@ function readBody(req, limit) {
     req.on('error', reject);
   });
 }
+const wantsGzip = (res) => /\bgzip\b/.test(String((res.req && res.req.headers['accept-encoding']) || ''));
 function send(res, code, body, headers) {
   const isStr = typeof body === 'string', isBuf = Buffer.isBuffer(body);
-  res.writeHead(code, Object.assign({ 'Content-Type': isStr ? 'text/plain; charset=utf-8' : 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, headers));
-  res.end(isStr || isBuf ? body : JSON.stringify(body));
+  const h = Object.assign({ 'Content-Type': isStr ? 'text/plain; charset=utf-8' : 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, headers);
+  let out = isStr || isBuf ? body : JSON.stringify(body);
+  // 大きなデータ(JSON・文字)は圧縮して、スマホの回線でも速く届くようにする(画像は対象外)
+  if (!isBuf && out.length > 1024 && wantsGzip(res)) { out = zlib.gzipSync(out); h['Content-Encoding'] = 'gzip'; h['Vary'] = 'Accept-Encoding'; }
+  res.writeHead(code, h);
+  res.end(out);
 }
 const bearer = (req) => (String(req.headers.authorization || '').match(/^Bearer ([0-9a-f]{48})$/) || [])[1] || '';
 
@@ -1343,11 +1349,19 @@ function serveStatic(req, res, url) {
       const host = String((TRUST_PROXY && req.headers['x-forwarded-host']) || req.headers.host || 'localhost').split(',')[0].trim().replace(/[^A-Za-z0-9.:\-]/g, '');
       buf = Buffer.from(buf.toString('utf8').replace(/__ORIGIN__/g, process.env.PUBLIC_URL || (proto + '://' + host)), 'utf8');
     }
-    res.writeHead(200, Object.assign({ 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }, SEC));
+    const ext = path.extname(file), etag = '"' + crypto.createHash('sha1').update(buf).digest('hex').slice(0, 20) + '"';
+    const hd = Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'ETag': etag, 'Vary': 'Accept-Encoding' }, SEC);
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304, hd); return res.end(); }   // 変わっていなければ、中身は送らない
+    if (['.html', '.js', '.css', '.svg', '.webmanifest'].includes(ext) && buf.length > 1024 && wantsGzip(res)) {
+      let z = GZ.get(etag); if (!z) { z = zlib.gzipSync(buf, { level: 9 }); if (GZ.size > 60) GZ.clear(); GZ.set(etag, z); }
+      hd['Content-Encoding'] = 'gzip'; res.writeHead(200, hd); return res.end(z);
+    }
+    res.writeHead(200, hd);
     res.end(buf);
   });
 }
 
+const GZ = new Map();
 /* ---------- アクセス制限(攻撃・連打への備え) ---------- */
 const RATE_MULT = Math.max(1, Number(process.env.RATE_MULT) || 1); // 負荷テスト用。通常は設定しない
 let secN = 0, secT = 0;
