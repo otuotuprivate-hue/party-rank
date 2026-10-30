@@ -278,7 +278,7 @@
     else if (mine) card.appendChild(el('p', 'hint', '自己紹介はまだありません。下で書いてみましょう。'));
     if (mine) {
       $('pfBio').value = u.bio || ''; $('pfX').value = u.x ? xHandle(u.x) : ''; $('pfCnt').textContent = (u.bio || '').length + '/200'; $('pfMsg').textContent = '';
-      checkTitles().then(function () { if (curRoute() === 'profile') fillPfTitle(); });
+      checkTitles().then(function () { if (curRoute() === 'profile') { fillPfTitle(); fillPfShow(); } });
       ICDATA = ''; $('icFile').value = ''; $('icSave').disabled = true; $('icMsg').textContent = ''; iconPrev('');
       $('rn').value = ME.name; $('rpw').value = ''; $('rmsg').textContent = ''; renderUserPages();
     }
@@ -292,6 +292,29 @@
     if (cur) pv.appendChild(titleChip(cur.id, cur.name));
     $('pfTitleHint').textContent = TT.earned.length ? '獲得した称号 ' + TT.earned.length + ' 個から選べます(名前の横に表示されます)。' : 'まだ称号がありません。ランキングに参加して手に入れましょう。';
   }
+  var SHW = {};
+  function fillPfShow() {
+    var l = $('pfShowList'); l.textContent = ''; if (!TT) return;
+    SHW = {}; (TT.shown || []).forEach(function (id) { SHW[id] = 1; });
+    var sorted = TT.earned.slice().sort(function (a, b) { return b.lv - a.lv || a.at - b.at; });
+    function cnt() { return Object.keys(SHW).length; }
+    function sync() { var n = cnt(); l.querySelectorAll('input').forEach(function (i) { i.disabled = !i.checked && n >= 10; }); $('pfShowMsg').textContent = n + '/10個を選択中'; }
+    if (!sorted.length) { l.appendChild(el('span', 'm', 'まだ称号がありません。')); }
+    sorted.forEach(function (t) {
+      var lb = el('label', 'shwit'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!SHW[t.id];
+      cb.onchange = function () { if (cb.checked) SHW[t.id] = 1; else delete SHW[t.id]; sync(); };
+      lb.appendChild(cb); lb.appendChild(titleChip(t.id, t.name)); l.appendChild(lb);
+    });
+    sync(); if (!TT.customShown) $('pfShowMsg').textContent += '(初期設定)';
+  }
+  $('pfShowSave').onclick = async function () {
+    try { var r = await api('PUT', '/api/me/show-titles', { ids: Object.keys(SHW) }, ptoken); TT.shown = r.shown; TT.customShown = true; toast('表示する称号を保存しました'); renderProfile(); }
+    catch (e) { $('pfShowMsg').textContent = e.message; if (e.status === 401) forget(); }
+  };
+  $('pfShowReset').onclick = async function () {
+    try { var r = await api('PUT', '/api/me/show-titles', { ids: null }, ptoken); TT.shown = r.shown; TT.customShown = false; toast('初期設定に戻しました'); renderProfile(); }
+    catch (e) { $('pfShowMsg').textContent = e.message; }
+  };
   $('pfTitle').onchange = async function () {
     var v = $('pfTitle').value;
     try { var r = await api('PUT', '/api/me/title', { id: v || null }, ptoken); if (TT) TT.equipped = r.equipped; fillPfTitle(); toast(v ? '称号をセットしました' : '称号を外しました'); renderProfile(); }
@@ -1107,6 +1130,8 @@
     POPQ = POPQ.concat(list);
     if (!$('ttlPop').hidden) return;
     var items = POPQ.splice(0), box = $('ttlPopList'); box.textContent = '';
+    items.sort(function (p, q) { return ((TITLE_META[q.id] || [0, 0])[1]) - ((TITLE_META[p.id] || [0, 0])[1]); });
+    $('ttlPopH').textContent = items.length > 1 ? '新たな称号を ' + items.length + '個 獲得しました!' : '新たな称号を獲得しました!';
     items.forEach(function (t) { var w = el('div'); w.appendChild(titleChip(t.id, t.name)); w.appendChild(el('div', 'ttdesc', t.desc)); box.appendChild(w); });
     $('ttlPop').hidden = false; $('ttlPopOk').focus();
   }

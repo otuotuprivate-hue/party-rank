@@ -429,7 +429,7 @@ a.avl{display:inline-block}
 .tt-detective{background:repeating-linear-gradient(45deg,#6b4a2a 0 6px,#8a6a45 6px 12px);color:#f7e7c6;border:2px solid #3b2812;border-radius:6px}
 .tt-mine{background:radial-gradient(circle at 50% 50%,#ffd400 0 3px,transparent 4px),linear-gradient(135deg,#2b2b2b,#555);color:#ffd400;border:3px dashed #ffd400}
 .tt-early{background:linear-gradient(90deg,#ffd9a0,#ffe9b8 50%,#bfe3ff);color:#7a4a00;border:2px solid #ffb347}
-.tt-night{background:radial-gradient(circle at 85% 30%,#fff4c2 0 4px,transparent 5px),linear-gradient(135deg,#0a0f2c,#233a82);color:#cfd8ff;border:2px solid #5b6fc0}
+.tt-night{background:radial-gradient(circle,#fff4c2 0 3px,transparent 4px) no-repeat right 6px top 5px/10px 10px,linear-gradient(135deg,#0a0f2c,#233a82);color:#cfd8ff;border:2px solid #5b6fc0;padding-right:30px}
 .tt-soulmate{background:linear-gradient(135deg,#ff9ec4,#ff5f8a 50%,#c64bff);color:#fff;border:3px double #fff;box-shadow:0 0 10px rgba(198,75,255,.7)}
 .tt-loner{background:linear-gradient(#cfd5de,#aab2c0);color:#2a3140;border:1px solid #7b8497;font-style:italic;letter-spacing:.12em;border-radius:2px 18px 2px 18px}
 .tt-contrary{background:linear-gradient(135deg,#8a3df0 0 50%,#3df08a 50%);color:#fff;border:2px dashed #fff;text-shadow:0 0 3px #000a}
@@ -633,3 +633,12 @@ a.avl{display:inline-block}
 .pfname .ttw .ttl{font-size:15px;white-space:normal;line-height:1.3}
 
 .plain{padding-left:20px;margin:6px 0}.plain li{margin:6px 0}
+
+/* 参加者一覧: オンラインの点をアイコンの角に */
+.chip.hasav{position:relative;gap:6px}
+.chip.hasav .ond{position:absolute;left:21px;bottom:3px;width:9px;height:9px;border:2px solid var(--card);margin:0;box-shadow:0 0 4px #22c55e}
+.selrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.shwgrid{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.shwit{display:flex;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.shwit .ttl{margin-top:0}
+.shwit input{width:18px;height:18px;flex:none}

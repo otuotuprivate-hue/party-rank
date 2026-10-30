@@ -287,6 +287,8 @@
     </form>
     <h3 class="sub">装備する称号</h3>
     <div class="panel" id="pfTitleBox"><select id="pfTitle"></select><div id="pfTitlePrev" class="pftp"></div><div class="hint" id="pfTitleHint"></div></div>
+    <h3 class="sub">プロフィールに表示する称号</h3>
+    <div class="panel" id="pfShowBox"><p class="hint" style="margin:0 0 6px">プロフィールに並べる称号を、最大10個まで選べます。チェックを外すと、表示から外せます(称号そのものは消えません)。一度も選んでいない間は、10個以内ならすべて、10個を超えると難易度の高いものから10個が表示されます。</p><div id="pfShowList" class="shwgrid"></div><div class="bar"><button type="button" class="pri" id="pfShowSave">この内容で表示する</button><button type="button" class="sec" id="pfShowReset">初期設定に戻す</button><span class="m" id="pfShowMsg" role="alert"></span></div></div>
     <h3 class="sub">アイコン</h3>
     <p class="hint">参加者の一覧や全体表に表示され、ランキング動画にも使われます。</p>
     <div class="panel icobox">
@@ -365,7 +367,7 @@
   <div class="panel" id="partOnBox" hidden><h3 class="sub" id="partOnH">いまオンライン</h3><div id="partOn" class="ppl"></div></div>
   <div class="panel"><h3 class="sub" id="partTotal">全体のユーザー</h3><div id="partAll" class="ppl"></div></div>
   <div class="panel"><h3 class="sub">ランキングごとの参加者</h3>
-    <label class="blk">ランキングを選ぶ<select id="partKey"></select></label>
+    <label class="blk selrow"><span>ランキングを選ぶ</span><select id="partKey"></select></label>
     <div id="partOut" class="ppl" style="margin-top:10px"></div></div>
 </section>
 
