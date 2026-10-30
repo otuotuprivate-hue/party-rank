@@ -18,14 +18,27 @@ const PLAYLIST_HOSTS = ['music.apple.com', 'itunes.apple.com', 'geo.music.apple.
 
 /* ---------- データ保存(JSONファイル) ---------- */
 let db = { songs: [], people: [], scores: {}, stars: {}, comments: {}, playlists: {}, admins: [], sessions: {}, years: [], notices: [], deadlines: {}, modes: {}, pasts: [], links: [], torder: {}, adminLinked: false, stamps: {}, pred: {}, reacts: {}, titles: {}, counters: {}, changes: {}, texc: {} };
-let VER = 0;
-function save() {
-  VER++;
+let VER = 0, CVER = 0, dirty = false, saveT = null, saveDue = 0;
+function flushDb() {
+  if (saveT) { clearTimeout(saveT); saveT = null; }
+  if (!dirty) return;
+  dirty = false;
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = DB_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
   fs.renameSync(tmp, DB_FILE);
 }
+// 保存は少し待ってまとめて行う(書き込みのたびにサイトが止まるのを防ぐ)。quiet=true は、操作の記録だけの保存(表や称号の計算を作り直さない)
+function save(quiet) {
+  CVER++; if (!quiet) VER++;
+  dirty = true;
+  const wait = quiet ? 5000 : 400, due = Date.now() + wait;
+  if (saveT && saveDue <= due) return;
+  if (saveT) clearTimeout(saveT);
+  saveDue = due; saveT = setTimeout(() => { saveT = null; flushDb(); }, wait);
+}
+process.on('exit', () => { try { flushDb(); } catch (e) { /* */ } });
+['SIGTERM', 'SIGINT'].forEach((sg) => process.on(sg, () => { try { flushDb(); } catch (e) { /* */ } process.exit(0); }));
 function hashPw(pw, salt) {
   return crypto.scryptSync(String(pw), salt, 32).toString('hex');
 }
@@ -812,24 +825,29 @@ function keyTitles(k, out, doneCount, doneKeys) {
   if (yariBest) add(yariBest.pid, 'yari');
   if (fin.length >= 3) { const mn = Math.min(...fin.map((x) => Math.round(x.avg * 1000))); fin.filter((x) => Math.round(x.avg * 1000) === mn).forEach((x) => add(x.pid, 'funeoriro')); }
 }
-let emVer = -1, emMemo = null;
+let emVer = -1, emCver = -1, emMemo = null, emBase = null, emBaseVer = -1;
 function computeEarned() {
-  if (emVer === VER && emMemo) return emMemo;
-  const out = new Map(), fk = allKeys().filter(frozen);
-  const doneCount = {}, doneKeys = {};
-  fk.forEach((k) => keyTitles(k, out, doneCount, doneKeys));
-  // なろう系(凍結済みランキング全体で数える)
-  const isk = /異世界|転生/;
-  db.people.forEach((u) => {
-    const sc = db.scores[u.id] || {}; let n = 0;
-    fk.forEach((k) => tableOf(k).rows.forEach((r) => { if (isk.test(r.anime || '') && typeof (r.scores || {})[u.id] === 'number' && r.scores[u.id] >= 8) n++; }));
-    if (n >= 3) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('isekai'); }
-  });
-  const ws = watchScores(), songIds = new Set(db.songs.map((x) => x.id)), rxIn = {}, rxOut = {};
-  Object.keys(db.reacts).forEach((ck) => {
-    const owner = ck.split(':')[1];
-    Object.keys(db.reacts[ck]).forEach((e) => db.reacts[ck][e].forEach((pid) => { rxOut[pid] = (rxOut[pid] || 0) + 1; if (pid !== owner) rxIn[owner] = (rxIn[owner] || 0) + 1; }));
-  });
+  if (emVer === VER && emCver === CVER && emMemo) return emMemo;
+  if (!(emBase && emBaseVer === VER)) {
+    const out = new Map(), fk = allKeys().filter(frozen);
+    const doneCount = {}, doneKeys = {};
+    fk.forEach((k) => keyTitles(k, out, doneCount, doneKeys));
+    // なろう系(凍結済みランキング全体で数える)
+    const isk = /異世界|転生/;
+    db.people.forEach((u) => {
+      const sc = db.scores[u.id] || {}; let n = 0;
+      fk.forEach((k) => tableOf(k).rows.forEach((r) => { if (isk.test(r.anime || '') && typeof (r.scores || {})[u.id] === 'number' && r.scores[u.id] >= 8) n++; }));
+      if (n >= 3) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('isekai'); }
+    });
+    const ws = watchScores(), songIds = new Set(db.songs.map((x) => x.id)), rxIn = {}, rxOut = {};
+    Object.keys(db.reacts).forEach((ck) => {
+      const owner = ck.split(':')[1];
+      Object.keys(db.reacts[ck]).forEach((e) => db.reacts[ck][e].forEach((pid) => { rxOut[pid] = (rxOut[pid] || 0) + 1; if (pid !== owner) rxIn[owner] = (rxIn[owner] || 0) + 1; }));
+    });
+    emBase = { out, fk, doneCount, doneKeys, ws, songIds, rxIn, rxOut }; emBaseVer = VER;
+  }
+  const out = new Map(); emBase.out.forEach((st, k) => out.set(k, new Set(st)));
+  const { fk, doneCount, doneKeys, ws, songIds, rxIn, rxOut } = emBase;
   db.people.forEach((u) => {
     const set = out.get(u.id) || new Set(), c = db.counters[u.id] || {};
     const t = RANK_TIER(rankCount(u.id)); for (let i = 1; i <= t; i++) set.add('rank' + i);
@@ -935,7 +953,7 @@ function computeEarned() {
   out.forEach((set) => { const n = set.size - (set.has('power') ? 1 : 0); if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking');
     EXTRA.forEach((x) => { if (x.rule.cnt > 0 && n >= x.rule.cnt) set.add(x.id); });
     const allIds = TITLE_DEFS.filter((d) => !d.hidden && d.id !== 't_all').map((d) => d.id); if (allIds.every((id) => set.has(id))) set.add('t_all'); });
-  emVer = VER; emMemo = out; return out;
+  emVer = VER; emCver = CVER; emMemo = out; return out;
 }
 // 獲得した称号を保存する(一度獲得した称号は、あとから条件を外れても残る)
 function awardFor(pid) {
@@ -1086,7 +1104,7 @@ async function api(req, res, url) {
       if (!['ping', 'traceroute', 'whoami', 'rmrf', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'].concat(EXTRA_CMD).includes(cid)) throw bad('コマンドが正しくありません');
       c.cmd = c.cmd || {}; c.cmd[cid] = 1;
     } else throw bad('種類が正しくありません');
-    save();
+    save(true);
     return send(res, 200, { ok: true });
   }
   if (p === '/api/me/predict' && m === 'GET') {
@@ -1197,7 +1215,7 @@ async function api(req, res, url) {
   }
   if (p === '/api/me' && m === 'GET') {
     const me = person(req);
-    { const c = ctr(me.id), d = jstDay(Date.now()); c.days = c.days || {}; if (!c.days[d]) { c.days[d] = 1; save(); } if (new Date(Date.now() + 9 * 3600000).getUTCHours() === 3 && !c.dawn) { c.dawn = 1; save(); } }
+    { const c = ctr(me.id), d = jstDay(Date.now()); c.days = c.days || {}; if (!c.days[d]) { c.days[d] = 1; save(true); } if (new Date(Date.now() + 9 * 3600000).getUTCHours() === 3 && !c.dawn) { c.dawn = 1; save(); } }
     return send(res, 200, { id: me.id, icon: iconAt(me), name: me.name, hasPass: !!me.hash, scores: db.scores[me.id] || {}, stars: db.stars[me.id] || {}, comments: db.comments[me.id] || {} });
   }
   if (p === '/api/me/icon' && m === 'PUT') {
