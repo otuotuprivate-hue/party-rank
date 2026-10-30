@@ -451,8 +451,167 @@ const TITLE_DEFS = [
   { id: 'tab20', name: 'タブ職人', desc: 'Tabキーを、10秒以内に20回押した' },
   { id: 'allcmd', name: 'コマンドマスター', desc: '他のコマンド系の称号14個を、すべて獲得した' },
 ];
-const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["tease", "煽り"], ["staff", "コレクション・特別"]];
-const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "harsh": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "reisen": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 4], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "goren": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 2], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 2], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 2], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 2], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4], "bake": ["result", 3], "tansho": ["result", 2], "akumei": ["result", 2], "apple": ["site", 1], "meteor": ["site", 2], "selfanalysis": ["site", 1], "secguard": ["site", 1], "comma": ["site", 2], "zerozero": ["result", 2], "idle": ["site", 2], "shobu": ["result", 3], "rotate": ["debug", 1], "themechg": ["debug", 2], "zoom": ["debug", 1], "allsel": ["debug", 1], "reloader": ["debug", 2], "lonely": ["tease", 3], "flatter": ["tease", 3], "savior": ["tease", 2], "bias": ["tease", 2], "mash": ["debug", 2], "rclick": ["debug", 1], "print": ["debug", 2], "viewsrc": ["debug", 2], "tabhop": ["debug", 2], "hanki": ["tease", 3]};
+const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["tease", "煽り"], ["op", "サイト操作"], ["long", "長期・時間帯"], ["staff", "コレクション・特別"]];
+const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 4], "sweet": ["score", 1], "harsh": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "reisen": ["score", 4], "midpoint": ["score", 4], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 4], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 4], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 4], "combo": ["join", 4], "traveler": ["join", 4], "goren": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 1], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 4], "qa": ["debug", 4], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 4], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 5], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 3], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 3], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4], "bake": ["result", 3], "tansho": ["result", 2], "akumei": ["result", 2], "apple": ["site", 1], "meteor": ["site", 3], "selfanalysis": ["site", 1], "secguard": ["site", 1], "comma": ["site", 2], "zerozero": ["result", 2], "idle": ["site", 2], "shobu": ["result", 3], "rotate": ["debug", 1], "themechg": ["debug", 2], "zoom": ["debug", 1], "allsel": ["debug", 1], "reloader": ["debug", 2], "lonely": ["tease", 3], "flatter": ["tease", 3], "savior": ["tease", 2], "bias": ["tease", 2], "mash": ["debug", 2], "rclick": ["debug", 1], "print": ["debug", 2], "viewsrc": ["debug", 2], "tabhop": ["debug", 2], "hanki": ["tease", 3]};
+// ---- 追加称号(隠しコマンド・サイト操作・長期/時間帯) ----
+const EXTRA = (() => {
+  // 追加称号(隠しコマンド・サイト操作・長期/時間帯)。rule の種類は server.js の判定部分と app.js の生成部分で使う。
+  const X = [];
+  const T = (id, name, icon, cat, lv, desc, rule) => X.push({ id, name, icon, cat, lv, desc, rule });
+  const C = (id, seq, name, icon, lv, extra) => T('c_' + id, name, icon, 'cmd', lv, 'キーボードで「' + seq + '」と入力した(入力欄の外で。' + (extra || '') + '画面のどこにも表示されません)', { cmd: true, seq });
+  // ---- 隠しコマンド(タイプ入力) 44個 ----
+  C('ls', 'ls', 'ディレクトリ探検家', '📂', 1);
+  C('pwd', 'pwd', '現在地の確認', '📍', 1);
+  C('cat', 'cat', '猫派', '🐈', 1);
+  C('man', 'man', '説明書を読む人', '📖', 1);
+  C('top', 'top', 'タスクマネージャー', '📊', 1);
+  C('exit', 'exit', '逃げ出した人', '🚪', 1);
+  C('clear', 'clear', '画面クリア', '🧹', 1);
+  C('cd', 'cd ..', 'ひとつ上へ', '⬆️', 1);
+  C('history', 'history', '歴史の目撃者', '📜', 2);
+  C('echo', 'echo hello', 'やまびこ', '🗣️', 2);
+  C('df', 'df -h', '容量の番人', '💽', 2);
+  C('ps', 'ps aux', 'プロセスウォッチャー', '👀', 2);
+  C('kill', 'kill -9', '強制終了の使者', '🗡️', 2);
+  C('ifconfig', 'ifconfig', 'ネットワークの顔', '🌐', 2);
+  C('ipconfig', 'ipconfig', 'Windows使い', '🪟', 2);
+  C('netstat', 'netstat', '接続の監視者', '🔌', 2);
+  C('dig', 'dig', '掘る人', '⛏️', 2);
+  C('curl', 'curl', 'くるくるHTTP', '🌀', 2);
+  C('wget', 'wget', 'ダウンローダー', '⬇️', 2);
+  C('ssh', 'ssh', 'リモートの住人', '🔐', 2);
+  C('whois', 'whois', '身元調査員', '🕵️', 2);
+  C('commit', 'git commit', 'コミッター', '✅', 2);
+  C('vimq', ':q!', 'Vimからの脱出者', '🏃', 2);
+  C('vimwq', ':wq', '保存して終了', '💾', 2);
+  C('hello', 'hello world', 'Hello, World', '👋', 2);
+  C('nslookup', 'nslookup', '名前解決人', '🔎', 3);
+  C('telnet', 'telnet', '古の接続者', '📞', 3);
+  C('nmap', 'nmap', 'ポートスキャナー', '📡', 3);
+  C('pinglocal', 'ping 127.0.0.1', '自分自身への挨拶', '🪞', 3);
+  C('ping8', 'ping 8.8.8.8', 'Googleへの挨拶', '🔍', 3);
+  C('sudosu', 'sudo su', 'ルートへの昇格', '👑', 3);
+  C('chmod', 'chmod 777', '全員に全権限', '🔓', 3);
+  C('apt', 'apt update', 'パッケージの更新係', '📦', 3);
+  C('npm', 'npm install', '依存地獄の入口', '🕳️', 3);
+  C('docker', 'docker run', 'コンテナ職人', '🐳', 3);
+  C('reboot', 'reboot', '再起動の使い手', '🔄', 3);
+  C('gitforce', 'git push --force', '力押しのプッシュ', '💥', 4);
+  C('kubectl', 'kubectl', '舵取り', '☸️', 4);
+  C('shutdown', 'shutdown -h now', '電源を落とす者', '⏻', 4);
+  C('rmroot', 'sudo rm -rf /', '管理者権限で全消し', '☠️', 4);
+  C('neo', 'wake up neo', '目覚めた者', '🕶️', 4);
+  C('forkbomb', ':(){ :|:& };:', 'フォーク爆弾', '💣', 5, 'ほかのコマンドより長い呪文です。');
+  C('nopreserve', 'sudo rm -rf --no-preserve-root /', 'ルートの破壊者', '🌋', 5, '');
+  C('dd', 'dd if=/dev/zero of=/dev/sda', 'ディスク初期化人', '🗑️', 5, '');
+  // ---- 隠しコマンド(特殊な操作) 4個 ----
+  T('c_sigint', 'SIGINT', '⛔', 'cmd', 3, 'Ctrl+C(MacはCmd+C)を、3秒以内に5回押した', { cmd: true });
+  T('c_esc10', '脱出不能', '🏳️', 'cmd', 3, 'Escキーを、1.5秒以内の間隔で10回続けて押した', { cmd: true });
+  T('c_logo20', 'ロゴ連打の鬼', '🔱', 'cmd', 3, '左上のロゴを、10秒以内に20回押した', { cmd: true });
+  T('c_space20', '宇宙飛行士', '🚀', 'cmd', 3, 'スペースキーを(入力欄の外で)20回続けて押した', { cmd: true, seq: ' '.repeat(20) });
+  // ---- コマンドの頂点 ----
+  T('c_shell', 'シェルの支配者', '🐚', 'cmd', 5, 'タイプ入力の隠しコマンド44個を、すべて獲得した', { master: 'typed' });
+  T('c_root', 'ルート権限', '#️⃣', 'cmd', 5, '隠しコマンドの称号50個(この称号を除く49個)を、すべて獲得した', { master: 'allcmd' });
+  // ---- サイト操作 ----
+  const A = (id, name, icon, lv, desc, act, n) => T('o_' + id, name, icon, 'op', lv, desc, { act, n });
+  A('back1', 'タイムトラベラー', '⏪', 2, '画面左上の「戻る」を、累計50回押した', 'back', 50);
+  A('back2', '時を戻す者', '⏳', 4, '画面左上の「戻る」を、累計300回押した', 'back', 300);
+  A('menu1', 'メニュー愛好家', '☰', 2, 'メニュー(三本線)を、累計100回開いた', 'menu', 100);
+  A('menu2', 'ハンバーガー好き', '🍔', 4, 'メニュー(三本線)を、累計500回開いた', 'menu', 500);
+  A('dead1', '空振り三振', '⚾', 2, 'ボタンやリンクではない場所を、累計200回クリックした', 'deadclick', 200);
+  A('dead2', '虚空を叩く者', '🕳️', 4, 'ボタンやリンクではない場所を、累計2,000回クリックした', 'deadclick', 2000);
+  A('dbl1', 'ダブルクリッカー', '🖱️', 2, 'ダブルクリックを、累計100回した', 'dblclick', 100);
+  A('dbl2', '二度押しの達人', '✌️', 4, 'ダブルクリックを、累計1,000回した', 'dblclick', 1000);
+  A('copy1', 'コピペ常習犯', '📋', 2, '文字のコピーを、累計30回した', 'copy', 30);
+  A('copy2', 'コピーライター', '✍️', 4, '文字のコピーを、累計200回した', 'copy', 200);
+  A('paste1', '貼り付け職人', '📎', 2, '文字の貼り付けを、累計30回した', 'paste', 30);
+  A('paste2', '貼り付けの鬼', '🧷', 4, '文字の貼り付けを、累計200回した', 'paste', 200);
+  A('sel1', 'マーカー引き', '🖍️', 2, '30文字以上の文章を、累計50回選択した', 'selection', 50);
+  A('sel2', '蛍光ペンの化身', '🖊️', 4, '30文字以上の文章を、累計300回選択した', 'selection', 300);
+  A('bot1', '底を見る者', '⬇️', 2, '画面の一番下まで、累計100回スクロールした', 'scrollbottom', 100);
+  A('bot2', '底なし沼の住人', '🌊', 4, '画面の一番下まで、累計1,000回スクロールした', 'scrollbottom', 1000);
+  A('long1', '長押し名人', '👇', 2, '画面を、累計50回長押しした(0.8秒以上、動かさずに)', 'longpress', 50);
+  A('long2', '押し続ける者', '🗿', 4, '画面を、累計300回長押しした(0.8秒以上、動かさずに)', 'longpress', 300);
+  A('swipe1', 'スワイパー', '👆', 2, '画面を、横に累計100回スワイプした', 'swipe', 100);
+  A('swipe2', '指先の達人', '💨', 4, '画面を、横に累計1,000回スワイプした', 'swipe', 1000);
+  A('pinch1', 'ピンチイン', '🤏', 2, '2本指で画面を、累計20回つまんだ', 'pinch', 20);
+  A('pinch2', 'ピンチアウト', '🖐️', 3, '2本指で画面を、累計100回つまんだ', 'pinch', 100);
+  A('full', 'フルスクリーン', '🖥️', 2, '画面を全画面にした(F11など)', 'fullscreen', 1);
+  A('find1', 'ページ内探偵', '🔦', 3, 'ページ内検索(Ctrl+F)を、累計10回使った', 'find', 10);
+  A('bkm', 'お気に入り登録', '🔖', 1, 'ブックマーク(Ctrl+D)をしようとした', 'bookmark', 1);
+  A('hard', '強制リロード', '⚡', 3, 'キャッシュを無視した再読み込み(Ctrl+Shift+Rなど)を、累計5回した', 'hardreload', 5);
+  A('altl', 'キーボード派', '⌨️', 3, 'Alt+←/→で、ページの移動を累計20回した', 'altleft', 20);
+  A('drag', 'ドラッガー', '🧲', 2, '画像や文字を、累計30回ドラッグした', 'drag', 30);
+  A('key1', 'タイピスト', '⌨️', 2, '入力欄に、累計2,000文字を打ち込んだ', 'keys', 2000);
+  A('key2', 'キーボードクラッシャー', '🔨', 4, '入力欄に、累計10,000文字を打ち込んだ', 'keys', 10000);
+  A('comp1', '変換の鬼', '🈁', 2, '日本語の変換を、累計500回確定した', 'compose', 500);
+  A('comp2', '辞書登録の達人', '📚', 4, '日本語の変換を、累計3,000回確定した', 'compose', 3000);
+  A('multi3', '並列作業', '🗂️', 3, 'サイトを3つ以上のタブで同時に開いた', 'multi3', 1);
+  A('multi5', '分身の術', '🥷', 4, 'サイトを5つ以上のタブで同時に開いた', 'multi5', 1);
+  A('wide', 'ウルトラワイド', '🖼️', 2, '横幅1,900px以上の画面でサイトを開いた', 'wide', 1);
+  A('narrow', '極小の窓', '🔬', 2, '横幅340px以下の画面でサイトを開いた', 'narrow', 1);
+  A('foreign', '海外からの視聴', '🌏', 2, '日本語以外の言語設定のブラウザで、サイトを開いた', 'foreign', 1);
+  A('stay30', '居座り', '🪑', 3, '同じ画面を、開いたまま30分見続けた', 'stay30', 1);
+  A('stay120', '定住者', '🏠', 4, '同じ画面を、開いたまま2時間見続けた', 'stay120', 1);
+  A('zap', 'ザッピング', '📺', 3, '30秒以内に、画面を20回切り替えた', 'zapping', 1);
+  A('ret', '久しぶり', '👋', 2, '前回の訪問から、7日以上あけてサイトに戻った', 'return7', 1);
+  T('o_both', '両刀使い', '⚔️', 'op', 3, 'スマホなどのタッチ操作と、マウス操作の両方でサイトを使った', { both: ['touch', 'mouse'] });
+  const K = (id, name, icon, lv, desc, ctr, n) => T('o_' + id, name, icon, 'op', lv, desc, { ctr, n });
+  K('reload', 'リロード中毒', '🔁', 4, 'ページの再読み込みを、累計100回した', 'reload', 100);
+  K('f5', 'F5職人', '🔃', 3, '10秒以内の5連続リロードを、累計10回した', 'f5', 10);
+  K('rclick', '右クリック依存', '🖱️', 3, '右クリック(長押しメニュー)を開いた訪問が、累計30回', 'rclick', 30);
+  K('print', '印刷所', '🖨️', 3, '印刷画面を開いた訪問が、累計10回', 'print', 10);
+  K('tabhop', '渡り鳥', '🐦', 3, 'ほかのタブへ10回以上切り替えた訪問が、累計30回', 'tabhop', 30);
+  K('zoom', '拡大縮小の達人', '🔍', 3, '画面の拡大・縮小をした訪問が、累計20回', 'zoom', 20);
+  K('allsel', '全選択マニア', '🔲', 3, '全選択(Ctrl+A)をした訪問が、累計50回', 'allsel', 50);
+  K('lost', '迷子の常連', '🧭', 3, '存在しないページを開いた回数が、累計10回', 'lost', 10);
+  K('devtools', '開発者ツール常連', '🛠️', 3, '開発者ツールを開こうとした訪問が、累計20回', 'devtools', 20);
+  K('offline', '圏外の常連', '📵', 3, '圏外から復帰した回数が、累計10回', 'offline', 10);
+  K('frozen', '締切破りの常習犯', '🚫', 3, '締め切り後のランキングを変更しようとした回数が、累計10回', 'frozenTry', 10);
+  K('imgsave', '写真館', '📸', 4, '画像の保存を、累計100回した', 'imgsave', 100);
+  K('swap', '流星群', '☄️', 3, '☆の曲の入れ替えを、累計30回した', 'starswap', 30);
+  K('equip', '着せ替え人形', '🎎', 4, '称号の装備や付け外しを、累計100回した', 'equip', 100);
+  K('stats', 'データ分析官', '🧮', 3, 'マイ統計を、累計50回開いた', 'stats', 50);
+  const V = (id, name, icon, lv, desc, visit, n) => T('o_' + id, name, icon, 'op', lv, desc, { visit, n });
+  V('vtitle', 'コレクション鑑賞家', '🏛️', 4, '称号コレクションを、累計200回開いた', 'titles', 200);
+  V('vpeople', 'いつもの顔ぶれ', '👥', 4, '参加者の一覧を、累計300回開いた', 'people', 300);
+  T('o_all', 'サイトを知り尽くした者', '🌟', 'op', 5, 'サイト操作の称号59個(この称号を除く)を、すべて獲得した', { master: 'allsite' });
+  // ---- 長期・時間帯 ----
+  const S = (id, name, icon, lv, desc, stat, n) => T('l_' + id, name, icon, 'long', lv, desc, { stat, n });
+  S('d30', '三十日の常連', '🗓️', 3, 'サイトに、30日アクセスした', 'days', 30);
+  S('d60', '六十日の住人', '🏘️', 4, 'サイトに、60日アクセスした', 'days', 60);
+  S('d100', '百日参り', '⛩️', 5, 'サイトに、100日アクセスした', 'days', 100);
+  S('s7', '七日連続の旅', '🚶', 3, 'サイトに、7日連続でアクセスした', 'streak', 7);
+  S('s14', '二週間の皆勤', '🏃', 4, 'サイトに、14日連続でアクセスした', 'streak', 14);
+  S('s30', 'ひと月の皆勤', '🏅', 5, 'サイトに、30日連続でアクセスした', 'streak', 30);
+  S('h10', '十時間の滞在', '⏱️', 3, 'サイトの滞在時間が、合計10時間を超えた', 'stayh', 10);
+  S('h50', '五十時間の滞在', '⌛', 4, 'サイトの滞在時間が、合計50時間を超えた', 'stayh', 50);
+  S('h100', '百時間の滞在', '🕰️', 5, 'サイトの滞在時間が、合計100時間を超えた', 'stayh', 100);
+  S('sc500', '五百点の審査員', '📝', 4, 'すべてのランキングを合わせて、500曲以上に点数をつけた', 'scores', 500);
+  S('sc1000', '千点の審査員', '🧾', 5, 'すべてのランキングを合わせて、1,000曲以上に点数をつけた', 'scores', 1000);
+  S('cm100', 'ひとこと百本', '💬', 4, 'すべてのランキングを合わせて、100曲以上にひとことを書いた', 'comments', 100);
+  T('l_noon', '昼休みの審査員', '🍱', 'long', 2, '12時台に、サイトを開いていた', { act: 'noon', n: 1 });
+  T('l_mid', 'ゼロ時の訪問者', '🌌', 'long', 3, '0時0分〜0時9分の間に、サイトを開いていた', { act: 'midnight', n: 1 });
+  T('l_sun', '日の出の観測者', '🌅', 'long', 3, '5時0分〜5時9分の間に、サイトを開いていた', { act: 'sunrise', n: 1 });
+  // ---- デバッグ系の追加 ----
+  const D = (id, name, icon, lv, desc, rule) => T('d_' + id, name, icon, 'debug', lv, desc, rule);
+  D('inject', 'インジェクター', '💉', 3, 'ひとこと・自己紹介に、<script>タグやSQL文(DROP TABLEなど)を入力した(何も起きません)', { ctr: 'inject', n: 1 });
+  D('bigpaste', 'ペーストモンスター', '👹', 2, '1,000文字以上の文章を、貼り付けた', { act: 'bigpaste', n: 1 });
+  D('adminpeek', '立入禁止区域', '🚧', 2, '管理者用の画面のアドレスを、開こうとした', { ctr: 'adminpeek', n: 1 });
+  D('ghost', '幽霊の目撃者', '👻', 2, '存在しないユーザーのプロフィールを、開こうとした', { ctr: 'ghost', n: 1 });
+  D('keymash', 'キー連打の鬼', '🎹', 2, '同じキーを、3秒以内に30回連続で押した', { act: 'keymash', n: 1 });
+  D('shake', 'マウスシェイカー', '🫨', 3, 'マウスを、1秒以内に左右へ10回以上振った', { act: 'shake', n: 1 });
+  D('slow', '回線の試練', '🐢', 2, '通信に、6秒以上かかった', { act: 'slownet', n: 1 });
+  D('prtsc', 'スクショ職人', '📷', 3, 'PrintScreenキーを、累計10回押した', { act: 'prtsc', n: 10 });
+  D('flick', 'フリックの王', '🌪️', 3, '画面を高速でスクロールすることを、累計100回した', { act: 'flick', n: 100 });
+  D('scmaster', 'ショートカットマスター', '🎛️', 4, 'ページ内検索・ブックマーク・強制リロード・Alt+矢印・印刷・ソース表示・全選択・拡大縮小を、すべて使った', { need: { act: ['find', 'bookmark', 'hardreload', 'altleft'], ctr: ['print', 'viewsrc', 'allsel', 'zoom'] } });
+  return X;
+
+})();
+EXTRA.forEach((x) => { TITLE_DEFS.push({ id: x.id, name: x.name, desc: x.desc }); TITLE_META[x.id] = [x.cat, x.lv]; });
+const SUS = /<\s*script|<\s*img|<\s*iframe|onerror\s*=|javascript:|drop\s+table|union\s+select|'\s*or\s*'?1'?\s*=\s*'?1|<\s*svg/i;
+const EXTRA_CMD = EXTRA.filter((x) => x.rule.cmd).map((x) => x.id);
+const EXTRA_ACT = new Set(EXTRA.filter((x) => x.rule.act).map((x) => x.rule.act).concat(['touch', 'mouse', 'keys', 'compose']));
 const TITLE_BY_ID = Object.fromEntries(TITLE_DEFS.map((t) => [t.id, t]));
 const RANK_TIER = (n) => (n >= 31 ? 5 : n >= 21 ? 4 : n >= 11 ? 3 : n >= 6 ? 2 : n >= 1 ? 1 : 0);
 const EMOJIS = ['👍', '❤️', '😂', '🔥', '😢'];
@@ -703,6 +862,27 @@ function computeEarned() {
         if (Object.values(byYear).some((x) => [1, 4, 7, 10].every((mo) => x.has(mo)))) set.add('shiki');
         if (Object.values(byKind).some((x) => Array.from(x).some((v) => x.has(v + 3) && x.has(v + 6)))) set.add('rensen');
       }
+      { // 追加称号の判定
+        const act = cc.act || {}, cmdD = cc.cmd || {};
+        const nScore = Object.keys(db.scores[u.id] || {}).filter((sid) => songIds.has(sid)).length;
+        const nCm = Object.keys(db.comments[u.id] || {}).filter((sid) => songIds.has(sid)).length;
+        const stat = { days: days.length, streak: best, stayh: (cc.stay || 0) / 3600, scores: nScore, comments: nCm };
+        EXTRA.forEach((x) => {
+          const r = x.rule;
+          if (r.cmd) { if (cmdD[x.id]) set.add(x.id); }
+          else if (r.act) { if ((act[r.act] || 0) >= r.n) set.add(x.id); }
+          else if (r.ctr) { if ((cc[r.ctr] || 0) >= r.n) set.add(x.id); }
+          else if (r.visit) { if ((v[r.visit] || 0) >= r.n) set.add(x.id); }
+          else if (r.stat) { if (stat[r.stat] >= r.n) set.add(x.id); }
+          else if (r.need) { if ((r.need.act || []).every((k) => (act[k] || 0) >= 1) && (r.need.ctr || []).every((k) => (cc[k] || 0) >= 1)) set.add(x.id); }
+          else if (r.both) { if (r.both.every((k) => (act[k] || 0) >= 1)) set.add(x.id); }
+        });
+        const has = (ids) => ids.every((id) => set.has(id));
+        const typed = EXTRA.filter((x) => x.rule.seq && x.id !== 'c_space20').map((x) => x.id);
+        if (has(typed)) set.add('c_shell');
+        if (has(EXTRA.filter((x) => x.cat === 'cmd' && x.id !== 'c_root').map((x) => x.id))) set.add('c_root');
+        if (has(EXTRA.filter((x) => x.cat === 'op' && x.id !== 'o_all').map((x) => x.id))) set.add('o_all');
+      }
       const CMDS = ['ping', 'traceroute', 'whoami', 'rmrf', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'];
       if ((cc.applelink || 0) >= 1) set.add('apple'); if ((cc.starswap || 0) >= 5) set.add('meteor'); if ((cc.stats || 0) >= 1) set.add('selfanalysis');
       if ((cc.pwset || 0) >= 1) set.add('secguard'); if ((cc.csv || 0) >= 1) set.add('comma'); if ((cc.idle1h || 0) >= 1) set.add('idle'); if ((cc.tallypred || 0) >= 1) set.add('shobu');
@@ -860,7 +1040,7 @@ async function api(req, res, url) {
     const me = person(req);
     if (limited(req, 'ev', 300, 60000)) throw new HttpError(429, '操作が多すぎます');
     const type = String(body.type || ''), c = ctr(me.id), now = Date.now();
-    const SIMPLE = ['applelink', 'csv', 'idle1h', 'rotate', 'themechg', 'zoom', 'allsel', 'reload', 'mash', 'rclick', 'print', 'viewsrc', 'tabhop', 'lost', 'resize', 'devtools', 'offline', 'relog', 'pastclick', 'imgsave', 'invite', 'news', 'f5', 'bug', 'watchclick', 'xclick'];
+    const SIMPLE = ['ghost', 'adminpeek', 'applelink', 'csv', 'idle1h', 'rotate', 'themechg', 'zoom', 'allsel', 'reload', 'mash', 'rclick', 'print', 'viewsrc', 'tabhop', 'lost', 'resize', 'devtools', 'offline', 'relog', 'pastclick', 'imgsave', 'invite', 'news', 'f5', 'bug', 'watchclick', 'xclick'];
     if (SIMPLE.includes(type)) bump(me.id, type);
     else if (type === 'stay') { if (!c.lastStay || now - c.lastStay >= 45000) { c.stay = (c.stay || 0) + 60; c.lastStay = now; } }
     else if (type === 'visit') {
@@ -870,9 +1050,13 @@ async function api(req, res, url) {
     } else if (type === 'profile') {
       const pid = String(body.id || '');
       if (pid !== me.id && db.people.some((x) => x.id === pid)) { c.profiles = c.profiles || {}; if (Object.keys(c.profiles).length < 500) c.profiles[pid] = 1; }
+    } else if (type === 'act') {
+      const mm = body.m && typeof body.m === 'object' ? body.m : {};
+      c.act = c.act || {};
+      Object.keys(mm).slice(0, 40).forEach((k) => { const n = Math.floor(Number(mm[k])); if (EXTRA_ACT.has(k) && n >= 1) c.act[k] = Math.min(1e7, (c.act[k] || 0) + Math.min(n, 2000)); });
     } else if (type === 'cmd') {
       const cid = String(body.c || '');
-      if (!['ping', 'traceroute', 'whoami', 'rmrf', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'].includes(cid)) throw bad('コマンドが正しくありません');
+      if (!['ping', 'traceroute', 'whoami', 'rmrf', 'typeparty', 'typeanison', 'sudo', 'gg', 'calltaiga', 'logo7', 'logohold', 'ctrls', 'esc5', 'tab20'].concat(EXTRA_CMD).includes(cid)) throw bad('コマンドが正しくありません');
       c.cmd = c.cmd || {}; c.cmd[cid] = 1;
     } else throw bad('種類が正しくありません');
     save();
@@ -961,6 +1145,7 @@ async function api(req, res, url) {
     const x = normX(body.x);
     if (x === null) throw bad('Xのアカウントは、@ID か https://x.com/ID の形で入力してください(IDは英数字と_、15文字まで)');
     const bio = cleanBio(body.bio);
+    if (SUS.test(bio)) bump(me.id, 'inject');
     if ((me.bio || '') !== bio) bump(me.id, 'bioedit');
     if (bio) me.bio = bio; else delete me.bio;
     if (x) me.x = x; else delete me.x;
@@ -1049,6 +1234,7 @@ async function api(req, res, url) {
     if (!song) throw bad('曲が見つかりません');
     if (frozen(song.key)) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, '集計中(または公開済み)のため、ひとことを変更できません'); }
     const text = clean(body.text, 100);
+    if (SUS.test(text)) bump(me.id, 'inject');
     const cm = (db.comments[me.id] = db.comments[me.id] || {});
     if (text) {
       cm[song.id] = text; luckyTime(me.id);
