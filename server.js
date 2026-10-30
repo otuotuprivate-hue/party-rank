@@ -703,6 +703,17 @@ function awardFor(pid) {
   return added;
 }
 function awardAll() { db.people.forEach((u) => awardFor(u.id)); }
+// 名前の変更などで存在しなくなった称号の記録を取り除く
+function purgeTitles() { let ch = false; Object.keys(db.titles).forEach((pid) => { Object.keys(db.titles[pid]).forEach((id) => { if (!TITLE_BY_ID[id]) { delete db.titles[pid][id]; ch = true; } }); if (!Object.keys(db.titles[pid]).length) { delete db.titles[pid]; ch = true; } }); db.people.forEach((u) => { if (u.equip && !TITLE_BY_ID[u.equip]) { delete u.equip; ch = true; } if (Array.isArray(u.showT) && u.showT.some((x) => !TITLE_BY_ID[x])) { u.showT = u.showT.filter((x) => TITLE_BY_ID[x]); ch = true; } }); return ch; }
+const titleSortKey = (id) => TITLE_CATS.findIndex((c) => c[0] === TITLE_META[id][0]);
+function shownTitles(u) {
+  const T = db.titles[u.id] || {}, ok = (id) => T[id] && TITLE_BY_ID[id] && (!TITLE_BY_ID[id].hidden || isAdminPerson(u.id));
+  const sortf = (a, b) => titleSortKey(a) - titleSortKey(b) || TITLE_META[b][1] - TITLE_META[a][1];
+  if (Array.isArray(u.showT)) return u.showT.filter(ok).sort(sortf);
+  const all = Object.keys(T).filter(ok);
+  if (all.length <= 10) return all.sort(sortf);
+  return all.sort((a, b) => TITLE_META[b][1] - TITLE_META[a][1] || T[a].at - T[b].at).slice(0, 10).sort(sortf);
+}
 function equippedOf(u) {
   const T = db.titles[u.id] || {};
   if (u.equip === '') return null;
@@ -782,7 +793,17 @@ async function api(req, res, url) {
     const hc = {}; Object.keys(db.titles).forEach((pid) => Object.keys(db.titles[pid]).forEach((id) => { hc[id] = (hc[id] || 0) + 1; }));
     const earned = vis.filter((d) => T[d.id]).map((d) => ({ id: d.id, name: d.name, desc: d.desc, holders: hc[d.id] || 0, cat: TITLE_META[d.id][0], lv: TITLE_META[d.id][1], at: T[d.id].at, fresh: !T[d.id].seen }));
     const lockedBy = {}; vis.filter((d) => !T[d.id]).forEach((d) => { const mt = TITLE_META[d.id]; (lockedBy[mt[0]] = lockedBy[mt[0]] || []).push(mt[1]); });
-    return send(res, 200, { earned, locked: vis.length - earned.length, total: vis.length, equipped: equippedOf(me) || '', cats: TITLE_CATS, lockedBy, people: db.people.length });
+    return send(res, 200, { earned, locked: vis.length - earned.length, total: vis.length, equipped: equippedOf(me) || '', cats: TITLE_CATS, lockedBy, people: db.people.length, shown: shownTitles(me), customShown: Array.isArray(me.showT) });
+  }
+  if (p === '/api/me/show-titles' && m === 'PUT') {
+    const me = person(req);
+    if (body.ids === null) { delete me.showT; save(); return send(res, 200, { shown: shownTitles(me), custom: false }); }
+    const T = db.titles[me.id] || {};
+    const ids = Array.isArray(body.ids) ? [...new Set(body.ids.map(String))] : null;
+    if (!ids || ids.length > 10) throw bad('表示できる称号は、最大10個までです');
+    if (!ids.every((x) => T[x] && TITLE_BY_ID[x] && (!TITLE_BY_ID[x].hidden || isAdminPerson(me.id)))) throw bad('獲得していない称号は選べません');
+    me.showT = ids; save();
+    return send(res, 200, { shown: shownTitles(me), custom: true });
   }
   if (p === '/api/me/titles/seen' && m === 'POST') {
     const me = person(req); const T = db.titles[me.id] || {};
@@ -895,7 +916,7 @@ async function api(req, res, url) {
     const u = db.people.find((x) => x.id === prm[1]);
     if (!u) throw new HttpError(404, 'ユーザーが見つかりません');
     const n = rankCount(u.id), tid = equippedOf(u);
-    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).filter((t) => !TITLE_BY_ID[t].hidden || isAdminPerson(u.id)).length, titles: Object.keys(db.titles[u.id] || {}).filter((t) => TITLE_BY_ID[t] && (!TITLE_BY_ID[t].hidden || isAdminPerson(u.id))).sort((a, b) => TITLE_CATS.findIndex((c) => c[0] === TITLE_META[a][0]) - TITLE_CATS.findIndex((c) => c[0] === TITLE_META[b][0]) || TITLE_META[b][1] - TITLE_META[a][1]).map((t) => ({ id: t, name: TITLE_BY_ID[t].name })), adm: isAdminPerson(u.id) });
+    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).filter((t) => !TITLE_BY_ID[t].hidden || isAdminPerson(u.id)).length, titles: shownTitles(u).map((t) => ({ id: t, name: TITLE_BY_ID[t].name })), adm: isAdminPerson(u.id) });
   }
   if (p === '/api/me/profile' && m === 'PUT') {
     const me = person(req);
@@ -1356,4 +1377,5 @@ const srv = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
   }
 });
 srv.headersTimeout = 15000; srv.requestTimeout = 30000; srv.keepAliveTimeout = 10000; srv.maxConnections = 2000; // 遅い接続で居座られないようにする
+if (purgeTitles()) save();
 srv.listen(PORT, () => console.log('Party Rank: http://localhost:' + PORT));
