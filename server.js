@@ -92,6 +92,34 @@ function normX(v) {
   return 'https://x.com/' + h;
 }
 const iconAt = (u) => (u && u.icon ? u.icon.at : 0);
+const https = require('https');
+let wxBusy = false, wxTry = 0;
+// 東京・大阪・名古屋・福岡の天気予報(Open-Meteo・無料・キー不要)を、1日1回だけ確認する
+function ensureWeather(day) {
+  db.weather = db.weather || {};
+  if (db.weather[day] !== undefined || wxBusy || Date.now() - wxTry < 600000) return;
+  wxBusy = true; wxTry = Date.now();
+  const u = 'https://api.open-meteo.com/v1/forecast?latitude=35.69,34.69,35.18,33.59&longitude=139.69,135.50,136.91,130.40&daily=weather_code&timezone=Asia%2FTokyo&forecast_days=1';
+  try {
+    const rq = https.get(u, { timeout: 8000 }, (r) => {
+      let b = ''; r.on('data', (d) => { b += d; if (b.length > 200000) r.destroy(); });
+      r.on('end', () => {
+        wxBusy = false;
+        try {
+          const j = JSON.parse(b), arr = Array.isArray(j) ? j : [j];
+          if (arr.length === 4 && arr.every((x) => x && x.daily && Array.isArray(x.daily.weather_code))) {
+            db.weather[day] = arr.every((x) => x.daily.weather_code[0] <= 1);
+            Object.keys(db.weather).sort().slice(0, -400).forEach((k) => delete db.weather[k]);
+            save(true);
+          }
+        } catch (e) { /* */ }
+      });
+      r.on('close', () => { wxBusy = false; });
+    });
+    rq.on('timeout', () => rq.destroy()); rq.on('error', () => { wxBusy = false; });
+  } catch (e) { wxBusy = false; }
+}
+const BANNER_DEFAULT = '現在、サイトのアップデート中です。つながりにくくなったときは、しばらく待ってから、ページを再読み込み(リロード)してください。';
 const ctr = (pid) => (db.counters[pid] = db.counters[pid] || {});
 const bump = (pid, k, n = 1) => { const c = ctr(pid); c[k] = (c[k] || 0) + n; };
 const jstDay = (t) => new Date(t + 9 * 3600000).toISOString().slice(0, 10);
@@ -99,6 +127,9 @@ const luckyTime = (pid) => { const d = new Date(Date.now() + 9 * 3600000); if (d
 const BURST = {}, SEEN = {}, ONLINE_MS = 75000;
 const isOn = (pid) => SEEN[pid] && Date.now() - SEEN[pid] < ONLINE_MS;
 const isAdminPerson = (pid) => db.admins.some((a) => a.pid === pid);
+// 称号の獲得数・玉座・獲得数の表示から除く、運営本人(taetaeのみ)
+const canSeeT = (d, pid) => !d.hidden || (d.id === 'owner' ? isOwner(pid) : isAdminPerson(pid)); // 隠し称号は、持ち主(権力者=管理者全員、サイト管理者=taetaeのみ)にだけ見える
+const isOwner = (pid) => db.admins.some((a) => a.pid === pid && String(a.name).toLowerCase() === 'taetae');
 function rankCount(pid) {
   const sk = {}; db.songs.forEach((s) => { sk[s.id] = s.key; });
   const ks = new Set(); Object.keys(db.scores[pid] || {}).forEach((sid) => { if (sk[sid]) ks.add(sk[sid]); });
@@ -333,6 +364,7 @@ const TITLE_DEFS = [
   { id: 'champion', name: '推しが優勝', desc: '自分が1曲だけ最高点をつけた曲が、そのまま全体1位になった' },
   // ---- 依頼の7個 ----
   { id: 'power', name: '権力者', desc: '管理者(運営)だけがもつ称号', hidden: true },
+  { id: 'owner', name: 'サイト管理者', desc: 'サイトの運営者(taetae)だけがもつ称号', hidden: true },
   { id: 'pr', name: '広報担当', desc: 'このサイトへの招待(共有やコピー)を行った' },
   { id: 'missionary', name: '宣教師', desc: 'このサイトへの招待(共有やコピー)を5回行った' },
   { id: 'reporter', name: '記者', desc: 'お知らせのリンクを10回以上開いた' },
@@ -464,8 +496,8 @@ const TITLE_DEFS = [
   { id: 'tab20', name: 'タブ職人', desc: 'Tabキーを、10秒以内に20回押した' },
   { id: 'allcmd', name: 'コマンドマスター', desc: '他のコマンド系の称号14個を、すべて獲得した' },
 ];
-const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["lucky", "たまたま"], ["tease", "煽り"], ["op", "サイト操作"], ["long", "長期・時間帯"], ["staff", "コレクション・特別"]];
-const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 5], "sweet": ["score", 1], "harsh": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "reisen": ["score", 4], "midpoint": ["score", 5], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["result", 2], "night": ["result", 2], "lastlove": ["result", 2], "tragic": ["result", 4], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 3], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 5], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 5], "combo": ["join", 4], "traveler": ["join", 4], "goren": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 2], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 1], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 2], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 1], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 3], "infloop": ["debug", 5], "qa": ["debug", 5], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 5], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 5], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 3], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 3], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4], "bake": ["result", 3], "tansho": ["result", 2], "akumei": ["result", 2], "apple": ["site", 1], "meteor": ["site", 3], "selfanalysis": ["site", 1], "secguard": ["site", 1], "comma": ["site", 2], "zerozero": ["result", 2], "idle": ["site", 2], "shobu": ["result", 3], "rotate": ["debug", 1], "themechg": ["debug", 2], "zoom": ["debug", 1], "allsel": ["debug", 1], "reloader": ["debug", 2], "lonely": ["tease", 3], "flatter": ["tease", 3], "savior": ["tease", 2], "bias": ["tease", 2], "mash": ["debug", 2], "rclick": ["debug", 1], "print": ["debug", 2], "viewsrc": ["debug", 2], "tabhop": ["debug", 2], "hanki": ["tease", 3]};
+const TITLE_CATS = [["rankp", "参加ランク"], ["score", "採点のくせ"], ["result", "順位・結果"], ["join", "参加・継続"], ["long", "長期・時間帯"], ["comm", "ひとこと・交流"], ["site", "サイト愛"], ["op", "サイト操作"], ["tease", "煽り"], ["lucky", "たまたま"], ["debug", "デバッグ"], ["cmd", "コマンド"], ["staff", "コレクション・特別"]];
+const TITLE_META = {"rank1": ["rankp", 1], "rank2": ["rankp", 2], "rank3": ["rankp", 3], "rank4": ["rankp", 3], "rank5": ["rankp", 5], "sweet": ["score", 1], "harsh": ["score", 1], "lucky7": ["score", 2], "gyaku": ["score", 2], "zero": ["score", 2], "steady": ["score", 2], "extreme": ["score", 2], "ten": ["score", 2], "contrary": ["score", 2], "kind": ["score", 2], "ice": ["score", 2], "dompisha": ["score", 2], "heretic": ["score", 2], "half": ["score", 2], "tasty": ["score", 2], "oneway": ["score", 2], "eye": ["score", 2], "kadai": ["score", 2], "silent": ["score", 2], "isekai": ["score", 2], "ichimai": ["score", 2], "indecisive": ["score", 2], "stairs": ["score", 3], "round": ["score", 3], "variety": ["score", 3], "avgbody": ["score", 3], "gunshi": ["score", 3], "tenzero": ["score", 3], "ladder": ["score", 3], "descent": ["score", 3], "reisen": ["score", 4], "midpoint": ["score", 5], "sliding": ["result", 2], "star1": ["result", 2], "mine": ["result", 2], "early": ["score", 2], "night": ["score", 2], "lastlove": ["result", 2], "tragic": ["result", 4], "manjo": ["result", 2], "oshi": ["result", 2], "funeoriro": ["result", 2], "yari": ["result", 3], "constellation": ["result", 4], "gyakushin": ["result", 3], "manba": ["result", 3], "creator": ["result", 3], "destroyer": ["result", 3], "champion": ["result", 3], "detective": ["result", 3], "mvp": ["result", 3], "podium": ["result", 3], "sniper": ["result", 3], "prophet": ["result", 5], "marathon": ["join", 1], "regular5": ["join", 2], "nito": ["join", 2], "iron": ["join", 3], "rensen": ["join", 3], "attend": ["join", 5], "combo": ["join", 4], "traveler": ["join", 4], "goren": ["join", 4], "shiki": ["join", 4], "honor": ["comm", 1], "follower": ["comm", 1], "linked": ["comm", 1], "cmleader": ["comm", 3], "love": ["comm", 2], "resonance": ["comm", 2], "compatfan": ["comm", 2], "neighbor": ["comm", 2], "cmmaster": ["comm", 3], "popular": ["comm", 3], "ambassador": ["comm", 3], "soulmate": ["comm", 3], "loner": ["comm", 3], "pr": ["site", 1], "loginbonus": ["site", 1], "manual": ["site", 1], "iconmaker": ["site", 1], "viewer": ["site", 1], "camera": ["site", 2], "reporter": ["site", 2], "roster": ["site", 2], "weekly": ["site", 2], "regular": ["site", 2], "renamer": ["site", 2], "reviser": ["site", 2], "dresser": ["site", 2], "historian": ["site", 2], "photog": ["site", 3], "watcher": ["site", 2], "missionary": ["site", 3], "resident": ["site", 3], "veteran": ["site", 3], "explorer": ["site", 3], "master": ["site", 4], "debugger": ["debug", 1], "lost": ["debug", 1], "devtools": ["debug", 1], "bughunter": ["debug", 2], "maxname": ["debug", 2], "burst": ["debug", 2], "dawn": ["debug", 1], "resizer": ["debug", 2], "offline": ["debug", 2], "relog": ["debug", 2], "f5": ["debug", 2], "intruder": ["debug", 2], "boundary": ["debug", 5], "infloop": ["debug", 5], "qa": ["debug", 5], "halloween": ["lucky", 2], "xmas": ["lucky", 2], "newyear": ["lucky", 2], "tanabata": ["lucky", 2], "pocky": ["lucky", 2], "zorome": ["lucky", 3], "kaibun": ["lucky", 3], "lucky77": ["lucky", 3], "pittari": ["lucky", 3], "jackpot": ["lucky", 5], "gg": ["cmd", 1], "logo7": ["cmd", 1], "ctrls": ["cmd", 1], "esc5": ["cmd", 1], "whoami": ["cmd", 2], "rmrf": ["cmd", 5], "typeparty": ["cmd", 2], "typeanison": ["cmd", 2], "sudo": ["cmd", 3], "calltaiga": ["cmd", 2], "logohold": ["cmd", 2], "tab20": ["cmd", 2], "ping": ["cmd", 3], "traceroute": ["cmd", 3], "allcmd": ["cmd", 4], "hunter": ["staff", 2], "collector": ["staff", 3], "founder": ["staff", 3], "tking": ["staff", 4], "power": ["staff", 4], "bake": ["result", 5], "tansho": ["result", 2], "akumei": ["result", 2], "apple": ["site", 1], "meteor": ["site", 3], "selfanalysis": ["site", 1], "secguard": ["site", 1], "comma": ["site", 2], "zerozero": ["result", 2], "idle": ["site", 2], "shobu": ["result", 3], "rotate": ["debug", 1], "themechg": ["debug", 2], "zoom": ["debug", 1], "allsel": ["debug", 1], "reloader": ["debug", 2], "lonely": ["tease", 3], "flatter": ["tease", 3], "savior": ["tease", 2], "bias": ["tease", 2], "mash": ["debug", 2], "rclick": ["debug", 1], "print": ["debug", 2], "viewsrc": ["debug", 2], "tabhop": ["debug", 2], "hanki": ["tease", 3], "owner": ["staff", 5]};
 // ---- 追加称号(隠しコマンド・サイト操作・長期/時間帯) ----
 const EXTRA = (() => {
   // 追加称号(隠しコマンド・サイト操作・長期/時間帯)。rule の種類は server.js の判定部分と app.js の生成部分で使う。
@@ -480,12 +512,9 @@ const EXTRA = (() => {
   C('top', 'top', 'タスクマネージャー', '📊', 1);
   C('exit', 'exit', '逃げ出した人', '🚪', 1);
   C('clear', 'clear', '画面クリア', '🧹', 1);
-  C('cd', 'cd ..', 'ひとつ上へ', '⬆️', 1);
+  C('cd', 'cd', 'どこかへ行くの？', '⬆️', 1);
   C('history', 'history', '歴史の目撃者', '📜', 2);
-  C('echo', 'echo hello', 'やまびこ', '🗣️', 2);
-  C('df', 'df -h', '容量の番人', '💽', 2);
-  C('ps', 'ps aux', 'プロセスウォッチャー', '👀', 2);
-  C('kill', 'kill -9', '強制終了の使者', '🗡️', 2);
+  C('echo', 'echo', 'みえてるよ', '🗣️', 2);
   C('ifconfig', 'ifconfig', 'ネットワークの顔', '🌐', 2);
   C('ipconfig', 'ipconfig', 'Windows使い', '🪟', 2);
   C('netstat', 'netstat', '接続の監視者', '🔌', 2);
@@ -494,37 +523,26 @@ const EXTRA = (() => {
   C('wget', 'wget', 'ダウンローダー', '⬇️', 2);
   C('ssh', 'ssh', 'リモートの住人', '🔐', 2);
   C('whois', 'whois', '身元調査員', '🕵️', 2);
-  C('commit', 'git commit', 'コミッター', '✅', 2);
-  C('vimq', ':q!', 'Vimからの脱出者', '🏃', 2);
+  C('vimq', 'vi', 'バックアップは取った？', '🏃', 2);
   C('vimwq', ':wq', '保存して終了', '💾', 2);
   C('hello', 'hello world', 'Hello, World', '👋', 2);
   C('nslookup', 'nslookup', '名前解決人', '🔎', 3);
   C('telnet', 'telnet', '古の接続者', '📞', 3);
-  C('nmap', 'nmap', 'ポートスキャナー', '📡', 3);
   C('pinglocal', 'ping 127.0.0.1', '自分自身への挨拶', '🪞', 3);
   C('ping8', 'ping 8.8.8.8', 'Googleへの挨拶', '🔍', 3);
-  C('sudosu', 'sudo su', 'ルートへの昇格', '👑', 3);
+  C('sudosu', 'su -', 'ルートへの昇格者', '👑', 3);
   C('chmod', 'chmod 777', '全員に全権限', '🔓', 3);
-  C('apt', 'apt update', 'パッケージの更新係', '📦', 3);
-  C('npm', 'npm install', '依存地獄の入口', '🕳️', 3);
-  C('docker', 'docker run', 'コンテナ職人', '🐳', 3);
+  C('docker', 'docker', 'コンテナ職人', '🐳', 3);
   C('reboot', 'reboot', '再起動の使い手', '🔄', 3);
-  C('gitforce', 'git push --force', '力押しのプッシュ', '💥', 4);
-  C('kubectl', 'kubectl', '舵取り', '☸️', 4);
-  C('shutdown', 'shutdown -h now', '電源を落とす者', '⏻', 4);
-  C('rmroot', 'sudo rm -rf /', '管理者権限で全消し', '☠️', 4);
-  C('neo', 'wake up neo', '目覚めた者', '🕶️', 4);
-  C('forkbomb', ':(){ :|:& };:', 'フォーク爆弾', '💣', 5, 'ほかのコマンドより長い呪文です。');
-  C('nopreserve', 'sudo rm -rf --no-preserve-root /', 'ルートの破壊者', '🌋', 5, '');
-  C('dd', 'dd if=/dev/zero of=/dev/sda', 'ディスク初期化人', '🗑️', 5, '');
+  C('shutdown', 'shutdown', '電源を落とす者', '⏻', 4);
   // ---- 隠しコマンド(特殊な操作) 4個 ----
   T('c_sigint', 'SIGINT', '⛔', 'cmd', 3, 'Ctrl+C(MacはCmd+C)を、3秒以内に5回押した', { cmd: true });
   T('c_esc10', '脱出不能', '🏳️', 'cmd', 3, 'Escキーを、1.5秒以内の間隔で10回続けて押した', { cmd: true });
   T('c_logo20', 'ロゴ連打の鬼', '🔱', 'cmd', 3, '左上のロゴを、10秒以内に20回押した', { cmd: true });
   T('c_space20', '宇宙飛行士', '🚀', 'cmd', 3, 'スペースキーを(入力欄の外で)20回続けて押した', { cmd: true, seq: ' '.repeat(20) });
   // ---- コマンドの頂点 ----
-  T('c_shell', 'シェルの支配者', '🐚', 'cmd', 5, 'タイプ入力の隠しコマンド44個を、すべて獲得した', { master: 'typed' });
-  T('c_root', 'ルート権限', '#️⃣', 'cmd', 5, '隠しコマンドの称号50個(この称号を除く49個)を、すべて獲得した', { master: 'allcmd' });
+  T('c_shell', 'シェルの支配者', '🐚', 'cmd', 5, 'タイプ入力の隠しコマンド30個を、すべて獲得した', { master: 'typed' });
+  T('c_root', 'ルート権限', '#️⃣', 'cmd', 5, '隠しコマンドの称号36個(この称号を除く35個)を、すべて獲得した', { master: 'allcmd' });
   // ---- サイト操作 ----
   const A = (id, name, icon, lv, desc, act, n) => T('o_' + id, name, icon, 'op', lv, desc, { act, n });
   A('back1', 'タイムトラベラー', '⏪', 2, '画面左上の「戻る」を、累計50回押した', 'back', 50);
@@ -593,7 +611,7 @@ const EXTRA = (() => {
   const S = (id, name, icon, lv, desc, stat, n) => T('l_' + id, name, icon, 'long', lv, desc, { stat, n });
   S('d30', '三十日の常連', '🗓️', 3, 'サイトに、30日アクセスした', 'days', 30);
   S('d60', '六十日の住人', '🏘️', 4, 'サイトに、60日アクセスした', 'days', 60);
-  S('d100', '百日参り', '⛩️', 5, 'サイトに、100日アクセスした', 'days', 100);
+  S('d100', 'ヒャクニチソウ', '⛩️', 5, 'サイトに、100日アクセスした', 'days', 100);
   S('s7', '七日連続の旅', '🚶', 3, 'サイトに、7日連続でアクセスした', 'streak', 7);
   S('s14', '二週間の皆勤', '🏃', 4, 'サイトに、14日連続でアクセスした', 'streak', 14);
   S('s30', 'ひと月の皆勤', '🏅', 5, 'サイトに、30日連続でアクセスした', 'streak', 30);
@@ -608,7 +626,7 @@ const EXTRA = (() => {
   T('l_sun', '日の出の観測者', '🌅', 'long', 3, '5時0分〜5時9分の間に、サイトを開いていた', { act: 'sunrise', n: 1 });
   // ---- デバッグ系の追加 ----
   const D = (id, name, icon, lv, desc, rule) => T('d_' + id, name, icon, 'debug', lv, desc, rule);
-  D('inject', 'インジェクター', '💉', 3, 'ひとこと・自己紹介に、<script>タグやSQL文(DROP TABLEなど)を入力した(何も起きません)', { ctr: 'inject', n: 1 });
+  D('inject', 'インジェクター', '💉', 4, 'ひとこと・自己紹介に、<script>タグやSQL文(DROP TABLEなど)を入力した(何も起きません)', { ctr: 'inject', n: 1 });
   D('bigpaste', 'ペーストモンスター', '👹', 2, '1,000文字以上の文章を、貼り付けた', { act: 'bigpaste', n: 1 });
   D('adminpeek', '立入禁止区域', '🚧', 2, '管理者用の画面のアドレスを、開こうとした', { ctr: 'adminpeek', n: 1 });
   D('ghost', '幽霊の目撃者', '👻', 2, '存在しないユーザーのプロフィールを、開こうとした', { ctr: 'ghost', n: 1 });
@@ -642,10 +660,30 @@ const EXTRA = (() => {
   TC(200, 'c200', '称号の大帝', '👑', 5);
   TC(250, 'c250', '称号の宇宙', '🌌', 5);
   T('t_all', 'コンプリート', '💯', 'staff', 5, 'すべての称号(管理者専用を除く)を、獲得した', { cnt: -1 });
+  // ---- 2026-10-31 追加 ----
+  T('x_throne', '玉座', '🪑', 'staff', 5, '現在、称号の獲得数が最も多いユーザーに付与される(最多のユーザーが変わると、剥奪されて、新しい最多のユーザーに付与される。taetaeは対象外)', { special: true });
+  T('x_etude', 'エチュード', '🎼', 'join', 5, 'サイトに、100日連続でアクセスした', { stat: 'streak', n: 100 });
+  T('x_senti', 'センチメンタル', '🥹', 'comm', 5, '感動系のひとこと(涙・感動・泣ける・心に染みる・胸が熱い・エモい・尊い・鳥肌 など)を、合計10曲に書いた', { stat: 'sentiment', n: 10 });
+  T('x_stella', 'Stella', '🌠', 'site', 5, '☆を、合計100回つけた(つけ替えを含む)', { ctr: 'starset', n: 100 });
+  T('x_okaeri', 'おかえり', '🏡', 'debug', 5, '最後にサイトを開いてから1か月(30日)以上あけて、再びサイトを開いた', { stat: 'maxgap', n: 30 });
+  T('x_sonna', 'そんなもんね', '😐', 'score', 5, '4.0〜5.5点を、合計200回つけた', { stat: 'mid', n: 200 });
+  T('x_futari', 'ふたりぶん', '👥', 'debug', 5, '同じ端末(ブラウザ)から、違うユーザーでログインした', { ctr: 'multiuser', n: 1 });
+  T('x_speed', 'スピード', '💨', 'result', 5, 'Party Watchになったランキングで、全曲を最も早く採点した人になることを、3つのランキングで連続して達成した', { stat: 'speed3', n: 1 });
+  T('x_hare', 'ハレの日に', '☀️', 'lucky', 5, '東京・大阪・名古屋・福岡の4都市がすべて晴れの日に、サイトを開いた(天気予報を、サーバーが自動で確認)', { stat: 'sunny', n: 1 });
+  T('x_spice', '魔法はスパイス', '🧂', 'result', 4, '自分が☆をつけた曲が、全体の平均8.0点以上で、全体2位だった', { keyTitle: true });
+  T('x_tsuki', '月と私のかくれんぼ', '🌙', 'join', 4, '14日連続でサイトを開き、そのすべてが夜間(19:00〜翌3:59)ではなかった', { stat: 'nightless', n: 14 });
+  T('x_sayonara', 'さよなら人類', '🚀', 'result', 4, '全体の最高点と最低点の差が7.5点以上あった曲に、☆をつけた', { keyTitle: true });
+  T('x_motibe', 'モチベ低下中', '🫠', 'score', 1, '1つのランキングで5曲以上に点数をつけたが、全体表から外された', { stat: 'excl', n: 1 });
+  X.find((x) => x.id === 'c_sudosu').rule.alt = ['su-'];
+  X.find((x) => x.id === 'c_sudosu').desc = 'キーボードで「su -」(または「su-」)と入力した(入力欄の外で。画面のどこにも表示されません)';
   return X;
 
 })();
-EXTRA.forEach((x) => { TITLE_DEFS.push({ id: x.id, name: x.name, desc: x.desc }); TITLE_META[x.id] = [x.cat, x.lv]; });
+EXTRA.forEach((x) => { TITLE_DEFS.push({ id: x.id, name: x.name, desc: x.desc, special: !!x.rule.special }); TITLE_META[x.id] = [x.cat, x.lv]; });
+const TITLE_ORD = Object.fromEntries(TITLE_DEFS.map((d, i) => [d.id, i]));
+const SONG_DEFAULT = ['bake', 'x_etude', 'x_senti', 'x_stella', 'x_okaeri', 'x_sonna', 'l_d100', 'x_futari', 'x_speed', 'x_hare', 'constellation', 'x_tsuki', 'x_spice', 'x_sayonara'];
+const SONG_SET = new Set(SONG_DEFAULT);
+function songOrder2() { const o = (db.songTitles && Array.isArray(db.songTitles.order) ? db.songTitles.order : []).filter((id) => SONG_SET.has(id)); SONG_DEFAULT.forEach((id) => { if (!o.includes(id)) o.push(id); }); return o; }
 const SUS = /<\s*script|<\s*img|<\s*iframe|onerror\s*=|javascript:|drop\s+table|union\s+select|'\s*or\s*'?1'?\s*=\s*'?1|<\s*svg/i;
 const EXTRA_CMD = EXTRA.filter((x) => x.rule.cmd).map((x) => x.id);
 const EXTRA_ACT = new Set(EXTRA.filter((x) => x.rule.act).map((x) => x.rule.act).concat(['touch', 'mouse', 'keys', 'compose']));
@@ -756,6 +794,8 @@ function keyTitles(k, out, doneCount, doneKeys) {
     if (done && N >= 10) { const fr = {}; have.forEach((v) => { fr[v] = (fr[v] || 0) + 1; }); if (Math.max(...Object.values(fr)) >= N / 2) add(pid, 'oneway'); }
     if (new Set(have).size >= 15) add(pid, 'variety');
     if (rows.some((r) => r.starBy.includes(pid) && r.count >= 3 && r.avg > 8.286)) add(pid, 'bake');
+    if (rows.some((r) => r.starBy.includes(pid) && r.rank === 2 && r.avg != null && r.avg >= 8)) add(pid, 'x_spice');
+    if (rows.some((r) => { if (!r.starBy.includes(pid)) return false; const v = Object.values(r.scores || {}).filter((x) => typeof x === 'number'); return v.length >= 2 && Math.max(...v) - Math.min(...v) >= 7.5; })) add(pid, 'x_sayonara');
     if (done && N >= 6 && nR >= 2 && q3(ranked[0].avg) > q3(ranked[1].avg) && ranked[0].scores[pid] <= Math.min(...have) && ranked[0].scores[pid] <= 5) add(pid, 'hanki');
     if (done && N >= 10 && rows.every((r) => r.avg != null && r.count >= 3 && r.scores[pid] < r.avg)) add(pid, 'lonely');
     if (done && N >= 10 && rows.every((r) => r.avg != null && r.count >= 3 && r.scores[pid] > r.avg)) add(pid, 'flatter');
@@ -844,12 +884,23 @@ function computeEarned() {
       const owner = ck.split(':')[1];
       Object.keys(db.reacts[ck]).forEach((e) => db.reacts[ck][e].forEach((pid) => { rxOut[pid] = (rxOut[pid] || 0) + 1; if (pid !== owner) rxIn[owner] = (rxIn[owner] || 0) + 1; }));
     });
-    emBase = { out, fk, doneCount, doneKeys, ws, songIds, rxIn, rxOut }; emBaseVer = VER;
+    // スピード: Party Watchのランキングで、全曲を最も早く採点した人が、3つ連続したか
+    const speed = new Set(), wk = fk.filter((k) => modeOf(k) === 'watch').sort((a, b) => { const p1 = a.split('-'), p2 = b.split('-'); return (Number(p1[0]) - Number(p2[0])) || (Number(p1[1]) - Number(p2[1])) || (KINDS.indexOf(p1[2]) - KINDS.indexOf(p2[2])); });
+    let runPid = null, runN = 0;
+    wk.forEach((k) => {
+      const ids = db.songs.filter((x) => x.key === k).map((x) => x.id); let best = null;
+      if (ids.length) db.people.forEach((u) => { const sc = db.scores[u.id] || {}, st = db.stamps[u.id] || {}; if (!ids.every((sid) => typeof sc[sid] === 'number' && st[sid])) return; const t = Math.max(...ids.map((sid) => st[sid])); if (!best || t < best.t) best = { pid: u.id, t }; });
+      if (!best) { runPid = null; runN = 0; return; }
+      if (best.pid === runPid) runN++; else { runPid = best.pid; runN = 1; }
+      if (runN >= 3) speed.add(runPid);
+    });
+    emBase = { out, fk, speed, doneCount, doneKeys, ws, songIds, rxIn, rxOut }; emBaseVer = VER;
   }
   const out = new Map(); emBase.out.forEach((st, k) => out.set(k, new Set(st)));
-  const { fk, doneCount, doneKeys, ws, songIds, rxIn, rxOut } = emBase;
+  const { fk, speed, doneCount, doneKeys, ws, songIds, rxIn, rxOut } = emBase;
   db.people.forEach((u) => {
     const set = out.get(u.id) || new Set(), c = db.counters[u.id] || {};
+    Object.keys(db.titles[u.id] || {}).forEach((id) => { if (TITLE_BY_ID[id] && !TITLE_BY_ID[id].special) set.add(id); });
     const t = RANK_TIER(rankCount(u.id)); for (let i = 1; i <= t; i++) set.add('rank' + i);
     if ((c.pastclick || 0) >= 5) set.add('viewer');
     if ((c.imgsave || 0) >= 5) set.add('camera');
@@ -908,7 +959,14 @@ function computeEarned() {
         const act = cc.act || {}, cmdD = cc.cmd || {};
         const nScore = Object.keys(db.scores[u.id] || {}).filter((sid) => songIds.has(sid)).length;
         const nCm = Object.keys(db.comments[u.id] || {}).filter((sid) => songIds.has(sid)).length;
-        const stat = { days: days.length, streak: best, stayh: (cc.stay || 0) / 3600, scores: nScore, comments: nCm, profiles: Object.keys(cc.profiles || {}).filter((id) => db.people.some((x) => x.id === id)).length };
+        const SENTI = /涙|泣|感動|感涙|号泣|心に染み|染みる|沁みる|しみる|胸が熱|胸熱|エモ|尊い|鳥肌|じーん|ジーン|心が震|震え/;
+        const nSenti = Object.keys(db.comments[u.id] || {}).filter((sid) => songIds.has(sid) && SENTI.test(String(db.comments[u.id][sid]))).length;
+        const nMid = Object.keys(db.scores[u.id] || {}).filter((sid) => songIds.has(sid) && typeof db.scores[u.id][sid] === 'number' && db.scores[u.id][sid] >= 4 && db.scores[u.id][sid] <= 5.5).length;
+        let maxgap = 0; days.forEach((d, i) => { if (i) maxgap = Math.max(maxgap, Math.round((Date.parse(d + 'T00:00:00Z') - Date.parse(days[i - 1] + 'T00:00:00Z')) / 86400000)); });
+        let nl = 0, nrun = 0, nprev = null; days.forEach((d) => { if (d < (db.nightFrom || '9999')) { nrun = 0; nprev = null; return; } const t = Date.parse(d + 'T00:00:00Z'); if ((cc.nd || {})[d]) { nrun = 0; nprev = t; return; } nrun = nprev !== null && t - nprev === 86400000 ? nrun + 1 : 1; nprev = t; nl = Math.max(nl, nrun); });
+        const nSunny = days.filter((d) => (db.weather || {})[d] === true).length;
+        let nExcl = 0; Object.keys(db.texc || {}).forEach((kk) => { if ((db.texc[kk] || []).includes(u.id)) { const sc2 = db.scores[u.id] || {}; if (db.songs.filter((x) => x.key === kk && typeof sc2[x.id] === 'number').length >= 5) nExcl++; } });
+        const stat = { days: days.length, streak: best, stayh: (cc.stay || 0) / 3600, scores: nScore, comments: nCm, profiles: Object.keys(cc.profiles || {}).filter((id) => db.people.some((x) => x.id === id)).length, sentiment: nSenti, mid: nMid, maxgap, nightless: nl, sunny: nSunny, excl: nExcl, speed3: speed.has(u.id) ? 1 : 0 };
         EXTRA.forEach((x) => {
           const r = x.rule;
           if (r.cmd) { if (cmdD[x.id]) set.add(x.id); }
@@ -949,26 +1007,49 @@ function computeEarned() {
   });
   const QA = ['bughunter', 'debugger', 'boundary', 'lost', 'maxname', 'burst', 'dawn', 'resizer', 'devtools', 'offline', 'relog', 'infloop', 'rotate', 'themechg', 'zoom', 'allsel', 'reloader', 'mash', 'rclick', 'print', 'viewsrc', 'tabhop'];
   out.forEach((set) => { if (QA.every((id) => set.has(id))) set.add('qa'); });
-  db.people.forEach((u) => { if (isAdminPerson(u.id)) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('power'); } });
-  out.forEach((set) => { const n = set.size - (set.has('power') ? 1 : 0); if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking');
+  db.people.forEach((u) => { if (isAdminPerson(u.id)) { if (!out.has(u.id)) out.set(u.id, new Set()); out.get(u.id).add('power'); if (isOwner(u.id)) out.get(u.id).add('owner'); } });
+  out.forEach((set, pid) => {
+    if (isOwner(pid)) return; // taetae(サイト管理者)の称号は、獲得数に含めない
+    let n = 0; set.forEach((id) => { const d = TITLE_BY_ID[id]; if (d && !d.hidden && !d.special) n++; });
+    if (n >= 10) set.add('hunter'); if (n >= 20) set.add('collector'); if (n >= 50) set.add('tking');
     EXTRA.forEach((x) => { if (x.rule.cnt > 0 && n >= x.rule.cnt) set.add(x.id); });
-    const allIds = TITLE_DEFS.filter((d) => !d.hidden && d.id !== 't_all').map((d) => d.id); if (allIds.every((id) => set.has(id))) set.add('t_all'); });
+    const allIds = TITLE_DEFS.filter((d) => !d.hidden && !d.special && d.id !== 't_all').map((d) => d.id); if (allIds.every((id) => set.has(id))) set.add('t_all');
+  });
   emVer = VER; emCver = CVER; emMemo = out; return out;
 }
 // 獲得した称号を保存する(一度獲得した称号は、あとから条件を外れても残る)
 function awardFor(pid) {
-  const set = computeEarned().get(pid); if (!set) return false;
-  const T = (db.titles[pid] = db.titles[pid] || {}); let added = false;
-  set.forEach((id) => { if (!T[id]) { T[id] = { at: Date.now(), seen: false }; added = true; } });
-  if (T && !Object.keys(T).length) delete db.titles[pid];
-  return added;
+  let any = false;
+  for (let i = 0; i < 3; i++) {
+    const set = computeEarned().get(pid); if (!set) break;
+    const T = (db.titles[pid] = db.titles[pid] || {}); let added = false;
+    set.forEach((id) => { if (!T[id] && !(TITLE_BY_ID[id] && TITLE_BY_ID[id].special)) { T[id] = { at: Date.now(), seen: false }; added = true; } });
+    if (T && !Object.keys(T).length) delete db.titles[pid];
+    if (!added) break;
+    any = true; CVER++; // 獲得数に応じた称号を、続けて判定する
+  }
+  if (updateThrone()) any = true;
+  return any;
+}
+// 玉座: 称号の獲得数が最も多いユーザー(管理者は除く)。同数のときは、いま持っている人を優先
+function updateThrone() {
+  const cnt = (pid) => Object.keys(db.titles[pid] || {}).filter((id) => TITLE_BY_ID[id] && !TITLE_BY_ID[id].hidden && !TITLE_BY_ID[id].special).length;
+  let best = 0, top = [];
+  db.people.forEach((u) => { if (isOwner(u.id)) return; const n = cnt(u.id); if (n > best) { best = n; top = [u.id]; } else if (n === best && n > 0) top.push(u.id); });
+  const cur = db.throne && db.people.some((x) => x.id === db.throne) ? db.throne : null;
+  const next = !top.length ? null : (cur && top.includes(cur) ? cur : top[0]);
+  if (next === (db.throne || null) && (!next || (db.titles[next] || {}).x_throne)) return false;
+  if (db.throne && db.titles[db.throne]) { delete db.titles[db.throne].x_throne; if (!Object.keys(db.titles[db.throne]).length) delete db.titles[db.throne]; }
+  db.throne = next;
+  if (next) (db.titles[next] = db.titles[next] || {}).x_throne = { at: Date.now(), seen: false };
+  return true;
 }
 function awardAll() { db.people.forEach((u) => awardFor(u.id)); }
 // 名前の変更などで存在しなくなった称号の記録を取り除く
 function purgeTitles() { let ch = false; Object.keys(db.titles).forEach((pid) => { Object.keys(db.titles[pid]).forEach((id) => { if (!TITLE_BY_ID[id]) { delete db.titles[pid][id]; ch = true; } }); if (!Object.keys(db.titles[pid]).length) { delete db.titles[pid]; ch = true; } }); db.people.forEach((u) => { if (u.equip && !TITLE_BY_ID[u.equip]) { delete u.equip; ch = true; } if (Array.isArray(u.showT) && u.showT.some((x) => !TITLE_BY_ID[x])) { u.showT = u.showT.filter((x) => TITLE_BY_ID[x]); ch = true; } }); return ch; }
 const titleSortKey = (id) => TITLE_CATS.findIndex((c) => c[0] === TITLE_META[id][0]);
 function shownTitles(u) {
-  const T = db.titles[u.id] || {}, ok = (id) => T[id] && TITLE_BY_ID[id] && (!TITLE_BY_ID[id].hidden || isAdminPerson(u.id));
+  const T = db.titles[u.id] || {}, ok = (id) => T[id] && TITLE_BY_ID[id] && canSeeT(TITLE_BY_ID[id], u.id);
   const sortf = (a, b) => titleSortKey(a) - titleSortKey(b) || TITLE_META[b][1] - TITLE_META[a][1];
   if (Array.isArray(u.showT)) return u.showT.filter(ok).sort(sortf);
   const all = Object.keys(T).filter(ok);
@@ -978,8 +1059,8 @@ function shownTitles(u) {
 function equippedOf(u) {
   const T = db.titles[u.id] || {};
   if (u.equip === '') return null;
-  if (u.equip && T[u.equip] && (!TITLE_BY_ID[u.equip].hidden || isAdminPerson(u.id))) return u.equip;
-  if (isAdminPerson(u.id) && T.power && u.equip === undefined) return 'power';
+  if (u.equip && T[u.equip] && TITLE_BY_ID[u.equip] && canSeeT(TITLE_BY_ID[u.equip], u.id)) return u.equip;
+  if (isAdminPerson(u.id) && u.equip === undefined) { if (T.owner) return 'owner'; if (T.power) return 'power'; }
   for (let i = 5; i >= 1; i--) if (T['rank' + i]) return 'rank' + i;
   return null;
 }
@@ -1032,7 +1113,8 @@ async function api(req, res, url) {
   if (p === '/api/me/ping' && m === 'POST') { const me = person(req); SEEN[me.id] = Date.now(); return send(res, 200, { ok: true }); }
   if (p === '/api/online' && m === 'GET') {
     const list = db.people.filter((u) => isOn(u.id)).map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id) }));
-    return send(res, 200, { count: list.length, people: list });
+    const bn = db.banner && db.banner.on ? (db.banner.text || BANNER_DEFAULT) : '';
+    return send(res, 200, { count: list.length, people: list, banner: bn });
   }
   if (m === 'GET' && p === '/api/participants') {
     // 名前と採点した曲数だけを返す(点数・コメントは含めない)
@@ -1044,18 +1126,19 @@ async function api(req, res, url) {
       Object.keys(db.scores[u.id] || {}).forEach((sid) => { if (songKey[sid]) cnt[songKey[sid]] = (cnt[songKey[sid]] || 0) + 1; });
       Object.keys(cnt).forEach((k) => { (by[k] = by[k] || []).push({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), scored: cnt[k] }); });
     });
-    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), on: !!isOn(u.id), tn: Object.keys(db.titles[u.id] || {}).filter((t) => TITLE_BY_ID[t] && !TITLE_BY_ID[t].hidden).length })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
+    return send(res, 200, { people: db.people.map((u) => ({ id: u.id, ic: iconAt(u), name: u.name, adm: isAdminPerson(u.id), on: !!isOn(u.id), tn: isOwner(u.id) ? null : Object.keys(db.titles[u.id] || {}).filter((t) => TITLE_BY_ID[t] && !TITLE_BY_ID[t].hidden).length })), keys: Object.keys(total).map((k) => ({ key: k, songs: total[k], participants: (by[k] || []).sort((a, b) => b.scored - a.scored || a.name.localeCompare(b.name, 'ja')) })) });
   }
   const optPerson = () => { const t = bearer(req); return (t && db.people.find((x) => x.token === t)) || null; };
   if (p === '/api/me/titles' && m === 'GET') {
     const me = person(req);
     if (awardFor(me.id)) save();
     const T = db.titles[me.id] || {};
-    const vis = TITLE_DEFS.filter((d) => !d.hidden || isAdminPerson(me.id));
+    const vis = TITLE_DEFS.filter((d) => canSeeT(d, me.id));
     const hc = {}; Object.keys(db.titles).forEach((pid) => Object.keys(db.titles[pid]).forEach((id) => { hc[id] = (hc[id] || 0) + 1; }));
-    const earned = vis.filter((d) => T[d.id]).map((d) => ({ id: d.id, name: d.name, desc: d.desc, holders: hc[d.id] || 0, cat: TITLE_META[d.id][0], lv: TITLE_META[d.id][1], at: T[d.id].at, fresh: !T[d.id].seen }));
+    const earned = vis.filter((d) => T[d.id]).map((d) => ({ id: d.id, name: d.name, desc: d.desc, holders: hc[d.id] || 0, cat: TITLE_META[d.id][0], lv: TITLE_META[d.id][1], ord: TITLE_ORD[d.id], song: SONG_SET.has(d.id), at: T[d.id].at, fresh: !T[d.id].seen }));
+    const songLocked = vis.filter((d) => !T[d.id] && SONG_SET.has(d.id)).map((d) => TITLE_META[d.id][1]);
     const lockedBy = {}; vis.filter((d) => !T[d.id]).forEach((d) => { const mt = TITLE_META[d.id]; (lockedBy[mt[0]] = lockedBy[mt[0]] || []).push(mt[1]); });
-    return send(res, 200, { earned, locked: vis.length - earned.length, total: vis.length, equipped: equippedOf(me) || '', cats: TITLE_CATS, lockedBy, people: db.people.length, shown: shownTitles(me), customShown: Array.isArray(me.showT) });
+    return send(res, 200, { earned, locked: vis.length - earned.length, total: vis.length, equipped: equippedOf(me) || '', cats: TITLE_CATS, lockedBy, songLocked, songOrder: songOrder2(), songNotes: (db.songTitles || {}).notes || {}, people: db.people.length, shown: shownTitles(me), customShown: Array.isArray(me.showT) });
   }
   if (p === '/api/me/show-titles' && m === 'PUT') {
     const me = person(req);
@@ -1063,7 +1146,7 @@ async function api(req, res, url) {
     const T = db.titles[me.id] || {};
     const ids = Array.isArray(body.ids) ? [...new Set(body.ids.map(String))] : null;
     if (!ids || ids.length > 10) throw bad('表示できる称号は、最大10個までです');
-    if (!ids.every((x) => T[x] && TITLE_BY_ID[x] && (!TITLE_BY_ID[x].hidden || isAdminPerson(me.id)))) throw bad('獲得していない称号は選べません');
+    if (!ids.every((x) => T[x] && TITLE_BY_ID[x] && canSeeT(TITLE_BY_ID[x], me.id))) throw bad('獲得していない称号は選べません');
     me.showT = ids; save();
     return send(res, 200, { shown: shownTitles(me), custom: true });
   }
@@ -1095,6 +1178,15 @@ async function api(req, res, url) {
     } else if (type === 'profile') {
       const pid = String(body.id || '');
       if (pid !== me.id && db.people.some((x) => x.id === pid)) { c.profiles = c.profiles || {}; if (Object.keys(c.profiles).length < 500) c.profiles[pid] = 1; }
+    } else if (type === 'dev') {
+      const dv = String(body.d || '');
+      if (/^[0-9a-z]{8,40}$/.test(dv)) {
+        db.devices = db.devices || {};
+        if (Object.keys(db.devices).length < 5000 || db.devices[dv]) {
+          const L = (db.devices[dv] = db.devices[dv] || []);
+          if (!L.includes(me.id) && L.length < 20) { L.push(me.id); if (L.length >= 2) L.forEach((x) => { ctr(x).multiuser = 1; }); }
+        }
+      }
     } else if (type === 'act') {
       const mm = body.m && typeof body.m === 'object' ? body.m : {};
       c.act = c.act || {};
@@ -1183,7 +1275,7 @@ async function api(req, res, url) {
     const u = db.people.find((x) => x.id === prm[1]);
     if (!u) throw new HttpError(404, 'ユーザーが見つかりません');
     const n = rankCount(u.id), tid = equippedOf(u);
-    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: Object.keys(db.titles[u.id] || {}).filter((t) => TITLE_BY_ID[t] && !TITLE_BY_ID[t].hidden).length, titles: shownTitles(u).map((t) => ({ id: t, name: TITLE_BY_ID[t].name })), adm: isAdminPerson(u.id) });
+    return send(res, 200, { id: u.id, name: u.name, ic: iconAt(u), at: u.at || 0, x: u.x || '', bio: u.bio || '', count: n, tid: tid || '', title: tid ? TITLE_BY_ID[tid].name : '', tn: isOwner(u.id) ? null : Object.keys(db.titles[u.id] || {}).filter((t) => TITLE_BY_ID[t] && !TITLE_BY_ID[t].hidden).length, titles: shownTitles(u).map((t) => ({ id: t, name: TITLE_BY_ID[t].name })), adm: isAdminPerson(u.id) });
   }
   if (p === '/api/me/profile' && m === 'PUT') {
     const me = person(req);
@@ -1215,7 +1307,7 @@ async function api(req, res, url) {
   }
   if (p === '/api/me' && m === 'GET') {
     const me = person(req);
-    { const c = ctr(me.id), d = jstDay(Date.now()); c.days = c.days || {}; if (!c.days[d]) { c.days[d] = 1; save(true); } if (new Date(Date.now() + 9 * 3600000).getUTCHours() === 3 && !c.dawn) { c.dawn = 1; save(); } }
+    { const c = ctr(me.id), d = jstDay(Date.now()); c.days = c.days || {}; if (!c.days[d]) { c.days[d] = 1; save(true); } { const hh = new Date(Date.now() + 9 * 3600000).getUTCHours(); if (hh >= 19 || hh < 4) { c.nd = c.nd || {}; if (!c.nd[d]) { c.nd[d] = 1; save(true); } } } ensureWeather(d); if (new Date(Date.now() + 9 * 3600000).getUTCHours() === 3 && !c.dawn) { c.dawn = 1; save(); } }
     return send(res, 200, { id: me.id, icon: iconAt(me), name: me.name, hasPass: !!me.hash, scores: db.scores[me.id] || {}, stars: db.stars[me.id] || {}, comments: db.comments[me.id] || {} });
   }
   if (p === '/api/me/icon' && m === 'PUT') {
@@ -1268,6 +1360,7 @@ async function api(req, res, url) {
       const cur = db.songs.find((s) => s.id === st[courOf(song.key)]);
       if (frozen(song.key) || (cur && frozen(cur.key))) { bump(me.id, 'frozenTry'); save(); throw new HttpError(403, '集計中(または公開済み)のため、☆を変更できません'); }
       if (st[courOf(song.key)] && st[courOf(song.key)] !== song.id) bump(me.id, 'starswap');
+      if (st[courOf(song.key)] !== song.id) bump(me.id, 'starset');
       st[courOf(song.key)] = song.id;
     }
     save();
@@ -1349,8 +1442,19 @@ async function api(req, res, url) {
     if (p === '/api/admin/titles' && m === 'GET') {
       const cnt = {}; Object.keys(db.titles).forEach((pid) => Object.keys(db.titles[pid]).forEach((id) => { cnt[id] = (cnt[id] || 0) + 1; }));
       const who = {}; db.people.forEach((u) => { Object.keys(db.titles[u.id] || {}).forEach((id) => { (who[id] = who[id] || []).push(u.name); }); });
-      const byPerson = db.people.map((u) => ({ id: u.id, name: u.name, adm: isAdminPerson(u.id), titles: TITLE_DEFS.filter((d) => (db.titles[u.id] || {})[d.id]).map((d) => d.id) })).filter((x) => x.titles.length);
-      return send(res, 200, { cats: TITLE_CATS, titles: TITLE_DEFS.map((d) => ({ id: d.id, name: d.name, desc: d.desc, hidden: !!d.hidden, cat: TITLE_META[d.id][0], lv: TITLE_META[d.id][1], holders: cnt[d.id] || 0, who: (who[d.id] || []).slice(0, 300) })), people: db.people.length, byPerson });
+      const byPerson = db.people.map((u) => ({ id: u.id, name: u.name, adm: isAdminPerson(u.id), owner: isOwner(u.id), titles: TITLE_DEFS.filter((d) => (db.titles[u.id] || {})[d.id]).map((d) => d.id) })).filter((x) => x.titles.length);
+      return send(res, 200, { songOrder: songOrder2(), songNotes: (db.songTitles || {}).notes || {}, cats: TITLE_CATS, titles: TITLE_DEFS.map((d) => ({ id: d.id, name: d.name, desc: d.desc, hidden: !!d.hidden, cat: TITLE_META[d.id][0], lv: TITLE_META[d.id][1], ord: TITLE_ORD[d.id], song: SONG_SET.has(d.id), holders: cnt[d.id] || 0, who: (who[d.id] || []).slice(0, 300) })), people: db.people.length, byPerson });
+    }
+    if (p === '/api/admin/banner' && m === 'GET') return send(res, 200, { on: !!(db.banner && db.banner.on), text: (db.banner && db.banner.text) || '', def: BANNER_DEFAULT });
+    if (p === '/api/admin/banner' && m === 'PUT') {
+      db.banner = { on: !!body.on, text: clean(body.text, 200) }; save();
+      return send(res, 200, { on: db.banner.on, text: db.banner.text, def: BANNER_DEFAULT });
+    }
+    if (p === '/api/admin/song-titles' && m === 'PUT') {
+      const ord = (Array.isArray(body.order) ? body.order : []).filter((id) => typeof id === 'string' && SONG_SET.has(id));
+      const notes = {}; if (body.notes && typeof body.notes === 'object') Object.keys(body.notes).forEach((id) => { if (SONG_SET.has(id)) { const t = clean(body.notes[id], 300); if (t) notes[id] = t; } });
+      db.songTitles = { order: [...new Set(ord)], notes }; save();
+      return send(res, 200, { songOrder: songOrder2(), songNotes: notes });
     }
     if (p === '/api/admin/table-order' && m === 'PUT') {
       const key = clean(body.key, 20);
@@ -1655,5 +1759,6 @@ const srv = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
   }
 });
 srv.headersTimeout = 15000; srv.requestTimeout = 30000; srv.keepAliveTimeout = 10000; srv.maxConnections = 2000; // 遅い接続で居座られないようにする
+if (!db.nightFrom) { db.nightFrom = jstDay(Date.now()); save(); }
 if (purgeTitles()) save();
 srv.listen(PORT, () => console.log('Party Rank: http://localhost:' + PORT));
