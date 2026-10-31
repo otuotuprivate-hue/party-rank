@@ -516,7 +516,6 @@ const EXTRA = (() => {
   C('history', 'history', '歴史の目撃者', '📜', 2);
   C('echo', 'echo', 'みえてるよ', '🗣️', 2);
   C('ifconfig', 'ifconfig', 'ネットワークの顔', '🌐', 2);
-  C('ipconfig', 'ipconfig', 'Windows使い', '🪟', 2);
   C('netstat', 'netstat', '接続の監視者', '🔌', 2);
   C('dig', 'dig', '掘る人', '⛏️', 2);
   C('curl', 'curl', 'くるくるHTTP', '🌀', 2);
@@ -541,8 +540,8 @@ const EXTRA = (() => {
   T('c_logo20', 'ロゴ連打の鬼', '🔱', 'cmd', 3, '左上のロゴを、10秒以内に20回押した', { cmd: true });
   T('c_space20', '宇宙飛行士', '🚀', 'cmd', 3, 'スペースキーを(入力欄の外で)20回続けて押した', { cmd: true, seq: ' '.repeat(20) });
   // ---- コマンドの頂点 ----
-  T('c_shell', 'シェルの支配者', '🐚', 'cmd', 5, 'タイプ入力の隠しコマンド30個を、すべて獲得した', { master: 'typed' });
-  T('c_root', 'ルート権限', '#️⃣', 'cmd', 5, '隠しコマンドの称号36個(この称号を除く35個)を、すべて獲得した', { master: 'allcmd' });
+  T('c_shell', 'シェルの支配者', '🐚', 'cmd', 5, 'タイプ入力の隠しコマンド29個を、すべて獲得した', { master: 'typed' });
+  T('c_root', 'ルート権限', '#️⃣', 'cmd', 5, '隠しコマンドの称号35個(この称号を除く34個)を、すべて獲得した', { master: 'allcmd' });
   // ---- サイト操作 ----
   const A = (id, name, icon, lv, desc, act, n) => T('o_' + id, name, icon, 'op', lv, desc, { act, n });
   A('back1', 'タイムトラベラー', '⏪', 2, '画面左上の「戻る」を、累計50回押した', 'back', 50);
