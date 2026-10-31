@@ -1050,3 +1050,9 @@ details.ttdet[open]>summary::before{transform:rotate(90deg)}
 
 .ttl .timg{width:1.65em;height:1.65em;border-radius:50%;object-fit:cover;flex:none;margin:-2px 0;box-shadow:0 0 0 1.5px rgba(255,255,255,.9)}
 #ttlPopList .ttl .timg{width:1.5em;height:1.5em}
+
+/* ===== 追加4称号(テーマ色) ===== */
+.ttl.tt-x_spice{background:radial-gradient(rgba(255,255,255,.28) 1.2px,transparent 1.6px) 0 0/9px 9px,linear-gradient(135deg,#ffcf6e,#f08a24 55%,#b8431c);color:#fff;border:3px double #a96be8;--g:#ff9d3a;text-shadow:0 1px 2px rgba(90,25,0,.8);font-weight:900;letter-spacing:.06em;border-radius:14px 2px}
+.ttl.tt-constellation{background:radial-gradient(circle at 18% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 24%,#fff 0 1px,transparent 2px),radial-gradient(circle at 86% 70%,#ffd86b 0 1px,transparent 2px),linear-gradient(135deg,#140a3a,#3b1b7a 55%,#d6407f);color:#ffe6f2;border:3px solid #f58ac0;--g:#f06bb0;text-shadow:0 0 6px #f06bb0;font-weight:900;letter-spacing:.06em;border-radius:999px}
+.ttl.tt-x_tsuki{background:radial-gradient(circle at 10% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 60% 78%,#fff 0 1px,transparent 2px),linear-gradient(180deg,#0b1a40,#23478f);color:#fff3c4;border:3px double #f2d36b;--g:#f2d36b;text-shadow:0 0 6px rgba(242,211,107,.8);font-family:Georgia,'Hiragino Mincho ProN',serif;font-style:italic;font-weight:900;letter-spacing:.06em;border-radius:999px}
+.ttl.tt-x_sayonara{background:radial-gradient(circle at 14% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 80% 70%,#fff 0 1px,transparent 2px),linear-gradient(135deg,#031a2b,#0b4f5c 55%,#17a58a);color:#c9fff0;border:3px dashed #5ff0c8;--g:#3fe0b8;text-shadow:0 0 6px #3fe0b8;font-family:monospace;font-weight:900;letter-spacing:.06em;border-radius:6px}
