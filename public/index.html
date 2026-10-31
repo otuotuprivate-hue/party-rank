@@ -30,6 +30,7 @@
 <header class="nav"><div class="navin"><button id="backBtn" class="backbtn" type="button" aria-label="ひとつ前に戻る" hidden>‹ 戻る</button><a class="brand" href="#/"><img src="/icon.svg" alt="" width="28" height="28">Party Rank</a><span class="grow"></span>
 <button id="menuBtn" class="burger" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button></div>
 <nav id="menu" aria-label="メニュー"></nav></header>
+<div class="sitebar" id="siteBar" role="status" aria-live="polite" hidden></div>
 <div id="menuBg" class="menubg"></div>
 <div class="wrap">
 
@@ -188,8 +189,8 @@
     <p>Party Rankの間は、何度でも出し直せます。集計中も提出できますが、<b>集計中の提出は一度限りで、あとから変更できません</b>。公開後(Party Watch)は受け付けません。結果と全員の得点は、公開後に見られます。</p>
   </div>
   <div class="panel about"><h3 class="sub">称号</h3>
-    <p>参加のしかたや採点のくせ、サイトの使い方に応じて、全部で<b>329個</b>の称号がもらえます。難しい称号ほど、光る豪華なデザインです(難易度は★5段階)。中には、キーボードでサーバーやネットワークのコマンドを入力すると手に入る、隠し称号もあります。</p>
-    <p>獲得すると画面にお知らせが出ます。「称号コレクション」では、ジャンルごと・難易度の高い順に、獲得した称号と、獲得者の割合が見られます(ジャンルは押して開閉できます)。好きな称号は、コレクションやプロフィールから<b>名前の横にセット</b>できます。プロフィールには、獲得した称号の一覧も表示されます。獲得条件は、手に入れた人だけが見られます。</p>
+    <p>参加のしかたや採点のくせ、サイトの使い方に応じて、全部で<b>328個</b>の称号がもらえます。難しい称号ほど、光る豪華なデザインです(難易度は★5段階)。中には、キーボードでサーバーやネットワークのコマンドを入力すると手に入る、隠し称号もあります。</p>
+    <p>獲得すると画面にお知らせが出ます。「称号コレクション」では、ジャンルごと・難易度の高い順に、獲得した称号と、獲得者の割合が見られます(ジャンルは押して開閉できます)。曲にちなんだ「曲名称号」は、ジャンルとは別の欄に並びます。好きな称号は、コレクションやプロフィールから<b>名前の横にセット</b>できます。プロフィールには、獲得した称号の一覧も表示されます。獲得条件は、手に入れた人だけが見られます。</p>
   </div>
   <div class="panel about"><h3 class="sub">相性診断</h3>
     <p>メニューの「相性診断」では、公開済み(Party Watch)のランキングで、同じ曲につけた点数の近さから、あなたと相性のいいユーザーを探せます。点数の差が平均1点なら90%、2点なら80%です(共通の曲が5曲以上の人が対象)。</p>
@@ -418,6 +419,12 @@
 </section>
 
 <section class="view" id="v-news" hidden>
+  <h2>サイト上部のメッセージ(アップデート中の告知)</h2>
+  <p class="hint">ONにすると、全員の画面の上部にメッセージが出ます(約30秒以内に反映)。アップデートの前にON、終わったらOFFにしてください。空欄のときは、標準のメッセージを出します。</p>
+  <div class="panel" id="bnPanel">
+    <label class="blk">メッセージ(200字まで)<textarea id="bnText" maxlength="200" rows="3" style="width:100%"></textarea></label>
+    <div class="bar" style="margin-top:8px"><button type="button" class="pri" id="bnOn">ONにして保存</button><button type="button" class="sec" id="bnOff">OFFにして保存</button><span class="m" id="bnMsg" role="alert"></span></div>
+  </div>
   <h2>お知らせの登録</h2>
   <p class="hint">一般ユーザーの画面には、タイトルだけが並びます。タップすると本文が開きます。投稿から7日間は「New!」と表示されます。</p>
   <div class="panel">
